@@ -184,7 +184,12 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
         return code;
     }
     SWLOG_INFO("%s: certfile:%s:cert type:%s\n", __FUNCTION__, sec->cert_name, sec->cert_type);
-    code = curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
+    SWLOG_INFO("%s: engine type:%s\n", __FUNCTION__, sec->engine);
+    if (sec->engine[0] == '\0') {
+        code = curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
+    }else{
+        code = curl_easy_setopt(curl, CURLOPT_SSLENGINE, sec->engine);
+    }
     if(code != CURLE_OK) {
         SWLOG_ERROR("%s : Curl CURLOPT_SSLENGINE_DEFAULT failed with error %s\n", __FUNCTION__, curl_easy_strerror(code));
     }
@@ -579,7 +584,7 @@ void closeFile(DownloadData *data, struct curlprogress *prog, FILE *fp)
 }
 /* urlHelperDownloadFile(): Use for download a file
  * curl : Curl Object
- * file : path with file name to download 
+ * file : path with file name to download
  * dnl_start_pos : Use for chunk Download if it is NULL in that case request is Full Downlaod
  * httpCode_ret_status : Send back http status.
  * curl_ret_status : Send back curl status
@@ -587,7 +592,7 @@ void closeFile(DownloadData *data, struct curlprogress *prog, FILE *fp)
  * */
 size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, int chunk_dwnl_retry_time, 
     int *httpCode_ret_status, CURLcode *curl_ret_status) {
-    
+
     DownloadData data;
     DownloadData *pData = &data;
     struct curlprogress prog; // Use for store curl progress
@@ -637,7 +642,7 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
             SWLOG_ERROR("CURL: CURLOPT_HEADERFUNCTION set failed\n");
             closeFile(pData, NULL, headerfile);
             return ret_code;
-        }  
+        }
         /* Set CURLOPT_HEADERDATA to get header infor inside headerfile callback function */
         ret_code = curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
         if(ret_code != CURLE_OK) {
