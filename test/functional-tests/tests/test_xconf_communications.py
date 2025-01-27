@@ -14,14 +14,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+import pytest
+import subprocess
 
-WORKDIR=`pwd`
-export ROOT=/usr
-export INSTALL_DIR=${ROOT}/local
-mkdir -p $INSTALL_DIR
+def test_dwnl_lib_test():
+    result = subprocess.run(['./dwnl_lib_test', '1'], stdout=subprocess.PIPE)
+    assert result.returncode == 0
 
-# Build common utilities
-autoreconf -i
-./configure --prefix=${INSTALL_DIR} CFLAGS="-Wno-error=format -Wno-unused-result -Wno-format-truncation -Wno-error=format-security -DRDK_LOGGER"
-make && make install
-
+def test_dwnl404_lib_test():
+    result = subprocess.run(['./dwnl_lib_test', '5'], stdout=subprocess.PIPE)
+    assert result.returncode == 0
