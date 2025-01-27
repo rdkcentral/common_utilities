@@ -17,5 +17,10 @@
 # limitations under the License.
 ####################################################################################
 
+Feature: File Download
 
-
+  Scenario: Firmware Download from sst server after xconf download
+    Given When received xconf response
+    Then Get ssr url from xconf response
+    Then Send request to ssr server for download firmware
+    Then Receive Firmware
