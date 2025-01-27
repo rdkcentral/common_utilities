@@ -15,13 +15,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-WORKDIR=`pwd`
-export ROOT=/usr
-export INSTALL_DIR=${ROOT}/local
-mkdir -p $INSTALL_DIR
+export top_srcdir=`pwd`
+RESULT_DIR="/tmp/l2_test_report"
+mkdir -p "$RESULT_DIR"
 
-# Build common utilities
-autoreconf -i
-./configure --prefix=${INSTALL_DIR} CFLAGS="-Wno-error=format -Wno-unused-result -Wno-format-truncation -Wno-error=format-security -DRDK_LOGGER"
-make && make install
+# Compile Test binary
+cc -o dwnl_lib_test test/functional-tests/tests/dwnl_lib_test.c -ldl -lfwutils
+
+pytest --json-report  --json-report-file $RESULT_DIR/common_utilities_report.json test/functional-tests/tests/
 
