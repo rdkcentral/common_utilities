@@ -185,7 +185,7 @@ int SetJsonVars( char *fileIn, char *fileOut, int setenvvars )
     cJSON *json = NULL;
     cJSON *item = NULL;
     int iRet = 1;
-    char *pStr, *pName, *pVal;
+    char *pStr, *pName;
     char cOut[100];
 
 

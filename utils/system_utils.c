@@ -314,7 +314,7 @@ size_t GetHwMacAddress( char *iface, char *pMac, size_t szBufSize )
             {
                 mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
                 ret = snprintf(pMac, szBufSize, "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x" , mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-                SWLOG_INFO("GetHwMacAddress: MAC address: %s and ret=%u\n", pMac, ret);
+                SWLOG_INFO("GetHwMacAddress: MAC address: %s and ret=%zu\n", pMac, ret);
             }
             close(fd);
         }
