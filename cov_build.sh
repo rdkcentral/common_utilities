@@ -22,6 +22,6 @@ mkdir -p $INSTALL_DIR
 
 # Build common utilities
 autoreconf -i
-./configure --prefix=${INSTALL_DIR} CFLAGS="-Wno-error=format -Wno-unused-result -Wno-format-truncation -Wno-error=format-security -DRDK_LOGGER"
+./configure --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER"
 make && make install
 

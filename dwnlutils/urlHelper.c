@@ -301,7 +301,7 @@ static size_t WriteMemoryCB( void *pvContents, size_t szOneContent, size_t numCo
 
   if( (pdata->datasize + numBytes) >= pdata->memsize )     // if new data plus what we currently have stored >= current mem alloc
   {
-      SWLOG_INFO( "WriteMemoryCB: reallocating %d bytes, pdata->pvOut = 0x%p\n", pdata->datasize + numBytes + 1, pdata->pvOut );
+      SWLOG_INFO( "WriteMemoryCB: reallocating %zu bytes, pdata->pvOut = 0x%p\n", pdata->datasize + numBytes + 1, pdata->pvOut );
       ptr = realloc( pdata->pvOut, pdata->datasize + numBytes + 1 );     // current data size plus new data size plus 1 byte for NULL
       if( ptr != NULL )
       {
@@ -551,7 +551,7 @@ CURLcode setThrottleMode(CURL *curl, curl_off_t max_dwnl_speed) {
         SWLOG_ERROR("%s : curl parameter is NULL or download speed is < 0\n", __FUNCTION__);
         return ret_code;
     }
-    SWLOG_INFO("CURL: CURLOPT_MAX_RECV_SPEED_LARGE set speed limit=%lld\n", max_dwnl_speed);
+    SWLOG_INFO("CURL: CURLOPT_MAX_RECV_SPEED_LARGE set speed limit=%" CURL_FORMAT_CURL_OFF_T "\n", max_dwnl_speed);
     ret_code = curl_easy_setopt(curl, CURLOPT_MAX_RECV_SPEED_LARGE, max_dwnl_speed);
     if(ret_code != CURLE_OK) {
         SWLOG_ERROR("%s: CURL: CURLOPT_MAX_RECV_SPEED_LARGE failed:%s\n", __FUNCTION__, curl_easy_strerror(ret_code));
@@ -727,7 +727,7 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
     if (headerfile != NULL) {
         fclose(headerfile);
     }
-    SWLOG_INFO("CURL:Download Operation Done. File data.datasize:%u and curl code=%d\n", data.datasize, *curl_ret_status);
+    SWLOG_INFO("CURL:Download Operation Done. File data.datasize:%zu and curl code=%d\n", data.datasize, *curl_ret_status);
     return data.datasize;
 }
 
