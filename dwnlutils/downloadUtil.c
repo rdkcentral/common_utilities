@@ -99,7 +99,7 @@ unsigned int doGetDwnlBytes(void *in_curl)
         curl = (CURL *)in_curl;
 	ret_code = curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl);
 	if (ret_code == CURLE_OK) {
-            SWLOG_INFO("%s : CURL: curl_easy_getinfo Success:%llu\n", __FUNCTION__, dl);
+            SWLOG_INFO("%s : CURL: curl_easy_getinfo Success:%" CURL_FORMAT_CURL_OFF_T "\n", __FUNCTION__, dl);
 	    if (dl > 0) {
                 bytes = dl;
                 SWLOG_INFO("%s : CURL: Downloaded bytes:%u\n", __FUNCTION__, bytes);
@@ -229,7 +229,7 @@ int getJsonRpcData(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_tok
         return DWNL_FAIL;
     }
     byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
-    SWLOG_INFO("%s : Bytes Downloaded=%u and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    SWLOG_INFO("%s : Bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
     SWLOG_INFO("%s : data received =%s\n", __FUNCTION__, (char *)pfile_dwnl->pDlData->pvOut);
 
     if( slist != NULL ) {
@@ -325,7 +325,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
     {
         byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
     }
-    SWLOG_INFO("%s : After curl operation no of bytes Downloaded=%u and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    SWLOG_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
 
 #ifdef CURL_DEBUG
     if (verbosinfo.verboslog) {
@@ -392,7 +392,7 @@ int doAuthHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, int *out_httpC
     {
         byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
     }
-    SWLOG_INFO("%s : After curl operation no of bytes Downloaded=%u and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    SWLOG_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
     if( slist != NULL ) {
         curl_slist_free_all( slist );
     }
