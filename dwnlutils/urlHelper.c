@@ -690,7 +690,7 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
                  if((*curl_ret_status == 18) || (*curl_ret_status == 28)) {
                      seek_place = 0;
                      seek_place = ftell((FILE*)data.pvOut);
-                     memset(file_pt_pos, '\0', sizeof(file_pt_pos));
+                     memset(file_pt_pos, '\0', 10*sizeof(file_pt_pos));
                      sprintf(file_pt_pos, "%d-", seek_place);
                  }else if ((*curl_ret_status == 33) || (*curl_ret_status == 36)) {
 		     SWLOG_ERROR( "CURL: Received curl error=%d and go for full Download\n",*curl_ret_status);

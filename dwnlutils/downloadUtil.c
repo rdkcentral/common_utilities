@@ -19,7 +19,6 @@
 #include "downloadUtil.h"
 #include "rdkv_cdl_log_wrapper.h"
 
-
 /* doCurlInit(): ininitialize curl resources
  * param : void
  * Return :void * : Send back curl init pointer
