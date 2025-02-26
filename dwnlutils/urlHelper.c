@@ -186,7 +186,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
     SWLOG_INFO("%s: certfile:%s:cert type:%s\n", __FUNCTION__, sec->cert_name, sec->cert_type);
 
 #ifdef LIBRDKCERTSELECTOR	
-    SWLOG_INFO("%s: engine type:%s\n", __FUNCTION__, sec->engine);
+    SWLOG_INFO("%s: engine type:%s\n", __FUNCTION__, sec->engine)
     if (sec->engine[0] == '\0') {
         code = curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
     }else{
