@@ -151,29 +151,15 @@ size_t GetModelNum( char *pModelNum, size_t szBufSize )
 {
     size_t i = 0;
     FILE *fp;
-    char *pTmp;
-    char buf[150];
 
     if( pModelNum != NULL )
     {
         *pModelNum = 0;
-        if( (fp = fopen( DEVICE_PROPERTIES_FILE, "r" )) != NULL )
+        if( (fp = fopen( "/tmp/.model_number", "r" )) != NULL )
         {
-            while( fgets( buf, sizeof(buf), fp ) != NULL )
-            {
-                pTmp = strstr( buf, "MODEL_NUM=" );
-                if( pTmp && pTmp == buf )   // if match found and match is first character on line
-                {
-                    pTmp = strchr( pTmp, '=' );
-		    if(pTmp != NULL)
-		    {
-                    ++pTmp;
-                    i = snprintf( pModelNum, szBufSize, "%s", pTmp );
-                    i = stripinvalidchar( pModelNum, i );
-		    }
-                }
-            }
+            fgets(pModelNum, szBufSize, fp);
             fclose( fp );
+            i = stripinvalidchar( pModelNum, szBufSize );      // remove newline etc.
         }
         else
         {
@@ -185,6 +171,38 @@ size_t GetModelNum( char *pModelNum, size_t szBufSize )
         SWLOG_ERROR( "GetModelNum: Error, input argument NULL\n" );
     }
     return i;
+}
+
+/* function GetMFRName - gets the  manufacturer name of the device.
+        Usage: size_t GetMFRName <char *pMFRName> <size_t szBufSize>
+            pMFRName - pointer to a char buffer to store the output string.
+            szBufSize - the size of the character buffer in argument 1.
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetMFRName( char *pMFRName, size_t szBufSize )
+{
+    size_t i = 0;
+    FILE *fp;
+    if( pMFRName != NULL )
+    {
+        *pMFRName = 0;
+        if( (fp = fopen( "/tmp/.manufacturer", "r" )) != NULL )
+	{
+            fgets(pMFRName, szBufSize, fp);
+            fclose( fp );
+            i = stripinvalidchar( pMFRName, szBufSize );      // remove newline etc.
+	}
+        else
+        {
+            SWLOG_ERROR( "GetMFRName: Cannot open %s for reading\n", "/tmp/.manufacturer" );
+        }
+    }
+    else
+    {
+        SWLOG_ERROR( "GetMFRName: Error, input argument NULL\n" );
+    }
+    return i;
+
 }
 
 /* function GetBuildType - gets the build type of the device in lowercase. Optionally, sets an enum
