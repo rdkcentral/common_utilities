@@ -837,7 +837,7 @@ CURLcode SetPostFields( CURL *curl, char *pPostFields )
 
     if( curl != NULL && pPostFields != NULL )
     {
-        ret_code = curl_easy_setopt( curl, CURLOPT_POSTFIELDSIZE, -1 );
+        ret_code = curl_easy_setopt( curl, CURLOPT_POSTFIELDSIZE, (long)strlen(pPostFields) );
         if( ret_code == CURLE_OK )
         {
             ret_code = curl_easy_setopt( curl, CURLOPT_POSTFIELDS, pPostFields );
