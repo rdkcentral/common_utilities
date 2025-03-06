@@ -34,7 +34,7 @@ libdwnlutil_la_CPPFLAGS = -I${top_srcdir}/utils
 libdwnlutil_la_includedir = ${includedir}
 
 if IS_LIBRDKCERTSEL_ENABLED
-libdwnlutil_la_CFLAGS += $(LIBRDKCERTSEL_FLAG)
-AM_LDFLAGS += -lRdkCertSelector
+libdwnlutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
+AM_LDFLAGS = -lRdkCertSelector
 endif
 # TODO Use right AC conditional flag for gtest GTEST_ENABLE_FLAG
