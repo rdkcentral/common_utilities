@@ -29,7 +29,7 @@
 #include <curl/curl.h>
 #include <ctype.h>
 
-#define CURL_TLS_TIMEOUT 60L
+#define CURL_TLS_TIMEOUT 7200L
 #define CURL_PROGRESS_FILE "/opt/curl_progress"
 
 #define MAX_BUFF_SIZE 512
