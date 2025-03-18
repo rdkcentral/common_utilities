@@ -163,7 +163,7 @@ size_t GetModelNum( char *pModelNum, size_t szBufSize )
         }
         else
         {
-            SWLOG_ERROR( "GetModelNum: Cannot open %s for reading\n", DEVICE_PROPERTIES_FILE );
+            SWLOG_ERROR( "GetModelNum: Cannot open %s for reading\n", "/tmp/.model_number" );
         }
     }
     else

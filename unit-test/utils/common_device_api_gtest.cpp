@@ -154,12 +154,37 @@ TEST_F(CommonDeviceApiTestFixture, GetModelNum_file_found)
 {
     int ret;
     char data[32];
-    ret = system("echo \"MODEL_NUM=12062024\" > /tmp/device.properties");
+    ret = system("echo \"03182025\" > /tmp/.model_number");
     EXPECT_NE(GetModelNum(data, 7),0);
-    ret = system("rm -f /tmp/device.properties");
+    ret = system("rm -f /tmp/.model_number");
 }
 
-/* 5. GetBuildType*/
+/* 5. GetMFRName*/
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_NULL_chracter)
+{
+    EXPECT_EQ(GetMFRName(NULL, 2),0);
+}
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_size_0)
+{
+    char data[32];
+    EXPECT_EQ(GetMFRName(data, 0),0);
+}
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_file_not_found)
+{
+    int ret;
+    char data[32];
+    EXPECT_EQ(GetMFRName(data, 7),0);
+}
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_file_found)
+{
+    int ret;
+    char data[32];
+    ret = system("echo \"03182025\" > /tmp/.manufacturer");
+    EXPECT_NE(GetMFRName(data, 7),0);
+    ret = system("rm -f /tmp/.manufacturer");
+}
+
+/* 6. GetBuildType*/
 TEST_F(CommonDeviceApiTestFixture, GetBuildType_NULL_chracter)
 {
     BUILDTYPE eBuildType;
@@ -190,7 +215,7 @@ TEST_F(CommonDeviceApiTestFixture, GetBuildType_file_found)
     ret = system("rm -f /tmp/device.properties");
 }
 
-/* 6. GetFirmwareVersion*/
+/* 7. GetFirmwareVersion*/
 TEST_F(CommonDeviceApiTestFixture, GetFirmwareVersion_NULL_chracter)         /*3rd parameter revisit*/
 {
     EXPECT_EQ(GetFirmwareVersion(NULL, 2),0);
@@ -215,7 +240,7 @@ TEST_F(CommonDeviceApiTestFixture, GetFirmwareVersion_file_found)
     ret = system("rm -f /tmp/version.txt");
 }
 
-/* 7. CurrentRunningInst */
+/* 8. CurrentRunningInst */
 TEST_F(CommonDeviceApiTestFixture, CurrentRunningInst_Filename_NULL)   
 {
     EXPECT_NE(CurrentRunningInst(NULL), true);
