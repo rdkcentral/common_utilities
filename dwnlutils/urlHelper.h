@@ -46,6 +46,9 @@ typedef struct credential {
         char cert_name[64];
         char cert_type[16];
         char key_pas[65];
+#ifdef LIBRDKCERTSELECTOR
+        char engine[32];
+#endif
 }MtlsAuth_t;
 
 /* Below structure use for download file data */
