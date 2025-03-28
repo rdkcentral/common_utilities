@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 
 extern "C" {
@@ -38,12 +39,29 @@ using ::testing::StrEq;
 /*TO DO - Write Class
 CLASS name : CommonDeviceApiTestFixture */
 
+class MockFileReader {
+	public:
+		MOCK_METHOD(char*, ReadFile, (const char* path, char* buffer, size_t size),());
+      };
+
+char* MockReadFile(const char* path, char* buffer, size_t size) {
+      std::ifstream file(path, std::ios::binary);
+      if (file) {
+         file.read(buffer, size);
+	 return buffer;
+      }
+      return nullptr;
+}
+
 class CommonDeviceApiTestFixture : public ::testing::Test {
 	protected:
 		    // Member variables and functions here
+	MockFileReader mockFileReader;
+
         virtual void SetUp()
         {
             printf("%s\n", __func__);
+            ON_CALL(mockFileReader, ReadFile(::testing::_, ::testing::_, ::testing::_)).WillByDefault(::testing::Invoke(MockReadFile));
         }
 
         virtual void TearDown()
@@ -159,7 +177,50 @@ TEST_F(CommonDeviceApiTestFixture, GetModelNum_file_found)
     ret = system("rm -f /tmp/device.properties");
 }
 
-/* 5. GetBuildType*/
+/* 5. GetMFRName*/
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_NULL_chracter)
+{
+    EXPECT_EQ(GetMFRName(NULL, 2),0);
+}
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_size_0)
+{
+    char data[32];
+    EXPECT_EQ(GetMFRName(data, 0),0);
+}
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_file_not_found)
+{
+    int ret;
+    char data[32];
+    EXPECT_EQ(GetMFRName(data, 7),0);
+}
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_file_found)
+{
+    int ret;
+    char data[32];
+    ret = system("echo \"03182025\" > /tmp/.manufacturer");
+    EXPECT_NE(GetMFRName(data, 7),0);
+    ret = system("rm -f /tmp/.manufacturer");
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetMFRName_compare_file_data)
+{
+    int ret;
+    const char* testFilePath = "/tmp/.manufacturer";
+    std::ofstream testFile(testFilePath);
+    std::string testData = "03272025";
+    testFile << testData;
+    testFile.close();
+
+    char data[32];
+    EXPECT_NE(GetMFRName(data, 9),0);
+
+    char data1[32];
+    EXPECT_CALL(mockFileReader, ReadFile(testFilePath, data1, sizeof(data1))).WillOnce(Invoke(MockReadFile));
+    mockFileReader.ReadFile(testFilePath, data1, sizeof(data1));
+    EXPECT_EQ(strcmp(data1, data), 0);
+    ret = system("rm -f /tmp/.manufacturer");
+}
+/* 6. GetBuildType*/
 TEST_F(CommonDeviceApiTestFixture, GetBuildType_NULL_chracter)
 {
     BUILDTYPE eBuildType;
@@ -190,7 +251,7 @@ TEST_F(CommonDeviceApiTestFixture, GetBuildType_file_found)
     ret = system("rm -f /tmp/device.properties");
 }
 
-/* 6. GetFirmwareVersion*/
+/* 7. GetFirmwareVersion*/
 TEST_F(CommonDeviceApiTestFixture, GetFirmwareVersion_NULL_chracter)         /*3rd parameter revisit*/
 {
     EXPECT_EQ(GetFirmwareVersion(NULL, 2),0);
@@ -215,7 +276,7 @@ TEST_F(CommonDeviceApiTestFixture, GetFirmwareVersion_file_found)
     ret = system("rm -f /tmp/version.txt");
 }
 
-/* 7. CurrentRunningInst */
+/* 8. CurrentRunningInst */
 TEST_F(CommonDeviceApiTestFixture, CurrentRunningInst_Filename_NULL)   
 {
     EXPECT_NE(CurrentRunningInst(NULL), true);
