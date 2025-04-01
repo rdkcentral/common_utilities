@@ -1025,6 +1025,19 @@ unsigned int getFileLastModifyTime(char *file_name)
  * @param : void:
  * @return: int Success: return time and 0: fail
  * */
+#if defined(__aarch64__)
+int64_t getCurrentSysTimeSec(void)
+{
+    int64_t curtime = time(0);
+    if (curtime == ((int64_t) -1)) {
+        SWLOG_INFO("time return error\n");
+        return 0;
+    } else {
+        SWLOG_INFO("current system time=%lu\n", curtime);
+    }
+    return curtime;
+}
+#else
 time_t getCurrentSysTimeSec(void)
 {
     time_t curtime = time(0);
@@ -1036,7 +1049,7 @@ time_t getCurrentSysTimeSec(void)
     }
     return curtime;
 }
-
+#endif
 /** @brief This Function searches for the process and provides the relevant process pid.
  *
  *  @param[in]  in_file  input file process name
