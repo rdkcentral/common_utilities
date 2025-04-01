@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
+#include <stdint.h>
 
 #define MAX_OUT_BUFF_POPEN 4096
 #define RDK_API_SUCCESS 0
@@ -81,7 +82,11 @@ int  tarExtract(char *in_file, char *out_path);
 int  arExtract(char *in_file, char *out_path);
 void   copyCommandOutput (char *cmd, char *out, int len);
 unsigned int getFileLastModifyTime(char *file_name);
+#if defined(__aarch64__)
+int64_t getCurrentSysTimeSec(void);
+#else
 time_t getCurrentSysTimeSec(void);
+#endif
 int  getProcessID(char *in_file, char *out_path);
 /* String Operations */
 int strSplit(char *in, char *tok, char **out, int len);
