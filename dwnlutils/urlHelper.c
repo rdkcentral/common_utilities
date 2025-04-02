@@ -60,6 +60,7 @@ void urlHelperDestroyCurl(CURL *ctx) {
  * */
 int setForceStop(int value)
 {
+    bool test1 = false;	
     SWLOG_INFO("setForceStop(): rcv value=%d\n", value);
     force_stop = value;
     SWLOG_INFO("setForceStop(): set force_stop=%d\n", force_stop);
