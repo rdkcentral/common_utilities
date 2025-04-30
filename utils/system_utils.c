@@ -444,7 +444,9 @@ int findFile(char *dir, char *search)
     }
     chdir(dir);
     while((entry = readdir(dp)) != NULL) {
-        lstat(entry->d_name, &statbuf);
+        if (lstat(entry->d_name, &statbuf) == -1) {
+            SWLOG_ERROR("lstat failed for %s: %s\n", entry->d_name, strerror(errno));
+        }       
         if(!strcmp(entry->d_name, search)) {
             found = 1;
             break;
