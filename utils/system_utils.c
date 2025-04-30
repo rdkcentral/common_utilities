@@ -703,7 +703,9 @@ int emptyFolder(char *folderPath)
             rmdir(filePath);
         }
         else {
-            remove(filePath);
+             if (remove(filePath) != 0) {
+                 return RDK_API_FAILURE;
+             }                        
         }
     }
 
