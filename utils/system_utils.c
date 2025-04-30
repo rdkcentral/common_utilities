@@ -936,9 +936,9 @@ void copyCommandOutput (char *cmd, char *out, int len)
     if (fp) {
         if(out) {
             if (fgets (out, len, fp) != NULL) {
-                size_t len = strlen (out);
-                if ((len > 0) && (out[len - 1] == '\n'))
-                    out[len - 1] = 0;
+                size_t outLen = strlen (out);
+                if ((outLen > 0) && (outLen[outLen - 1] == '\n'))
+                    out[outLen - 1] = 0;
             }
         }
         pclose (fp);
