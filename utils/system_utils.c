@@ -498,16 +498,7 @@ int findPFile(char *path, char *search, char *out)
         SWLOG_ERROR("Invalid out pointer\n");
         return 0;
     }
-
-    // stat for the path
-    stat(path, &stat_path);
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
-    }
-
+    
     // if not possible to read the directory for this user
     if ((dir = opendir(path)) == NULL) {
         SWLOG_ERROR("Can't open the directory\n");
