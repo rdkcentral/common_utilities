@@ -568,7 +568,6 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
@@ -586,12 +585,6 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
     if(found_t == NULL) {
         SWLOG_ERROR("Invalid found_t pointer\n");
         return 0;
-    }
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
     }
 
     // if not possible to read the directory for this user
