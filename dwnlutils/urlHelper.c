@@ -911,35 +911,35 @@ bool checkDeviceInternetConnection(long timeout_ms)
     if(curl) {
         // Set the URL to retrieve
         if ( curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK){
-	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_URL \n"");
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_URL \n");
 	}
         // Set private data and custom headers
         if ( curl_easy_setopt(curl, CURLOPT_PRIVATE,url) != CURLE_OK){
-	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_PRIVATE \n"");
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_PRIVATE \n");
 	}
         struct curl_slist *chunk = NULL;
         chunk = curl_slist_append(chunk, "Cache-Control: no-cache, no-store");
         if ( curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk) != CURLE_OK){
-	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n"");
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n");
 	}
         // Set user agent
         if ( curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0") != CURLE_OK){
-	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_USERAGENT \n"");
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_USERAGENT \n");
 	}
 
         // Set request type to GET
         if ( curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) != CURLE_OK){
-	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPGET \n"");
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPGET \n");
 	}
 
         // Set write callback function
         if (curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction) != CURLE_OK){
-	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_WRITEFUNCTION \n"");
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_WRITEFUNCTION \n");
 	}
 
         // Set timeout in milliseconds
         if (curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms) != CURLE_OK) {
-            SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_TIMEOUT_MS \n"");
+            SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_TIMEOUT_MS \n");
         }
 
         // Make the request
