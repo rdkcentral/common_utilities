@@ -1145,6 +1145,9 @@ void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* o
         }
     }
     else{
+        if (file) {
+            fclose(file);
+        }
         SWLOG_ERROR("Invalid Parameters %p %p %p",strtokvalue, string, outValue);
     }
 }
