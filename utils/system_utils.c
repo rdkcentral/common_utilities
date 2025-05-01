@@ -798,8 +798,8 @@ int fileCheck(char *pFilepath)
 {
     FILE *fp = fopen(pFilepath, "r");
     if(fp) {
-        return 1;
         fclose(fp);
+        return 1;
     }
     else {
         return 0;
