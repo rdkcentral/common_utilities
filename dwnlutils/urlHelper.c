@@ -895,25 +895,37 @@ bool checkDeviceInternetConnection(long timeout_ms)
     curl = curl_easy_init();
     if(curl) {
         // Set the URL to retrieve
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-
+        if ( curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_URL \n"");
+	}
         // Set private data and custom headers
-        curl_easy_setopt(curl, CURLOPT_PRIVATE,url);
+        if ( curl_easy_setopt(curl, CURLOPT_PRIVATE,url) != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_PRIVATE \n"");
+	}
         struct curl_slist *chunk = NULL;
         chunk = curl_slist_append(chunk, "Cache-Control: no-cache, no-store");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
+        if ( curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk) != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n"");
+	}
         // Set user agent
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0");
+        if ( curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0") != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_USERAGENT \n"");
+	}
 
         // Set request type to GET
-        curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+        if ( curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPGET \n"");
+	}
 
         // Set write callback function
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
+        if (curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction) != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_WRITEFUNCTION \n"");
+	}
 
         // Set timeout in milliseconds
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms);
+        if (curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms) != CURLE_OK) {
+            SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_TIMEOUT_MS \n"");
+        }
 
         // Make the request
         res = curl_easy_perform(curl);
