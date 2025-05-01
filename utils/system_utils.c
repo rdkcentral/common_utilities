@@ -464,7 +464,9 @@ int findFile(char *dir, char *search)
             }
         }
     }
-    chdir("..");
+    if (chdir("..") != 0) {
+        SWLOG_ERROR("Failed to change directory to parent\n");
+    }
     closedir(dp);
     return found;
 }
