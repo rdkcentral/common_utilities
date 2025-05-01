@@ -415,7 +415,10 @@ int urlHelperGetHeaderInfo(const char* url, MtlsAuth_t *sec, const char* pathnam
             return ret_code;
         }
         /* CURLOPT_NOBODY: If we set this option the curl request data will not tranfer */
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+        ret_code = curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+	if(ret_code != CURLE_OK) {
+            SWLOG_ERROR("CURL: CURLOPT_NOBODY set failed\n");
+	}
         *httpCode_ret_status = performRequest(curl, (CURLcode *)curl_ret_status); // Sending curl request
         fflush(headerfile);
         fclose(headerfile);
