@@ -685,7 +685,10 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 		    closeFile(pData, &prog, headerfile);
 		    return ret_code;
                 }else {
-                    seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
+		    if( seek_place >= 0)
+		    {
+                        seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
+		    }
 		    if (seek_ret != 0) {
 		    /* If file pointer seek fail return curl 33 error so
 		     * full download should trigger */
@@ -701,7 +704,10 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
                      seek_place = 0;
                      seek_place = ftell((FILE*)data.pvOut);
                      memset(file_pt_pos, '\0', sizeof(file_pt_pos));
-                     sprintf(file_pt_pos, "%d-", seek_place);
+		     if( seek_place >= 0)
+		     {
+                         sprintf(file_pt_pos, "%d-", seek_place);
+		     }     
                  }else if ((*curl_ret_status == 33) || (*curl_ret_status == 36)) {
 		     SWLOG_ERROR( "CURL: Received curl error=%d and go for full Download\n",*curl_ret_status);
 		     break;	
