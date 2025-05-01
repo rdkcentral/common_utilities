@@ -773,6 +773,7 @@ int copyFiles(char *src, char *dst)
     fpout = fopen(dst, "wb");
     if(fpout == NULL) {
         SWLOG_ERROR("Failed to open dst file: %s\n", dst);
+        fclose(fpin);
         return RDK_API_FAILURE;
     }
 
