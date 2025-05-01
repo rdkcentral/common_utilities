@@ -762,7 +762,7 @@ size_t urlHelperDownloadToMem( CURL *curl, FileDwnl_t *pfile_dwnl, int *httpCode
 	    ret_code = curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, WriteMemoryCB);
 	    if( ret_code == CURLE_OK )
 	    {
-	        curl_easy_setopt(curl, CURLOPT_HEADERDATA, pfile_dwnl->pDlHeaderData);
+	        ret_code = curl_easy_setopt(curl, CURLOPT_HEADERDATA, pfile_dwnl->pDlHeaderData);
                 if( ret_code == CURLE_OK )
 	        {
                     SWLOG_INFO("urlHelperDownloadToMem: Header Data Request Set\n");
