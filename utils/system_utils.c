@@ -690,7 +690,7 @@ int emptyFolder(char *folderPath)
             continue;
         }
 
-        snprintf(filePath, sizeof(filePath), "%s/%s", folderPath, entry->d_name)
+        snprintf(filePath, sizeof(filePath), "%s/%s", folderPath, entry->d_name);
 
         if (entry->d_type == DT_DIR) {
             
