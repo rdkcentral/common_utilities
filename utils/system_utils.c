@@ -490,7 +490,7 @@ int findPFile(char *path, char *search, char *out)
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    struct stat stat_path;
+    //struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
@@ -527,15 +527,15 @@ int findPFile(char *path, char *search, char *out)
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
             full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strncpy(full_path, path, path_len+strlen(entry.d_name) + 2);
-            full_path[path_len+strlen(entry.d_name) + 1] = '\0';
+            strncpy(full_path, path, path_len+strlen(entry->d_name) + 2);
+            full_path[path_len+strlen(entry->d_name) + 1] = '\0';
             strncat(full_path, "/",1);
             strncat(full_path, entry->d_name, strlen(entry->d_name));
             found = findPFile(full_path, search, out);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out) {
-                strcpy(out, path, path_len);
+                strncpy(out, path, path_len);
                 strncat(out, "/",1);
                 strncat(out, entry->d_name, strlen(entry->d_name));
             }
@@ -686,8 +686,7 @@ int emptyFolder(char *folderPath)
     DIR *dir = opendir(folderPath);
     struct dirent *entry;
     char filePath[RDK_APP_PATH_LEN];
-    int fs_status = RDK_API_SUCCESS;
-
+    
     if (dir == NULL) {
         SWLOG_ERROR("Error opening directory\n");
         return RDK_API_FAILURE;
@@ -938,7 +937,7 @@ void copyCommandOutput (char *cmd, char *out, int len)
         if(out) {
             if (fgets (out, len, fp) != NULL) {
                 size_t outLen = strlen (out);
-                if ((outLen > 0) && (outLen[outLen - 1] == '\n'))
+                if ((outLen > 0) && (out[outLen - 1] == '\n'))
                     out[outLen - 1] = 0;
             }
         }
