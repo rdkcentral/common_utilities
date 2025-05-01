@@ -382,8 +382,14 @@ int urlHelperGetHeaderInfo(const char* url, MtlsAuth_t *sec, const char* pathnam
             urlHelperDestroyCurl(curl);
             return ret_code;
         }
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 600L); //CURL_TLS_TIMEOUT = 600L - 10Min
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+        ret_code = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 600L); //CURL_TLS_TIMEOUT = 600L - 10Min
+	if(ret_code != CURLE_OK) {
+            SWLOG_ERROR("CURL: CURLOPT_TIMEOUT set failed\n");
+	}
+        ret_code = curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+	if(ret_code != CURLE_OK) {
+            SWLOG_ERROR("CURL: CURLOPT_CONNECTTIMEOUT set failed\n");
+	}
         if(sec != NULL) {
             setMtlsHeaders(curl, sec);
         }
