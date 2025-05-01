@@ -529,14 +529,14 @@ int findPFile(char *path, char *search, char *out)
             full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
             strncpy(full_path, path, path_len+strlen(entry->d_name) + 2);
             full_path[path_len+strlen(entry->d_name) + 1] = '\0';
-            strncat(full_path, "/",1);
+            strncat(full_path, "/",2);
             strncat(full_path, entry->d_name, strlen(entry->d_name));
             found = findPFile(full_path, search, out);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out) {
                 strncpy(out, path, path_len);
-                strncat(out, "/",1);
+                strncat(out, "/",2);
                 strncat(out, entry->d_name, strlen(entry->d_name));
             }
             found = 1;
