@@ -588,9 +588,6 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         return 0;
     }
 
-    // stat for the path
-    stat(path, &stat_path);
-
     // if path does not exists or is not dir - exit with status -1
     if (S_ISDIR(stat_path.st_mode) == 0) {
         SWLOG_ERROR("Invalid directory\n");
