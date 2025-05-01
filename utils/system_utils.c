@@ -821,7 +821,9 @@ int folderCheck(char *path)
     }
 
     // stat for the path
-    stat(path, &stat_path);
+    if (stat(path, &stat_path) != 0) {
+    SWLOG_ERROR("Error accessing the path: %s\n", path);
+    }
 
     // if path does not exists or is not dir - exit with status -1
     if (S_ISDIR(stat_path.st_mode) == 0) {
