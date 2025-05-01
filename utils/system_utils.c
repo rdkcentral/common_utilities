@@ -443,6 +443,9 @@ int findFile(char *dir, char *search)
         return found;
     }
     chdir(dir);
+    if (chdir(dir) != 0) {
+        SWLOG_ERROR("Failed to change directory to %s \n", dir);
+    }
     while((entry = readdir(dp)) != NULL) {
         if (lstat(entry->d_name, &statbuf) == -1) {
             SWLOG_ERROR("lstat failed for %s: %s\n", entry->d_name, strerror(errno));
