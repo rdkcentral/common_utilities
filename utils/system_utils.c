@@ -690,7 +690,7 @@ int emptyFolder(char *folderPath)
             continue;
         }
 
-        snprintf(filePath, sizeof(filePath), "%s/%s", folderPath, entry->d_name);
+        snprintf(filePath, RDK_APP_PATH_LEN+1, "%s/%s", folderPath, entry->d_name);
 
         if (entry->d_type == DT_DIR) {
             
