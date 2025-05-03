@@ -456,8 +456,15 @@ CURLcode setCommonCurlOpt(CURL *curl, const char *url, char *pPostFields, bool s
         SWLOG_ERROR("CURL: CURLOPT_SSLVERSION failed\n");
         return ret_code;
     }
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TLS_TIMEOUT); // Total curl operation timeout CURL_TLS_TIMEOUT = 7200L - 7200 sec
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+    ret_code = curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TLS_TIMEOUT); // Total curl operation timeout CURL_TLS_TIMEOUT = 7200L - 7200 sec
+    if(ret_code != CURLE_OK) {
+        SWLOG_ERROR("CURL: CURLOPT_TIMEOUT failed\n");
+    }
+
+    ret_code = curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+    if(ret_code != CURLE_OK) {
+        SWLOG_ERROR("CURL: CURLOPT_CONNECTTIMEOUT failed\n");
+    }
     if(sslverify == true) {
         ret_code = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
         if(ret_code != CURLE_OK) {
