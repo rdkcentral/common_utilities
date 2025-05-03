@@ -615,9 +615,9 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out[*found_t]) {
-                strcpy(out[*found_t], path);
-                strcat(out[*found_t], "/");
-                strcat(out[*found_t], entry->d_name);
+                strcpy(out[*found_t], path, strlen(path));
+                strncat(out[*found_t], "/", 2);
+                strncat(out[*found_t], entry->d_name, strlen(entry->d_name));
                 (*found_t)++;
             }
             if((*found_t) >= max_list)
