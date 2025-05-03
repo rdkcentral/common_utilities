@@ -442,7 +442,6 @@ int findFile(char *dir, char *search)
     if((dp = opendir(dir)) == NULL) {
         return found;
     }
-    chdir(dir);
     if (chdir(dir) != 0) {
         SWLOG_ERROR("Failed to change directory to %s \n", dir);
     }
