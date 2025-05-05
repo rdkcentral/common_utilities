@@ -690,7 +690,7 @@ int emptyFolder(char *folderPath)
 {
     DIR *dir = opendir(folderPath);
     struct dirent *entry;
-    char filePath[RDK_APP_PATH_LEN];
+    char filePath[RDK_APP_PATH_LEN+1];
     
     if (dir == NULL) {
         SWLOG_ERROR("Error opening directory\n");
@@ -701,9 +701,7 @@ int emptyFolder(char *folderPath)
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
         }
-        if (strlen(folderPath) + strlen(entry->d_name) + 1 < RDK_APP_PATH_LEN) {
-            snprintf(filePath, RDK_APP_PATH_LEN, "%s/%s", folderPath, entry->d_name);
-        }
+        snprintf(filePath, RDK_APP_PATH_LEN+1, "%s/%s", folderPath, entry->d_name);
         if (entry->d_type == DT_DIR) {
             
             if (emptyFolder(filePath) != RDK_API_SUCCESS) {
