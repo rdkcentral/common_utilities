@@ -60,7 +60,7 @@ void swLog(unsigned int level, const char *msg, ...) {
                 perror(pTempChar);
             }
             va_end(arg);
-            printf("LOG.RDK.FWUPG : %s\n", pTempChar);
+            printf("LOG.RDK.COMMONUTILITIES : %s\n", pTempChar);
             free(pTempChar);
         }
     }
