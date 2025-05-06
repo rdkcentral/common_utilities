@@ -711,6 +711,7 @@ int emptyFolder(char *folderPath)
         }
         else {
              if (remove(filePath) != 0) {
+                 closedir(dir);
                  return RDK_API_FAILURE;
              }                        
         }
