@@ -168,7 +168,7 @@ char *printCurlError(int curl_ret_code) {
     const char *error_msg = NULL;
     CURLcode curl_code = (CURLcode)curl_ret_code;
     error_msg = curl_easy_strerror(curl_code);
-    SWLOG_INFO("%s: curl_easy_strerror =%s\n", __FUNCTION__, curl_easy_strerror(curl_code));
+    COMMONUTILITIES_INFO("%s: curl_easy_strerror =%s\n", __FUNCTION__, curl_easy_strerror(curl_code));
     return (char *)error_msg;
 }
 
