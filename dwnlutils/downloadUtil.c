@@ -30,7 +30,7 @@ void *doCurlInit(void)
     if (curl == NULL) {
         SWLOG_ERROR("%s: curl init failed\n", __FUNCTION__);
     } else {
-        SWLOG_INFO("%s: curl init success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: curl init success\n", __FUNCTION__);
     }
     return (void *)curl;
 }
