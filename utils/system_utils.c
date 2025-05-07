@@ -500,19 +500,23 @@ int findPFile(char *path, char *search, char *out)
     }
 
     // stat for the path
-    stat(path, &stat_path);
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
-    }
-
-    // if not possible to read the directory for this user
-    if ((dir = opendir(path)) == NULL) {
-        SWLOG_ERROR("Can't open the directory\n");
-        return found;
-    }
+int fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+if (fd < 0) {
+    SWLOG_ERROR("Can't open the directory\n");
+    return found;
+} 
+if (fstat(fd, &stat_path) == -1 || !S_ISDIR(stat_path.st_mode)) {
+    SWLOG_ERROR("Invalid directory\n");
+    close(fd);
+    return found;
+}
+ 
+dir = fdopendir(fd);
+if (dir == NULL) {
+    SWLOG_ERROR("Can't open the directory stream\n");
+    close(fd);
+    return found;
+}
 
     // the length of the path
     path_len = strlen(path);
