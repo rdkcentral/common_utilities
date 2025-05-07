@@ -701,10 +701,11 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 		    closeFile(pData, &prog, headerfile);
 		    return ret_code;
                 }else {
-		    if( seek_place >= 0)
+		    if( seek_place < 0)
 		    {
-                        seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
+                        return 0;
 		    }
+		    seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
 		    if (seek_ret != 0) {
 		    /* If file pointer seek fail return curl 33 error so
 		     * full download should trigger */
