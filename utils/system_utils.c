@@ -510,19 +510,6 @@ int findPFile(char *path, char *search, char *out)
         SWLOG_ERROR("Can't open the directory\n");
         return found;
     }
-    struct stat stat_path;
-    if (fstat(dirfd(dir), &stat_path) < 0) {
-        SWLOG_ERROR("Failed to get directory status: %s\n", path);
-        closedir(dir);
-        return found;
-    }
-
-    if (!S_ISDIR(stat_path.st_mode)) {
-        SWLOG_ERROR("Invalid directory: %s\n", path);
-        closedir(dir);
-        return found;
-    }
-
     // the length of the path
     path_len = strlen(path);
 
