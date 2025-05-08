@@ -518,22 +518,18 @@ int findPFile(char *path, char *search, char *out)
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-
-
+        size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strncpy(full_path, path, path_len+strlen(entry->d_name) + 2);
-            full_path[path_len+strlen(entry->d_name) + 1] = '\0';
-            strncat(full_path, "/",2);
-            strncat(full_path, entry->d_name, strlen(entry->d_name));
+            full_path = calloc(allocate_size, sizeof(char));
+            snprintf(full_path, allocate_size, "%s/%s", path, entry->d_name);
+            SWLOG_INFO(" findPFile : Constructed full path: %s", full_path);
             found = findPFile(full_path, search, out);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out) {
-                strncpy(out, path, path_len);
-                strncat(out, "/",2);
-                strncat(out, entry->d_name, strlen(entry->d_name));
+                snprintf(out, allocate_size, "%s/%s", path, entry->d_name);
+                SWLOG_INFO(" findPFile : Constructed  path  out : %s", out);
             }
             found = 1;
         }
@@ -598,22 +594,19 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-
+        size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strncpy(full_path, path, path_len+strlen(entry->d_name) + 2);
-            full_path[path_len+strlen(entry->d_name) + 1] = '\0';
-            strncat(full_path, "/",2);
-            strncat(full_path, entry->d_name, strlen(entry->d_name));
+            full_path = calloc(allocate_size, sizeof(char));
+            snprintf(full_path, allocate_size, "%s/%s", path, entry->d_name);
+            SWLOG_INFO(" findPFileAll : Constructed full path: %s", full_path);
 
             found = findPFileAll(full_path, search, out, found_t, max_list);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out[*found_t]) {
-                strncpy(out[*found_t], path, strlen(path));
-                strncat(out[*found_t], "/", 2);
-                strncat(out[*found_t], entry->d_name, strlen(entry->d_name));
+                snprintf(out[*found_t], allocate_size , "%s/%s", path, entry->d_name);
+                SWLOG_INFO(" findPFileAll : Constructed  path, out : %s", full_path);
                 (*found_t)++;
             }
             if((*found_t) >= max_list)
