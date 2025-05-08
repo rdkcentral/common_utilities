@@ -489,7 +489,6 @@ int findPFile(char *path, char *search, char *out)
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    //struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
@@ -815,7 +814,7 @@ int folderCheck(char *path)
 
     // stat for the path
     if (stat(path, &stat_path) != 0) {
-    SWLOG_ERROR("Error accessing the path: %s\n", path);
+        SWLOG_ERROR("Error accessing the path: %s\n", path);
     }
 
     // if path does not exists or is not dir - exit with status -1
