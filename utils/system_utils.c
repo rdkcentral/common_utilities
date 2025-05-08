@@ -503,7 +503,6 @@ int findPFile(char *path, char *search, char *out)
         SWLOG_ERROR("Invalid out pointer\n");
         return 0;
     }
-    
     // if not possible to read the directory for this user
     if ((dir = opendir(path)) == NULL) {
         SWLOG_ERROR("Can't open the directory\n");
