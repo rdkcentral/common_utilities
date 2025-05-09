@@ -604,9 +604,8 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out[*found_t]) {
-                strncpy(out[*found_t], path, strlen(path));
-                strncat(out[*found_t], "/", 2);
-                strncat(out[*found_t], entry->d_name, strlen(entry->d_name));
+                snprintf(out[*found_t], allocate_size , "%s/%s", path, entry->d_name);
+                SWLOG_INFO(" findPFileAll : Constructed path , out : %s\n", out[*found_t]);
                 (*found_t)++;
             }
             if((*found_t) >= max_list)
