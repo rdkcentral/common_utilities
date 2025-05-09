@@ -598,10 +598,8 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
             full_path = calloc(allocate_size, sizeof(char));
-            strncpy(full_path, path, allocate_size);
-            full_path[allocate_size- 1] = '\0';
-            strncat(full_path, "/",2);
-            strncat(full_path, entry->d_name, strlen(entry->d_name));
+            snprintf(full_path, allocate_size, "%s/%s", path, entry->d_name);
+            SWLOG_INFO(" findPFileAll : Constructed full path: %s", full_path);
             found = findPFileAll(full_path, search, out, found_t, max_list);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
