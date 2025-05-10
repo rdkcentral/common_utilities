@@ -253,6 +253,15 @@ TEST_F(SystemUtilsTestFixture,  eraseTGZItemsMatching_file_deleted)
     ret = system ("touch /tmp/file.tgz\n");
     EXPECT_EQ(eraseTGZItemsMatching(folder, filename), 0);
 }
+TEST_F(SystemUtilsTestFixture, emptyFolder_NullInput) {
+    EXPECT_EQ(emptyFolder(NULL), RDK_API_FAILURE);
+}
+
+TEST_F(SystemUtilsTestFixture, emptyFolder_ValidDirectory) {
+    system("mkdir -p /tmp/testdir && touch /tmp/testdir/file1");
+    EXPECT_EQ(emptyFolder("/tmp/testdir"), RDK_API_SUCCESS);
+    system("rmdir /tmp/testdir");
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     char testresults_fullfilepath[GTEST_REPORT_FILEPATH_SIZE];
