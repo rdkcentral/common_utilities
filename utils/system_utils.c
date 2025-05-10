@@ -689,7 +689,7 @@ int emptyFolder(char *folderPath)
 {
     DIR *dir = opendir(folderPath);
     struct dirent *entry;
-    char filePath[RDK_APP_PATH_LEN];
+    char filePath[RDK_APP_PATH_LEN+1];
 
     if (dir == NULL) {
         SWLOG_ERROR("Error opening directory\n");
