@@ -258,6 +258,13 @@ TEST_F(SystemUtilsTestFixture, emptyFolder_ValidDirectory) {
     EXPECT_EQ(emptyFolder("/tmp/testdir"), RDK_API_SUCCESS);
     system("rmdir /tmp/testdir");
 }
+TEST_F(SystemUtilsTestFixture, findPFileAll_ValidInputs) {
+    char *out[5];
+    int found = 0;
+    system("mkdir -p /tmp/testdir && touch /tmp/testdir/file1");
+    EXPECT_EQ(findPFileAll("/tmp/testdir", "file1", out, &found, 5), 1);
+    system("rm -rf /tmp/testdir");
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     char testresults_fullfilepath[GTEST_REPORT_FILEPATH_SIZE];
