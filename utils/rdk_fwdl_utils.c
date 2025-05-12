@@ -181,11 +181,19 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
 				{
                                     ++pTmp;
 				}
+				else
+				{
+				    continue;
+				}
                                 if( i == eBUILD_TYPE )
                                 {
                                     if( pTmp)
 				    {
 				        pDevice_info->eBuildType = getbuild( pTmp );
+				    }
+				    else
+				    {
+				        continue;
 				    }
                                 }
                                 else
@@ -193,6 +201,10 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
                                     if( pTmp)
 				    {
 				        snprintf( pDest, DevicePropertySizes[i], "%s", pTmp );
+				    }
+				    else
+				    {
+				        continue;
 				    }
                                     if( (pTmp=strchr( pDest, '\n' )) != NULL )
                                     {
