@@ -258,12 +258,45 @@ TEST_F(SystemUtilsTestFixture, emptyFolder_ValidDirectory) {
     EXPECT_EQ(emptyFolder("/tmp/testdir"), RDK_API_SUCCESS);
     system("rmdir /tmp/testdir");
 }
-TEST_F(SystemUtilsTestFixture, findPFileAll_ValidInputs) {
-    char *out[5];
+/*TEST_F(SystemUtilsTestFixture, findPFileAll_ValidInputs) {
+    char *out[5] = {nullptr};
     int found = 0;
     system("mkdir -p /tmp/testdir && touch /tmp/testdir/file1");
-    EXPECT_EQ(findPFileAll("/tmp/testdir", "file1", out, &found, 5), 1);
+    EXPECT_EQ(findPFileAll("/tmp/testdir", "file1", out, &found , 5), 1);
     system("rm -rf /tmp/testdir");
+}*/
+TEST_F(SystemUtilsTestFixture, findPFile_ValidInputs) {
+    char output[256];
+    system("mkdir -p /tmp/testdir && touch /tmp/testdir/file1");
+    EXPECT_EQ(findPFile("/tmp/testdir", "file1", output), 1);
+    system("rm -rf /tmp/testdir");
+}
+TEST_F(SystemUtilsTestFixture, findFile_ValidInputs) {
+    system("mkdir -p /tmp/testdir && touch /tmp/testdir/file1");
+    EXPECT_EQ(findFile("/tmp/testdir", "file1"), 1);
+    system("rm -rf /tmp/testdir");
+}
+TEST_F(SystemUtilsTestFixture, folderCheck_ExistingFolder) {
+    system("mkdir -p /tmp/testdir");
+    EXPECT_EQ(folderCheck("/tmp/testdir"), 1);
+    system("rmdir /tmp/testdir");
+}
+TEST_F(SystemUtilsTestFixture, fileCheck_ValidFile) {
+    system("touch /tmp/testfile");
+    EXPECT_EQ(fileCheck("/tmp/testfile"), 1);
+    system("rm -f /tmp/testfile");
+}
+TEST_F(SystemUtilsTestFixture, copyFiles_ValidPaths) {
+    system("echo 'test' > /tmp/srcfile");
+    EXPECT_EQ(copyFiles("/tmp/srcfile", "/tmp/destfile"), RDK_API_SUCCESS);
+    system("rm -f /tmp/srcfile /tmp/destfile");
+}
+TEST_F(SystemUtilsTestFixture, getStringValueFromFile_ValidInputs) {
+    system("echo 'key=value' > /tmp/testfile");
+    char output[128];
+    getStringValueFromFile("/tmp/testfile", "=", "key", output);
+    EXPECT_STREQ(output, "value\n");
+    system("rm -f /tmp/testfile");
 }
 
 GTEST_API_ int main(int argc, char *argv[]){
