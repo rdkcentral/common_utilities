@@ -703,7 +703,9 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
                 }else {
 		    if( seek_place < 0)
 		    {
-                        SWLOG_ERROR( "Invalid Usage, parameter seek_place being negative \n");
+                        *httpCode_ret_status = 0;
+			*curl_ret_status = 33;
+			closeFile(pData, &prog, headerfile);
 			return 0;
 		    }
 		    seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
@@ -721,12 +723,15 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
                  if((*curl_ret_status == 18) || (*curl_ret_status == 28)) {
                      seek_place = 0;
                      seek_place = ftell((FILE*)data.pvOut);
-                     memset(file_pt_pos, '\0', sizeof(file_pt_pos));
 		     if( seek_place < 0)
 		     {
-			 SWLOG_ERROR( "Invalid Usage, parameter seek_place being negative \n");
+		         SWLOG_ERROR( "Invalid Usage, parameter seek_place being negative \n");
+			 *httpCode_ret_status = 0;
+			 *curl_ret_status = 33;
+			 closeFile(pData, &prog, headerfile);
                          return 0;
 		     }
+                     memset(file_pt_pos, '\0', sizeof(file_pt_pos));
 		     sprintf(file_pt_pos, "%d-", seek_place);
                  }else if ((*curl_ret_status == 33) || (*curl_ret_status == 36)) {
 		     SWLOG_ERROR( "CURL: Received curl error=%d and go for full Download\n",*curl_ret_status);
