@@ -500,7 +500,6 @@ static inline char* construct_full_path(const char* base_path, const char* entry
  */
 int findPFile(char *path, char *search, char *out)
 {
-    size_t path_len;
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
@@ -523,8 +522,6 @@ int findPFile(char *path, char *search, char *out)
         SWLOG_ERROR("Can't open the directory\n");
         return found;
     }
-    // the length of the path
-    path_len = strlen(path);
 
     // iteration through entries in the directory
     while ((found == 0) && (entry = readdir(dir)) != NULL) {
