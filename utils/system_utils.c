@@ -533,7 +533,6 @@ int findPFile(char *path, char *search, char *out)
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-        size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
             full_path = construct_full_path(path, entry->d_name);
