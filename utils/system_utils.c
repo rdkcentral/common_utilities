@@ -476,6 +476,18 @@ int findFile(char *dir, char *search)
     return found;
 }
 
+
+static inline char* construct_full_path(const char* base_path, const char* entry_name) {
+    size_t allocate_size = strlen(base_path) + strlen(entry_name) + 2; // 1 for '/' and 1 for '\0'
+    char* full_path = calloc(allocate_size, sizeof(char));
+    if (full_path) {
+        snprintf(full_path, allocate_size, "%s/%s", base_path, entry_name);
+        SWLOG_INFO("Constructed full path: %s", full_path);
+    } else {
+        SWLOG_ERROR("Failed to allocate memory for full path");
+    }
+    return full_path;
+}
 /** @brief This Function search for the folder/file in given path
  *  with partial name.
  *
@@ -524,15 +536,16 @@ int findPFile(char *path, char *search, char *out)
         size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(allocate_size, sizeof(char));
-            snprintf(full_path, allocate_size, "%s/%s", path, entry->d_name);
-            SWLOG_INFO(" findPFile : Constructed full path: %s", full_path);
+            full_path = construct_full_path(path, entry->d_name);
             found = findPFile(full_path, search, out);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out) {
-                snprintf(out, allocate_size, "%s/%s", path, entry->d_name);
-                SWLOG_INFO(" findPFile : Constructed  path  out : %s", out);
+                char* constructed_path = construct_full_path(path, entry->d_name);
+                if (constructed_path) {
+                strncpy(out, constructed_path, strlen(constructed_path) + 1); // Copy path to out
+                SWLOG_INFO(" findPFile : Constructed path out : %s", out);
+                }
             }
             found = 1;
         }
@@ -600,9 +613,7 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(allocate_size, sizeof(char));
-            snprintf(full_path, allocate_size, "%s/%s", path, entry->d_name);
-            SWLOG_INFO(" findPFileAll : Constructed full path: %s", full_path);
+            full_path = construct_full_path(path, entry->d_name);
             found = findPFileAll(full_path, search, out, found_t, max_list);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
