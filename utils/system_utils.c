@@ -667,7 +667,7 @@ int emptyFolder(char *folderPath)
 {
     DIR *dir = opendir(folderPath);
     struct dirent *entry;
-    char filePath[RDK_APP_PATH_LEN+1];   
+    char filePath[RDK_APP_PATH_LEN+1] = = {0};  
     if (dir == NULL) {
         SWLOG_ERROR("Error opening directory\n");
         return RDK_API_FAILURE;
@@ -805,6 +805,7 @@ int folderCheck(char *path)
     // stat for the path
     if (stat(path, &stat_path) != 0) {
         SWLOG_ERROR("Error accessing the path: %s\n", path);
+        return 0;
     }
 
     // if path does not exists or is not dir - exit with status -1
