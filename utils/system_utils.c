@@ -1101,32 +1101,25 @@ int strRmDuplicate(char **in, int len)
 void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* outValue){
     char lines[1024];
     char *token;
+    if (!strtokvalue || !string || !outValue) { 
+        SWLOG_ERROR("Invalid Parameters %p %p %p", strtokvalue, string, outValue); 
+    return; 
+    }
     FILE *file = fopen(path,"r");
-
-    if( (strtokvalue != NULL) && (string != NULL) && ( outValue != NULL) ){
-        if( file ){
-            while(fgets(lines, sizeof(lines), file)){
-                token = strtok(lines, strtokvalue);
-
-                while(token != NULL){
-                    if(strcmp(token,string) == 0 ){
-                        strncpy(outValue, strtok(NULL,strtokvalue),128);
-                        break;
-                    }
-                    token = strtok(NULL,strtokvalue);
-                }
+    if( file ){
+        while(fgets(lines, sizeof(lines), file)){
+        token = strtok(lines, strtokvalue);
+        while(token != NULL){
+            if(strcmp(token,string) == 0 ){
+                strncpy(outValue, strtok(NULL,strtokvalue),128);
+                break;
             }
-
-            fclose(file);
+            token = strtok(NULL,strtokvalue);
         }
-        else{
-            SWLOG_ERROR("file open failed %s\n",path);
         }
+        fclose(file);
     }
     else{
-        if (file) {
-            fclose(file);
+        SWLOG_ERROR("file open failed %s\n",path);
         }
-        SWLOG_ERROR("Invalid Parameters %p %p %p",strtokvalue, string, outValue);
-    }
 }
