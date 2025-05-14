@@ -298,6 +298,36 @@ TEST_F(SystemUtilsTestFixture, getStringValueFromFile_ValidInputs) {
     EXPECT_STREQ(output, "value\n");
     system("rm -f /tmp/testfile");
 }
+TEST_F(SystemUtilsTestFixture, findPFileAll_ValidInputs_Matches)
+{
+    char path[30] = "/tmp";
+    char search[10] = "*.txt";
+    char *out[10];
+    int found_t = 0;
+    int max_list = 10;
+
+    for (int i = 0; i < 10; i++) {
+        out[i] = (char *)malloc(256 * sizeof(char));
+    }
+
+    // Create test files
+    system("touch /tmp/file1.txt");
+    system("touch /tmp/file2.txt");
+
+    EXPECT_EQ(findPFileAll(path, search, out, &found_t, max_list), 0);
+    EXPECT_EQ(found_t, 2);
+
+    for (int i = 0; i < found_t; i++) {
+        printf("Found: %s\n", out[i]);
+    }
+
+    // Cleanup
+    system("rm -f /tmp/file1.txt /tmp/file2.txt");
+
+    for (int i = 0; i < 10; i++) {
+        free(out[i]);
+    }
+}
 
 GTEST_API_ int main(int argc, char *argv[]){
     char testresults_fullfilepath[GTEST_REPORT_FILEPATH_SIZE];
