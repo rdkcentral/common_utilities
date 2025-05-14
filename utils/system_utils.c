@@ -444,11 +444,13 @@ int findFile(char *dir, char *search)
     }
     if (chdir(dir) != 0) {
         SWLOG_ERROR("Failed to change directory to %s \n", dir);
+        closedir(dp);
         return 0;
     }
     while((entry = readdir(dp)) != NULL) {
         if (lstat(entry->d_name, &statbuf) == -1) {
             SWLOG_ERROR("lstat failed for %s: %s\n", entry->d_name, strerror(errno));
+            closedir(dp);
             return 0;
         }       
         if(!strcmp(entry->d_name, search)) {
@@ -470,6 +472,7 @@ int findFile(char *dir, char *search)
     }
     if (chdir("..") != 0) {
         SWLOG_ERROR("Failed to change directory to parent\n");
+        closedir(dp);
         return 0;
     }
     closedir(dp);
