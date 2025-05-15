@@ -1134,6 +1134,6 @@ void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* o
         fclose(file);
     }
     else{
-        SWLOG_ERROR("file open failed %s\n",path);
+            SWLOG_ERROR("file open failed %s\n",path);
         }
 }
