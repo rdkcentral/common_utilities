@@ -1119,7 +1119,7 @@ void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* o
     char *token;
     if (!strtokvalue || !string || !outValue) { 
         SWLOG_ERROR("Invalid Parameters %p %p %p", strtokvalue, string, outValue); 
-    return; 
+        return; 
     }
     FILE *file = fopen(path,"r");
     if( file ){
