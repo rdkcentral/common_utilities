@@ -960,6 +960,7 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPGET \n");
+	    urlHelperDestroyCurl(curl);
 	    return ret_code;
 	}
 
@@ -967,6 +968,7 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	ret_code = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_WRITEFUNCTION \n");
+	    urlHelperDestroyCurl(curl);
 	    return ret_code;
 	}
 
