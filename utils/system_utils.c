@@ -479,8 +479,15 @@ int findFile(char *dir, char *search)
     return found;
 }
 
+/** @brief Constructs a full file or directory path by concatenating a base path and an entry name with a '/' separator.
+ *
+ *  @param base_path The base directory path.
+ *  @param entry_name The file or directory name to append.
+ *  @return Pointer to the newly allocated string containing the full path 
+ */
 
-static inline char* construct_full_path(const char* base_path, const char* entry_name) {
+static inline char* construct_full_path(const char* base_path, const char* entry_name) 
+{
     size_t allocate_size = strlen(base_path) + strlen(entry_name) + 2; // 1 for '/' and 1 for '\0'
     char* full_path = calloc(allocate_size, sizeof(char));
     if (full_path) {
