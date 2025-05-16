@@ -542,13 +542,15 @@ int findPFile(char *path, char *search, char *out)
             if(out) {
                 char* constructed_path = construct_full_path(path, entry->d_name);
                 if (constructed_path) {
-                strncpy(out, constructed_path, strlen(constructed_path) + 1); // Copy path to out
-                SWLOG_INFO(" findPFile : Constructed path out : %s", out);
+                    strncpy(out, constructed_path, strlen(constructed_path) + 1); // Copy path to out
+                    SWLOG_INFO(" findPFile : Constructed path out : %s", out);
+                    free(constructed_path);
+                    constructed_path =NULL;
                 }
             }
             found = 1;
         }
-
+        }
         if(full_path) {
             free(full_path);
             full_path = NULL;
