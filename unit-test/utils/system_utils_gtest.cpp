@@ -316,17 +316,6 @@ TEST_F(SystemUtilsTestFixture, findPFileAll_ValidInputs_Matches)
 
     EXPECT_EQ(findPFileAll(path, search, out, &found_t, max_list), 0);
     EXPECT_EQ(found_t, 2);
-
-    for (int i = 0; i < found_t; i++) {
-        printf("Found: %s\n", out[i]);
-    }
-
-    // Cleanup
-    system("rm -f /tmp/file1.txt /tmp/file2.txt");
-
-    for (int i = 0; i < 10; i++) {
-        free(out[i]);
-    }
 }
 
 GTEST_API_ int main(int argc, char *argv[]){
