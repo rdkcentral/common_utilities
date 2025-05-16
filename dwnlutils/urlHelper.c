@@ -940,7 +940,7 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	}
         struct curl_slist *chunk = NULL;
         chunk = curl_slist_append(chunk, "Cache-Control: no-cache, no-store");
-	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk) != CURLE_OK);
+	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n");
 	    return ret_code;
