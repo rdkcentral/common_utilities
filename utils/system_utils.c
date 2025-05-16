@@ -550,7 +550,7 @@ int findPFile(char *path, char *search, char *out)
             }
             found = 1;
         }
-        }
+
         if(full_path) {
             free(full_path);
             full_path = NULL;
