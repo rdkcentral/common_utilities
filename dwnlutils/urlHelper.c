@@ -930,12 +930,14 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	ret_code = curl_easy_setopt(curl, CURLOPT_URL, url);
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_URL \n");
+	    urlHelperDestroyCurl(curl);
 	    return ret_code;
 	}
         // Set private data and custom headers
 	ret_code = curl_easy_setopt(curl, CURLOPT_PRIVATE,url);
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_PRIVATE \n");
+	    urlHelperDestroyCurl(curl);
 	    return ret_code;
 	}
         struct curl_slist *chunk = NULL;
@@ -943,12 +945,14 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n");
+	    urlHelperDestroyCurl(curl);
 	    return ret_code;
 	}
         // Set user agent
 	ret_code = curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0");
         if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_USERAGENT \n");
+	    urlHelperDestroyCurl(curl);
 	    return ret_code;
 	}
 
