@@ -920,37 +920,50 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	bool status = false;
 	CURL *curl;
     CURLcode res;
+    CURLcode ret_code = CURLE_OK;
     char *url = "http://xfinity.com";
 
     // Initialize the curl session
     curl = curl_easy_init();
     if(curl) {
         // Set the URL to retrieve
-        if ( curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK){
+	ret_code = curl_easy_setopt(curl, CURLOPT_URL, url);
+        if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_URL \n");
+	    return ret_code;
 	}
         // Set private data and custom headers
-        if ( curl_easy_setopt(curl, CURLOPT_PRIVATE,url) != CURLE_OK){
+	ret_code = curl_easy_setopt(curl, CURLOPT_PRIVATE,url);
+        if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_PRIVATE \n");
+	    return ret_code;
 	}
         struct curl_slist *chunk = NULL;
         chunk = curl_slist_append(chunk, "Cache-Control: no-cache, no-store");
-        if ( curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk) != CURLE_OK){
+	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk) != CURLE_OK);
+        if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n");
+	    return ret_code;
 	}
         // Set user agent
-        if ( curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0") != CURLE_OK){
+	ret_code = curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0");
+        if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_USERAGENT \n");
+	    return ret_code;
 	}
 
         // Set request type to GET
-        if ( curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) != CURLE_OK){
+	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+        if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPGET \n");
+	    return ret_code;
 	}
 
         // Set write callback function
-        if (curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction) != CURLE_OK){
+	ret_code = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
+        if ( ret_code != CURLE_OK){
 	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_WRITEFUNCTION \n");
+	    return ret_code;
 	}
 
         // Set timeout in milliseconds
