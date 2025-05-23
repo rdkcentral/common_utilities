@@ -32,6 +32,7 @@
 #include "json_parse.h"
 #include "rdkv_cdl_log_wrapper.h"
 
+
 /* function writeItemVal - optionally writes a JSON "name : value" pair to an output file in the format
                            of "name=value" which allows the resulting file to be sourced into a shell sript.
 
