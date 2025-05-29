@@ -716,7 +716,7 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 			*httpCode_ret_status = 0;
 			*curl_ret_status = 33;
 			closeFile(pData, &prog, headerfile);
-			return CURLE_OK;
+			return 0;
 		     }
                 }
                 *httpCode_ret_status = performRequest(curl, curl_ret_status);
