@@ -729,7 +729,7 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 			 *httpCode_ret_status = 0;
 			 *curl_ret_status = 33;
 			 closeFile(pData, &prog, headerfile);
-                         return 0;
+                         return CURLE_OK;
 		     }
                      memset(file_pt_pos, '\0', sizeof(file_pt_pos));
 		     sprintf(file_pt_pos, "%d-", seek_place);
