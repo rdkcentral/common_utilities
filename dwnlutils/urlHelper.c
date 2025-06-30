@@ -244,7 +244,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
 	break;
     }
     } while(0);
-    SWLOG_ERROR("%s : Curl Return Code = %d\n", __FUNCTION__, code);
+    SWLOG_DEBUG("%s : Curl Return Code = %d\n", __FUNCTION__, code);
     return code;
 }
 
