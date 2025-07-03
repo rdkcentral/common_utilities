@@ -244,7 +244,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
 	break;
     }
     } while(0);
-    SWLOG_ERROR("%s : Curl Return Code = %d\n", __FUNCTION__, code);
+    SWLOG_DEBUG("%s : Curl Return Code = %d\n", __FUNCTION__, code);
     return code;
 }
 
@@ -382,8 +382,14 @@ int urlHelperGetHeaderInfo(const char* url, MtlsAuth_t *sec, const char* pathnam
             urlHelperDestroyCurl(curl);
             return ret_code;
         }
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 600L); //CURL_TLS_TIMEOUT = 600L - 10Min
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+        ret_code = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 600L); //CURL_TLS_TIMEOUT = 600L - 10Min
+	if(ret_code != CURLE_OK) {
+            SWLOG_ERROR("CURL: CURLOPT_TIMEOUT set failed\n");
+	}
+        ret_code = curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+	if(ret_code != CURLE_OK) {
+            SWLOG_ERROR("CURL: CURLOPT_CONNECTTIMEOUT set failed\n");
+	}
         if(sec != NULL) {
             setMtlsHeaders(curl, sec);
         }
@@ -409,7 +415,10 @@ int urlHelperGetHeaderInfo(const char* url, MtlsAuth_t *sec, const char* pathnam
             return ret_code;
         }
         /* CURLOPT_NOBODY: If we set this option the curl request data will not tranfer */
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+        ret_code = curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+	if(ret_code != CURLE_OK) {
+            SWLOG_ERROR("CURL: CURLOPT_NOBODY set failed\n");
+	}
         *httpCode_ret_status = performRequest(curl, (CURLcode *)curl_ret_status); // Sending curl request
         fflush(headerfile);
         fclose(headerfile);
@@ -447,8 +456,15 @@ CURLcode setCommonCurlOpt(CURL *curl, const char *url, char *pPostFields, bool s
         SWLOG_ERROR("CURL: CURLOPT_SSLVERSION failed\n");
         return ret_code;
     }
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TLS_TIMEOUT); // Total curl operation timeout CURL_TLS_TIMEOUT = 7200L - 7200 sec
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+    ret_code = curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TLS_TIMEOUT); // Total curl operation timeout CURL_TLS_TIMEOUT = 7200L - 7200 sec
+    if(ret_code != CURLE_OK) {
+        SWLOG_ERROR("CURL: CURLOPT_TIMEOUT failed\n");
+    }
+
+    ret_code = curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L); // connection timeout 30s
+    if(ret_code != CURLE_OK) {
+        SWLOG_ERROR("CURL: CURLOPT_CONNECTTIMEOUT failed\n");
+    }
     if(sslverify == true) {
         ret_code = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
         if(ret_code != CURLE_OK) {
@@ -685,7 +701,14 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 		    closeFile(pData, &prog, headerfile);
 		    return ret_code;
                 }else {
-                    seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
+		    if( seek_place < 0)
+		    {
+                        *httpCode_ret_status = 0;
+			*curl_ret_status = 33;
+			closeFile(pData, &prog, headerfile);
+			return CURLE_OK;
+		    }
+		    seek_ret = fseek((FILE*)data.pvOut, seek_place, SEEK_SET);
 		    if (seek_ret != 0) {
 		    /* If file pointer seek fail return curl 33 error so
 		     * full download should trigger */
@@ -700,8 +723,16 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
                  if((*curl_ret_status == 18) || (*curl_ret_status == 28)) {
                      seek_place = 0;
                      seek_place = ftell((FILE*)data.pvOut);
+		     if( seek_place < 0)
+		     {
+		         SWLOG_ERROR( "Invalid Usage, parameter seek_place being negative \n");
+			 *httpCode_ret_status = 0;
+			 *curl_ret_status = 33;
+			 closeFile(pData, &prog, headerfile);
+                         return CURLE_OK;
+		     }
                      memset(file_pt_pos, '\0', sizeof(file_pt_pos));
-                     sprintf(file_pt_pos, "%d-", seek_place);
+		     sprintf(file_pt_pos, "%d-", seek_place);
                  }else if ((*curl_ret_status == 33) || (*curl_ret_status == 36)) {
 		     SWLOG_ERROR( "CURL: Received curl error=%d and go for full Download\n",*curl_ret_status);
 		     break;	
@@ -762,7 +793,7 @@ size_t urlHelperDownloadToMem( CURL *curl, FileDwnl_t *pfile_dwnl, int *httpCode
 	    ret_code = curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, WriteMemoryCB);
 	    if( ret_code == CURLE_OK )
 	    {
-	        curl_easy_setopt(curl, CURLOPT_HEADERDATA, pfile_dwnl->pDlHeaderData);
+	        ret_code = curl_easy_setopt(curl, CURLOPT_HEADERDATA, pfile_dwnl->pDlHeaderData);
                 if( ret_code == CURLE_OK )
 	        {
                     SWLOG_INFO("urlHelperDownloadToMem: Header Data Request Set\n");
@@ -889,31 +920,62 @@ bool checkDeviceInternetConnection(long timeout_ms)
 	bool status = false;
 	CURL *curl;
     CURLcode res;
+    CURLcode ret_code = CURLE_OK;
     char *url = "http://xfinity.com";
 
     // Initialize the curl session
     curl = curl_easy_init();
     if(curl) {
         // Set the URL to retrieve
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-
+	ret_code = curl_easy_setopt(curl, CURLOPT_URL, url);
+        if ( ret_code != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_URL \n");
+	    urlHelperDestroyCurl(curl);
+	    return ret_code;
+	}
         // Set private data and custom headers
-        curl_easy_setopt(curl, CURLOPT_PRIVATE,url);
+	ret_code = curl_easy_setopt(curl, CURLOPT_PRIVATE,url);
+        if ( ret_code != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_PRIVATE \n");
+	    urlHelperDestroyCurl(curl);
+	    return ret_code;
+	}
         struct curl_slist *chunk = NULL;
         chunk = curl_slist_append(chunk, "Cache-Control: no-cache, no-store");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
+	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+        if ( ret_code != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPHEADER \n");
+	    urlHelperDestroyCurl(curl);
+	    return ret_code;
+	}
         // Set user agent
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0");
+	ret_code = curl_easy_setopt(curl, CURLOPT_USERAGENT, "RDKCaptiveCheck/1.0");
+        if ( ret_code != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_USERAGENT \n");
+	    urlHelperDestroyCurl(curl);
+	    return ret_code;
+	}
 
         // Set request type to GET
-        curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+	ret_code = curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+        if ( ret_code != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_HTTPGET \n");
+	    urlHelperDestroyCurl(curl);
+	    return ret_code;
+	}
 
         // Set write callback function
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
+	ret_code = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeFunction);
+        if ( ret_code != CURLE_OK){
+	    SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_WRITEFUNCTION \n");
+	    urlHelperDestroyCurl(curl);
+	    return ret_code;
+	}
 
         // Set timeout in milliseconds
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms);
+        if (curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms) != CURLE_OK) {
+            SWLOG_ERROR("curl_easy_setopt failed for CURLOPT_TIMEOUT_MS \n");
+        }
 
         // Make the request
         res = curl_easy_perform(curl);

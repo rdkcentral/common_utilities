@@ -442,9 +442,17 @@ int findFile(char *dir, char *search)
     if((dp = opendir(dir)) == NULL) {
         return found;
     }
-    chdir(dir);
+    if (chdir(dir) != 0) {
+        SWLOG_ERROR("Failed to change directory to %s \n", dir);
+        closedir(dp);
+        return 0;
+    }
     while((entry = readdir(dp)) != NULL) {
-        lstat(entry->d_name, &statbuf);
+        if (lstat(entry->d_name, &statbuf) == -1) {
+            SWLOG_ERROR("lstat failed for %s: %s\n", entry->d_name, strerror(errno));
+            closedir(dp);
+            return 0;
+        }       
         if(!strcmp(entry->d_name, search)) {
             found = 1;
             break;
@@ -462,11 +470,34 @@ int findFile(char *dir, char *search)
             }
         }
     }
-    chdir("..");
+    if (chdir("..") != 0) {
+        SWLOG_ERROR("Failed to change directory to parent\n");
+        closedir(dp);
+        return 0;
+    }
     closedir(dp);
     return found;
 }
 
+/** @brief Constructs a full file or directory path by concatenating a base path and an entry name with a '/' separator.
+ *
+ *  @param base_path The base directory path.
+ *  @param entry_name The file or directory name to append.
+ *  @return Pointer to the newly allocated string containing the full path 
+ */
+
+static inline char* construct_full_path(const char* base_path, const char* entry_name) 
+{
+    size_t allocate_size = strlen(base_path) + strlen(entry_name) + 2; // 1 for '/' and 1 for '\0'
+    char* full_path = calloc(allocate_size, sizeof(char));
+    if (full_path) {
+        snprintf(full_path, allocate_size, "%s/%s", base_path, entry_name);
+        SWLOG_INFO("Constructed full path: %s", full_path);
+    } else {
+        SWLOG_ERROR("Failed to allocate memory for full path");
+    }
+    return full_path;
+}
 /** @brief This Function search for the folder/file in given path
  *  with partial name.
  *
@@ -479,11 +510,9 @@ int findFile(char *dir, char *search)
  */
 int findPFile(char *path, char *search, char *out)
 {
-    size_t path_len;
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
@@ -498,24 +527,11 @@ int findPFile(char *path, char *search, char *out)
         SWLOG_ERROR("Invalid out pointer\n");
         return 0;
     }
-
-    // stat for the path
-    stat(path, &stat_path);
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
-    }
-
     // if not possible to read the directory for this user
     if ((dir = opendir(path)) == NULL) {
         SWLOG_ERROR("Can't open the directory\n");
         return found;
     }
-
-    // the length of the path
-    path_len = strlen(path);
 
     // iteration through entries in the directory
     while ((found == 0) && (entry = readdir(dir)) != NULL) {
@@ -524,21 +540,20 @@ int findPFile(char *path, char *search, char *out)
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-
-
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strcpy(full_path, path);
-            strcat(full_path, "/");
-            strcat(full_path, entry->d_name);
+            full_path = construct_full_path(path, entry->d_name);
             found = findPFile(full_path, search, out);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out) {
-                strcpy(out, path);
-                strcat(out, "/");
-                strcat(out, entry->d_name);
+                char* constructed_path = construct_full_path(path, entry->d_name);
+                if (constructed_path) {
+                    strncpy(out, constructed_path, strlen(constructed_path) + 1); // Copy path to out
+                    SWLOG_INFO(" findPFile : Constructed path out : %s", out);
+                    free(constructed_path);
+                    constructed_path =NULL;
+                }
             }
             found = 1;
         }
@@ -569,7 +584,6 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
@@ -589,15 +603,6 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         return 0;
     }
 
-    // stat for the path
-    stat(path, &stat_path);
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
-    }
-
     // if not possible to read the directory for this user
     if ((dir = opendir(path)) == NULL) {
         SWLOG_ERROR("Can't open the directory\n");
@@ -613,21 +618,16 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-
+        size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strcpy(full_path, path);
-            strcat(full_path, "/");
-            strcat(full_path, entry->d_name);
-
+            full_path = construct_full_path(path, entry->d_name);
             found = findPFileAll(full_path, search, out, found_t, max_list);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out[*found_t]) {
-                strcpy(out[*found_t], path);
-                strcat(out[*found_t], "/");
-                strcat(out[*found_t], entry->d_name);
+                snprintf(out[*found_t], allocate_size , "%s/%s", path, entry->d_name);
+                SWLOG_INFO(" findPFileAll : Constructed path , out : %s\n", out[*found_t]);
                 (*found_t)++;
             }
             if((*found_t) >= max_list)
@@ -689,8 +689,7 @@ int emptyFolder(char *folderPath)
 {
     DIR *dir = opendir(folderPath);
     struct dirent *entry;
-    char filePath[RDK_APP_PATH_LEN];
-
+    char filePath[RDK_APP_PATH_LEN+1] = {0};  
     if (dir == NULL) {
         SWLOG_ERROR("Error opening directory\n");
         return RDK_API_FAILURE;
@@ -700,15 +699,19 @@ int emptyFolder(char *folderPath)
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
         }
-
         snprintf(filePath, RDK_APP_PATH_LEN+1, "%s/%s", folderPath, entry->d_name);
-
         if (entry->d_type == DT_DIR) {
-            emptyFolder(filePath);
+            
+            if (emptyFolder(filePath) != RDK_API_SUCCESS) {
+                SWLOG_ERROR("Failed to empty folder: %s\n", filePath);
+            }
             rmdir(filePath);
         }
         else {
-            remove(filePath);
+             if (remove(filePath) != 0) {
+                 closedir(dir);
+                 return RDK_API_FAILURE;
+             }                        
         }
     }
 
@@ -771,6 +774,7 @@ int copyFiles(char *src, char *dst)
     fpout = fopen(dst, "wb");
     if(fpout == NULL) {
         SWLOG_ERROR("Failed to open dst file: %s\n", dst);
+        fclose(fpin);
         return RDK_API_FAILURE;
     }
 
@@ -796,8 +800,8 @@ int fileCheck(char *pFilepath)
 {
     FILE *fp = fopen(pFilepath, "r");
     if(fp) {
-        return 1;
         fclose(fp);
+        return 1;
     }
     else {
         return 0;
@@ -821,7 +825,10 @@ int folderCheck(char *path)
     }
 
     // stat for the path
-    stat(path, &stat_path);
+    if (stat(path, &stat_path) != 0) {
+        SWLOG_ERROR("Error accessing the path: %s\n", path);
+        return 0;
+    }
 
     // if path does not exists or is not dir - exit with status -1
     if (S_ISDIR(stat_path.st_mode) == 0) {
@@ -932,7 +939,7 @@ void copyCommandOutput (char *cmd, char *out, int len)
     if (fp) {
         if(out) {
             if (fgets (out, len, fp) != NULL) {
-                size_t len = strlen (out);
+                len = strlen (out);
                 if ((len > 0) && (out[len - 1] == '\n'))
                     out[len - 1] = 0;
             }
@@ -1117,29 +1124,25 @@ int strRmDuplicate(char **in, int len)
 void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* outValue){
     char lines[1024];
     char *token;
+    if (!strtokvalue || !string || !outValue) { 
+        SWLOG_ERROR("Invalid Parameters %p %p %p", strtokvalue, string, outValue); 
+        return; 
+    }
     FILE *file = fopen(path,"r");
-
-    if( (strtokvalue != NULL) && (string != NULL) && ( outValue != NULL) ){
-        if( file ){
-            while(fgets(lines, sizeof(lines), file)){
-                token = strtok(lines, strtokvalue);
-
-                while(token != NULL){
-                    if(strcmp(token,string) == 0 ){
-                        strncpy(outValue, strtok(NULL,strtokvalue),128);
-                        break;
-                    }
-                    token = strtok(NULL,strtokvalue);
-                }
+    if( file ){
+        while(fgets(lines, sizeof(lines), file)){
+        token = strtok(lines, strtokvalue);
+        while(token != NULL){
+            if(strcmp(token,string) == 0 ){
+                strncpy(outValue, strtok(NULL,strtokvalue),128);
+                break;
             }
-
-            fclose(file);
+            token = strtok(NULL,strtokvalue);
         }
-        else{
-            SWLOG_ERROR("file open failed %s\n",path);
         }
+        fclose(file);
     }
     else{
-        SWLOG_ERROR("Invalid Parameters %p %p %p",strtokvalue, string, outValue);
-    }
+            SWLOG_ERROR("file open failed %s\n",path);
+        }
 }
