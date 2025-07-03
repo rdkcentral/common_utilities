@@ -25,12 +25,12 @@
 #if defined(RDK_LOGGER)
 #include "rdk_debug.h"
 
-#define SWLOG_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
+#define SWLOG_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define SWLOG_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define SWLOG_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define SWLOG_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define SWLOG_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define SWLOG_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
 
 #define COMMONUTILITIES_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
 #define COMMONUTILITIES_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
