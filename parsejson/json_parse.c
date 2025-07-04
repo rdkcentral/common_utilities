@@ -65,7 +65,7 @@ static int writeItemVal( FILE* fpout, char *pName, char *pVal, int setenvvars )
             }
             else
             {
-                SWLOG_ERROR( "writeItemVal: pVal is not printable\n" );
+                COMMONUTILITIES_ERROR( "writeItemVal: pVal is not printable\n" );
                 iRet = 1;
             }
         }
@@ -76,14 +76,14 @@ static int writeItemVal( FILE* fpout, char *pName, char *pVal, int setenvvars )
                 iRet = setenv( pName, pVal, 1 );
                 if( iRet )
                 {
-                    SWLOG_ERROR( "writeItemVal: setenv( %s, %s, 1 ) returned %d\n", pName, pVal, iRet );
+                    COMMONUTILITIES_ERROR( "writeItemVal: setenv( %s, %s, 1 ) returned %d\n", pName, pVal, iRet );
                 }
             }
         }
     }
     else
     {
-        SWLOG_ERROR( "writeItemVal: one or more input args invalid\n" );
+        COMMONUTILITIES_ERROR( "writeItemVal: one or more input args invalid\n" );
         iRet = 1;
     }
     return iRet;
@@ -199,7 +199,7 @@ int SetJsonVars( char *fileIn, char *fileOut, int setenvvars )
             {
                 if( (fpout=fopen( fileOut, "w" )) == NULL )
                 {
-                    SWLOG_INFO( "SetJsonVars: cannot open %s for writing\n", fileOut );
+                    COMMONUTILITIES_INFO( "SetJsonVars: cannot open %s for writing\n", fileOut );
                 }
             }
             cJSON_ArrayForEach( item, json )
@@ -216,7 +216,7 @@ int SetJsonVars( char *fileIn, char *fileOut, int setenvvars )
                     }
                     else
                     {
-                        SWLOG_ERROR( "SetJsonVars: item is invalid\n" );
+                        COMMONUTILITIES_ERROR( "SetJsonVars: item is invalid\n" );
                     }
                 }
             }
@@ -228,13 +228,13 @@ int SetJsonVars( char *fileIn, char *fileOut, int setenvvars )
         }
         else
         {
-            SWLOG_ERROR( "SetJsonVar: cJSON_Parse error writing\n" );
+            COMMONUTILITIES_ERROR( "SetJsonVar: cJSON_Parse error writing\n" );
         }
         free( pStr );
     }
     else
     {
-        SWLOG_ERROR( "SetJsonVars: GetJson return NULL\n");
+        COMMONUTILITIES_ERROR( "SetJsonVars: GetJson return NULL\n");
     }
     return iRet;
 }
@@ -262,7 +262,7 @@ JSON *ParseJsonStr( char *pJsonStr )
     }
     else
     {
-        SWLOG_ERROR( "ParseJsonStr Error: No JSON string to parse\n" );
+        COMMONUTILITIES_ERROR( "ParseJsonStr Error: No JSON string to parse\n" );
     }
     return pjson;
 }
@@ -287,7 +287,7 @@ int FreeJson( JSON *pJson )
     }
     else
     {
-        SWLOG_ERROR( "FreeJson Error: No Json object to free\n" );
+        COMMONUTILITIES_ERROR( "FreeJson Error: No Json object to free\n" );
     }
     return ret;
 }
@@ -398,17 +398,17 @@ size_t GetJsonVal( JSON *pJson, char *pValToGet, char *pOutputVal, size_t maxlen
             }
             else
             {
-                SWLOG_ERROR( "GetJsonVal: Error, no value to get\n" );
+                COMMONUTILITIES_ERROR( "GetJsonVal: Error, no value to get\n" );
             }
         }
         else
         {
-            SWLOG_ERROR( "GetJsonVal: Error, no json object to search\n" );
+            COMMONUTILITIES_ERROR( "GetJsonVal: Error, no json object to search\n" );
         }
     }
     else
     {
-        SWLOG_ERROR( "GetJsonVal: Error, no place to store output\n" );
+        COMMONUTILITIES_ERROR( "GetJsonVal: Error, no place to store output\n" );
     }
     return len;
 }
@@ -522,23 +522,23 @@ size_t GetJsonValContaining( JSON *pJson, char *pValToGet, char *pOutputVal, siz
                     }
                     else
                     {
-                        SWLOG_ERROR( "GetJsonValContaining: item is invalid\n" );
+                        COMMONUTILITIES_ERROR( "GetJsonValContaining: item is invalid\n" );
                     }
                 }
             }
             else
             {
-                SWLOG_ERROR( "GetJsonValContaining: Error, no value to get\n" );
+                COMMONUTILITIES_ERROR( "GetJsonValContaining: Error, no value to get\n" );
             }
         }
         else
         {
-            SWLOG_ERROR( "GetJsonValContaining: Error, no json object to search\n" );
+            COMMONUTILITIES_ERROR( "GetJsonValContaining: Error, no json object to search\n" );
         }
     }
     else
     {
-        SWLOG_ERROR( "GetJsonValContaining: Error, no place to store output\n" );
+        COMMONUTILITIES_ERROR( "GetJsonValContaining: Error, no place to store output\n" );
     }
     return len;
 }
@@ -587,29 +587,29 @@ char* GetJson( char *filename_in )
                     }
                     else
                     {
-                        SWLOG_ERROR( "GetJson: Unable to allocate memory\n" );
+                        COMMONUTILITIES_ERROR( "GetJson: Unable to allocate memory\n" );
                     }
                     munmap( pMap, stFilesize );
                 }
                 else
                 {
-                    SWLOG_ERROR( "GetJson: Unable to create mmap for %s\n", filename_in );
+                    COMMONUTILITIES_ERROR( "GetJson: Unable to create mmap for %s\n", filename_in );
                 }
             }
             else
             {
-                SWLOG_ERROR( "GetJson: Unable to stat %s\n", filename_in );
+                COMMONUTILITIES_ERROR( "GetJson: Unable to stat %s\n", filename_in );
             }
             close( fd );
         }
         else
         {
-            SWLOG_ERROR( "GetJson: Unable to open %s for reading\n", filename_in );
+            COMMONUTILITIES_ERROR( "GetJson: Unable to open %s for reading\n", filename_in );
         }
     }
     else
     {
-        SWLOG_ERROR( "GetJson: No input filename\n" );
+        COMMONUTILITIES_ERROR( "GetJson: No input filename\n" );
     }
 
     return pJson;
