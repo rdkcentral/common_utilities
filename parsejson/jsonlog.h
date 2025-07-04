@@ -37,5 +37,8 @@ void log_exit();
 #define SWUPDATELOG(level, ...) do { \
 			RDK_LOG(level, "LOG.RDK.FWUPG", __VA_ARGS__); \
 			} while (0);
+#define COMMONUTILITIESLOG(level, ...) do { \
+			RDK_LOG(level, "LOG.RDK.COMMONUTILITIES", __VA_ARGS__); \
+			} while (0);
 
 #endif
