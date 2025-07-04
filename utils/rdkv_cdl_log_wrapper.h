@@ -32,6 +32,13 @@
 #define SWLOG_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
 #define SWLOG_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
 
+#define COMMONUTILITIES_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define COMMONUTILITIES_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define COMMONUTILITIES_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define COMMONUTILITIES_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define COMMONUTILITIES_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+#define COMMONUTILITIES_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.COMMONUTILITIES", format"\n", ##__VA_ARGS__)
+
 #else
 #define SW_LOG_INFO      (1)
 void swLog(unsigned int level, const char *msg, ...);
@@ -76,4 +83,3 @@ int log_init();
 void log_exit();
 
 #endif
-
