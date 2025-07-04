@@ -160,7 +160,7 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
                     pTmp = buf;
                     while( *pTmp && isblank( *pTmp ) )   // skip over tabs and spaces to fist char, make sure not NULL
                     {
-                        SWLOG_INFO("getDeviceProperties: skipping spaces\n" );
+                        COMMONUTILITIES_INFO("getDeviceProperties: skipping spaces\n" );
                         ++pTmp;
                     }
                     if( *pTmp == '#' || *pTmp == 0 )
@@ -200,7 +200,7 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
             }
             else
             {
-                SWLOG_ERROR( "%s : cannot open %s\n", __FUNCTION__, PropFiles[a] );
+                COMMONUTILITIES_ERROR( "%s : cannot open %s\n", __FUNCTION__, PropFiles[a] );
             }
         }
 //        SWLOG_INFO( "pDevice_info->eBuildType = %d\n", (int)pDevice_info->eBuildType );;
@@ -217,7 +217,7 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
     }
     else
     {
-        SWLOG_ERROR( "%s : parameter is NULL\n", __FUNCTION__ );
+        COMMONUTILITIES_ERROR( "%s : parameter is NULL\n", __FUNCTION__ );
     }
 
     return ret;
@@ -238,17 +238,17 @@ int getDevicePropertyData(const char *dev_prop_name, char *out_data, unsigned in
     int index;
 
     if (out_data == NULL || dev_prop_name == NULL) {
-        SWLOG_ERROR("%s : parameter is NULL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : parameter is NULL\n", __FUNCTION__);
         return ret;
     }
     if (buff_size == 0 || buff_size > MAX_DEVICE_PROP_BUFF_SIZE) {
-        SWLOG_ERROR("%s : buff size not in the range. size should be < %d\n", __FUNCTION__, MAX_DEVICE_PROP_BUFF_SIZE);
+        COMMONUTILITIES_ERROR("%s : buff size not in the range. size should be < %d\n", __FUNCTION__, MAX_DEVICE_PROP_BUFF_SIZE);
         return ret;
     }
-    SWLOG_INFO("%s : Trying device property data for %s and buf size=%u\n", __FUNCTION__, dev_prop_name, buff_size);
+    COMMONUTILITIES_INFO("%s : Trying device property data for %s and buf size=%u\n", __FUNCTION__, dev_prop_name, buff_size);
     fp = fopen(DEVICE_PROPERTIES_FILE, "r");
     if(fp == NULL) {
-        SWLOG_ERROR("%s : device.property File not found\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : device.property File not found\n", __FUNCTION__);
         return ret;
     }
     while((fgets(tbuff, sizeof(tbuff), fp) != NULL)) {
@@ -260,11 +260,11 @@ int getDevicePropertyData(const char *dev_prop_name, char *out_data, unsigned in
             tmp = strchr(tbuff, '=');
             if(tmp != NULL) {
                 snprintf(out_data, buff_size, "%s", tmp+1);
-                SWLOG_INFO("%s : %s=%s\n", __FUNCTION__, dev_prop_name, out_data);
+                COMMONUTILITIES_INFO("%s : %s=%s\n", __FUNCTION__, dev_prop_name, out_data);
                 ret = UTILS_SUCCESS;
                 break;
             } else {
-                SWLOG_ERROR("%s : strchr failed. '=' not found. str=%s\n", __FUNCTION__, tbuff);
+                COMMONUTILITIES_ERROR("%s : strchr failed. '=' not found. str=%s\n", __FUNCTION__, tbuff);
 	    }
 	}
     }
@@ -287,17 +287,17 @@ int getIncludePropertyData(const char *dev_prop_name, char *out_data, unsigned i
     int index;
 
     if (out_data == NULL || dev_prop_name == NULL) {
-        SWLOG_ERROR("%s : parameter is NULL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : parameter is NULL\n", __FUNCTION__);
         return ret;
     }
     if (buff_size == 0 || buff_size > MAX_DEVICE_PROP_BUFF_SIZE) {
-        SWLOG_ERROR("%s : buff size not in the range. size should be < %d\n", __FUNCTION__, MAX_DEVICE_PROP_BUFF_SIZE+1);
+        COMMONUTILITIES_ERROR("%s : buff size not in the range. size should be < %d\n", __FUNCTION__, MAX_DEVICE_PROP_BUFF_SIZE+1);
         return ret;
     }
 
     fp = fopen(INCLUDE_PROPERTIES_FILE, "r");
     if(fp == NULL) {
-        SWLOG_ERROR("%s :include.property File not found\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s :include.property File not found\n", __FUNCTION__);
         return ret;
     }
     while((fgets(tbuff, sizeof(tbuff), fp) != NULL)) {
@@ -309,11 +309,11 @@ int getIncludePropertyData(const char *dev_prop_name, char *out_data, unsigned i
             tmp = strchr(tbuff, '=');
             if(tmp != NULL) {
                 snprintf(out_data, buff_size, "%s", tmp+1);
-                SWLOG_INFO("%s=%s\n", dev_prop_name, out_data);
+                COMMONUTILITIES_INFO("%s=%s\n", dev_prop_name, out_data);
                 ret = UTILS_SUCCESS;
                 break;
             } else {
-                SWLOG_ERROR("%s : strchr failed. '=' not found. str=%s\n", __FUNCTION__, tbuff);
+                COMMONUTILITIES_ERROR("%s : strchr failed. '=' not found. str=%s\n", __FUNCTION__, tbuff);
             }
         }
     }
@@ -335,16 +335,16 @@ bool isMediaClientDevice(void){
     // The device type field from device.properties and determine platform type
     ret = getDevicePropertyData(dev_prop_name, dev_type, sizeof(dev_type));
     if (ret == UTILS_SUCCESS) {
-        SWLOG_INFO("%s: device name from device.property file=%s\n", __FUNCTION__, dev_type);
+        COMMONUTILITIES_INFO("%s: device name from device.property file=%s\n", __FUNCTION__, dev_type);
     } else {
-        SWLOG_INFO("%s: device name not present device.property file\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: device name not present device.property file\n", __FUNCTION__);
         return isMediaClientDevice;
     }
     if ((strncmp(dev_type, "mediaclient", 11)) == 0) {
-        SWLOG_INFO("Device is a Mediaclient\n");
+        COMMONUTILITIES_INFO("Device is a Mediaclient\n");
         isMediaClientDevice = true ;
     } else {
-        SWLOG_INFO("Device is not a Mediaclient\n");
+        COMMONUTILITIES_INFO("Device is not a Mediaclient\n");
     }
     return isMediaClientDevice ;
 
@@ -362,13 +362,13 @@ int getImageDetails(ImageDetails_t *cur_img_detail) {
     int ret = UTILS_FAIL;
 
     if (cur_img_detail == NULL) {
-        SWLOG_ERROR("getImageDetails(): Parameter is NULL ret=%d\n", ret);
+        COMMONUTILITIES_ERROR("getImageDetails(): Parameter is NULL ret=%d\n", ret);
         return ret;
     }
 
     fp = fopen(IMAGE_DETAILS, "r");
     if(fp == NULL) {
-        SWLOG_ERROR("getImageDetails() File not found %s\n", IMAGE_DETAILS);
+        COMMONUTILITIES_ERROR("getImageDetails() File not found %s\n", IMAGE_DETAILS);
         return ret;
     }
     while((fgets(tbuff, sizeof(tbuff), fp) != NULL)) {
