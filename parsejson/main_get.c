@@ -59,7 +59,7 @@ int main( int argc, char *argv[] )
     }
     else
     {
-        SWLOG_INFO( "Error: Too few arguments\nUsage %s <input filename> <JSON string to search for>\n", argv[0] );
+        COMMONUTILITIES_INFO( "Error: Too few arguments\nUsage %s <input filename> <JSON string to search for>\n", argv[0] );
     }
     log_exit();
     return iRet;
