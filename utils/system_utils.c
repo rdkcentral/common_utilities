@@ -43,7 +43,7 @@ int filePresentCheck(const char *file_name) {
     struct stat sfile;
 
     if(file_name == NULL) {
-        SWLOG_ERROR("%s Invalid Parameter\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s Invalid Parameter\n", __FUNCTION__);
         return ret;
     }
     
@@ -69,24 +69,24 @@ int cmdExec(const char *cmd, char *output, unsigned int size_buff) {
     int nbytes_read = RDK_API_FAILURE;
 
     if(cmd == NULL || output == NULL || size_buff == 0) {
-        SWLOG_ERROR("%s Invalid Parameter\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s Invalid Parameter\n", __FUNCTION__);
         return ret;
     }
     if(size_buff > MAX_OUT_BUFF_POPEN) {
-        SWLOG_ERROR("%s size_buff should not be > %d. Provided buffer size=%u\n", __FUNCTION__, MAX_OUT_BUFF_POPEN, size_buff);
+        COMMONUTILITIES_ERROR("%s size_buff should not be > %d. Provided buffer size=%u\n", __FUNCTION__, MAX_OUT_BUFF_POPEN, size_buff);
         return ret;
     }
     fp = popen(cmd, "r");
     if(fp == NULL) {
-        SWLOG_ERROR("%s Failed to open pipe command execution:%s\n", __FUNCTION__, cmd);
+        COMMONUTILITIES_ERROR("%s Failed to open pipe command execution:%s\n", __FUNCTION__, cmd);
         return ret;
     }
     nbytes_read = fread(output, 1, size_buff - 1, fp);
     if(nbytes_read != -1) {
-        SWLOG_INFO("%s Successful read %d bytes\n", __FUNCTION__, nbytes_read);
+        COMMONUTILITIES_INFO("%s Successful read %d bytes\n", __FUNCTION__, nbytes_read);
         output[nbytes_read] = '\0';
     }else {
-        SWLOG_ERROR("%s fread fails:%d\n", __FUNCTION__, nbytes_read);
+        COMMONUTILITIES_ERROR("%s fread fails:%d\n", __FUNCTION__, nbytes_read);
         pclose(fp);
         return ret;
     }
@@ -105,12 +105,12 @@ int getFileSize(const char *file_name)
     struct stat st;
 
     if (file_name == NULL) {
-        SWLOG_ERROR("%s : File name not present\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : File name not present\n", __FUNCTION__);
         return ret;
     }
     ret = stat(file_name, &st);
     if (ret == -1) {
-        SWLOG_ERROR("%s : File unable to stat\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : File unable to stat\n", __FUNCTION__);
         return ret;
     }
     file_size = st.st_size;
@@ -127,7 +127,7 @@ int logFileData(const char *file_path) {
     char tbuff[80];
 
     if(file_path == NULL) {
-        SWLOG_INFO("logFileData() File path is NULL\n");
+        COMMONUTILITIES_INFO("logFileData() File path is NULL\n");
         return ret;
     }
     fp = fopen(file_path, "r");
