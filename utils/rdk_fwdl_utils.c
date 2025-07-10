@@ -177,7 +177,7 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
                             if( pTmp && pTmp == buf )   // if match found and match is first character on line
                             {
                                 pTmp = strchr( pTmp, '=' );
-                                if( pTmp)
+				if( pTmp)
 				{
                                     ++pTmp;
 				}
