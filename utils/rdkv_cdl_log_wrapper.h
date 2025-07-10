@@ -41,7 +41,7 @@
 
 #else
 #define SW_LOG_INFO      (1)
-#define COMMONUTILITIES_INFO     (1)
+#define COMMON_UTILITIES_INFO     (1)
 void swLog(unsigned int level, const char *msg, ...);
 
 #define SWLOG_TRACE(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
@@ -51,12 +51,12 @@ void swLog(unsigned int level, const char *msg, ...);
 #define SWLOG_ERROR(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
 #define SWLOG_FATAL(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
 
-#define COMMONUTILITIES_TRACE(format, ...)  swLog(COMMONUTILITIES_INFO, __FILE__, __LINE__, FORMAT)
-#define COMMONUTILITIES_DEBUG(format, ...)  swLog(COMMONUTILITIES_INFO, __FILE__, __LINE__, FORMAT)
-#define COMMONUTILITIES_INFO(format, ...)   swLog(COMMONUTILITIES_INFO, __FILE__, __LINE__, FORMAT)
-#define COMMONUTILITIES_WARN(format, ...)   swLog(COMMONUTILITIES_INFO, __FILE__, __LINE__, FORMAT)
-#define COMMONUTILITIES_ERROR(format, ...)  swLog(COMMONUTILITIES_INFO, __FILE__, __LINE__, FORMAT)
-#define COMMONUTILITIES_FATAL(format, ...)  swLog(COMMONUTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_TRACE(format, ...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_DEBUG(format, ...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_INFO(format, ...)   swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_WARN(format, ...)   swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_ERROR(format, ...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_FATAL(format, ...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
 
 #endif
 
