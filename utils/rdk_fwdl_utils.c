@@ -177,7 +177,14 @@ int getDeviceProperties(DeviceProperty_t *pDevice_info) {
                             if( pTmp && pTmp == buf )   // if match found and match is first character on line
                             {
                                 pTmp = strchr( pTmp, '=' );
-                                ++pTmp;
+ 				if( pTmp)
+				{
+                                    ++pTmp;
+				}
+				else
+				{
+				    continue;
+				}                               
                                 if( i == eBUILD_TYPE )
                                 {
                                     pDevice_info->eBuildType = getbuild( pTmp );
