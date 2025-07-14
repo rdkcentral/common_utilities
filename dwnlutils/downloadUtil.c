@@ -28,9 +28,9 @@ void *doCurlInit(void)
     CURL *curl = NULL;
     curl = urlHelperCreateCurl();
     if (curl == NULL) {
-        SWLOG_ERROR("%s: curl init failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: curl init failed\n", __FUNCTION__);
     } else {
-        SWLOG_INFO("%s: curl init success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: curl init success\n", __FUNCTION__);
     }
     return (void *)curl;
 }
@@ -43,7 +43,7 @@ void doStopDownload(void *curl)
     CURL *curl_dest;
     if (curl != NULL) {
         curl_dest = (CURL *)curl;
-        SWLOG_INFO("%s : CURL: free resources\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: free resources\n", __FUNCTION__);
         urlHelperDestroyCurl(curl_dest);
     }
 }
@@ -62,23 +62,23 @@ int doInteruptDwnl(void *in_curl, unsigned int max_dwnl_speed)
         if (max_dwnl_speed > 0) {
             ret_code = curl_easy_pause(curl, CURLPAUSE_ALL);
     	    if(ret_code != CURLE_OK) {
-                SWLOG_ERROR("%s : CURL: curl_easy_pause Failed\n", __FUNCTION__);
+                COMMONUTILITIES_ERROR("%s : CURL: curl_easy_pause Failed\n", __FUNCTION__);
                 return DWNL_FAIL;
     	    } else {
-                SWLOG_INFO("%s : CURL: curl_easy_pause Success\n", __FUNCTION__);
+                COMMONUTILITIES_INFO("%s : CURL: curl_easy_pause Success\n", __FUNCTION__);
             }
     	    ret_code = setThrottleMode(curl, (curl_off_t) max_dwnl_speed);
     	    if(ret_code != CURLE_OK) {
-                SWLOG_ERROR("%s : CURL: setThrottleMode Failed:%d\n", __FUNCTION__, ret_code);
+                COMMONUTILITIES_ERROR("%s : CURL: setThrottleMode Failed:%d\n", __FUNCTION__, ret_code);
     	    } else {
-                SWLOG_INFO("%s : CURL: setThrottleMode Success:%u\n", __FUNCTION__, max_dwnl_speed);
+                COMMONUTILITIES_INFO("%s : CURL: setThrottleMode Success:%u\n", __FUNCTION__, max_dwnl_speed);
             }
             ret_code = curl_easy_pause(curl, CURLPAUSE_CONT);
     	    if(ret_code != CURLE_OK) {
-                SWLOG_ERROR("%s : CURL: curl_easy_unpause Failed: %d\n", __FUNCTION__, ret_code);
+                COMMONUTILITIES_ERROR("%s : CURL: curl_easy_unpause Failed: %d\n", __FUNCTION__, ret_code);
                 return DWNL_UNPAUSE_FAIL;
     	    } else {
-                SWLOG_INFO("%s : CURL: curl_easy_unpause Success\n", __FUNCTION__);
+                COMMONUTILITIES_INFO("%s : CURL: curl_easy_unpause Success\n", __FUNCTION__);
             }
         }
     }
@@ -98,16 +98,16 @@ unsigned int doGetDwnlBytes(void *in_curl)
         curl = (CURL *)in_curl;
 	ret_code = curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl);
 	if (ret_code == CURLE_OK) {
-            SWLOG_INFO("%s : CURL: curl_easy_getinfo Success:%" CURL_FORMAT_CURL_OFF_T "\n", __FUNCTION__, dl);
+            COMMONUTILITIES_INFO("%s : CURL: curl_easy_getinfo Success:%" CURL_FORMAT_CURL_OFF_T "\n", __FUNCTION__, dl);
 	    if (dl > 0) {
                 bytes = dl;
-                SWLOG_INFO("%s : CURL: Downloaded bytes:%u\n", __FUNCTION__, bytes);
+                COMMONUTILITIES_INFO("%s : CURL: Downloaded bytes:%u\n", __FUNCTION__, bytes);
 	    }
 	}else {
-            SWLOG_ERROR("%s : CURL: curl_easy_getinfo failed: %d\n", __FUNCTION__, ret_code);
+            COMMONUTILITIES_ERROR("%s : CURL: curl_easy_getinfo failed: %d\n", __FUNCTION__, ret_code);
 	}
     } else {
-        SWLOG_ERROR("%s : CURL: curl instance is NULL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: curl instance is NULL\n", __FUNCTION__);
     }
     return bytes;
 }
@@ -129,39 +129,39 @@ int doCurlPutRequest(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_t
     int ret = -1;
 
     if (in_curl == NULL || out_httpCode == NULL || pfile_dwnl == NULL) {
-        SWLOG_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
         return DWNL_FAIL;
     }
     curl = (CURL *)in_curl;
     ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, pfile_dwnl->pPostFields, false);
     if(ret_code != CURLE_OK) {
-        SWLOG_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
         return DWNL_FAIL;
     } else {
-        SWLOG_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
     }
     /*Adding header and token into the single link list provided by curl lib*/
     if (pfile_dwnl->pHeaderData && *pfile_dwnl->pHeaderData) {
         slist = curl_slist_append( slist, pfile_dwnl->pHeaderData );
         if (slist != NULL) {
             if (jsonrpc_auth_token != NULL) {
-	        SWLOG_INFO("%s : CURL: Setting For jsonrpc_auth_token\n", __FUNCTION__);
+	        COMMONUTILITIES_INFO("%s : CURL: Setting For jsonrpc_auth_token\n", __FUNCTION__);
 	        slist = curl_slist_append(slist, jsonrpc_auth_token);
 	        if (slist == NULL) {
-	            SWLOG_ERROR("%s : CURL: curl_slist_append fail for jsonrpc_auth_token set\n", __FUNCTION__);
+	            COMMONUTILITIES_ERROR("%s : CURL: curl_slist_append fail for jsonrpc_auth_token set\n", __FUNCTION__);
 	        }
             }
         }else {
-            SWLOG_ERROR("%s : CURL: curl_slist_append header fail\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s : CURL: curl_slist_append header fail\n", __FUNCTION__);
 	    return DWNL_FAIL;
         }
     }else {
-        SWLOG_ERROR("%s : CURL: header field is empty\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: header field is empty\n", __FUNCTION__);
 	return DWNL_FAIL;
     }
     ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
     if (ret_code != CURLE_OK) {
-        SWLOG_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
+        COMMONUTILITIES_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
         if( slist != NULL ) {
 	    curl_slist_free_all( slist );
         }
@@ -169,7 +169,7 @@ int doCurlPutRequest(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_t
     }
     //byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
     ret = urlHelperPutReuqest(curl, NULL, out_httpCode, &curl_status); 
-    SWLOG_INFO("%s : urlHelperPutReuqest ret=%d\n", __FUNCTION__, ret);
+    COMMONUTILITIES_INFO("%s : urlHelperPutReuqest ret=%d\n", __FUNCTION__, ret);
     if( slist != NULL ) {
         curl_slist_free_all( slist );
     }
@@ -191,13 +191,13 @@ int getJsonRpcData(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_tok
     CURLcode curl_status = -1;
 
     if (in_curl == NULL || out_httpCode == NULL || pfile_dwnl == NULL) {
-        SWLOG_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
         return DWNL_FAIL;
     }
     curl = (CURL *)in_curl;
     ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, pfile_dwnl->pPostFields, false);
     if(ret_code != CURLE_OK) {
-        SWLOG_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
         return DWNL_FAIL;
     }
     /*Adding header and token into the single link list provided by curl lib*/
@@ -205,31 +205,31 @@ int getJsonRpcData(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_tok
         slist = curl_slist_append( slist, pfile_dwnl->pHeaderData );
         if (slist != NULL) {
             if (jsonrpc_auth_token != NULL) {
-                SWLOG_INFO("%s : CURL: Setting For jsonrpc_auth_token\n", __FUNCTION__);
+                COMMONUTILITIES_INFO("%s : CURL: Setting For jsonrpc_auth_token\n", __FUNCTION__);
                 slist = curl_slist_append(slist, jsonrpc_auth_token);
                 if (slist == NULL) {
-                    SWLOG_ERROR("%s : CURL: curl_slist_append fail for jsonrpc_auth_token set\n", __FUNCTION__);
+                    COMMONUTILITIES_ERROR("%s : CURL: curl_slist_append fail for jsonrpc_auth_token set\n", __FUNCTION__);
                 }
             }
         }else {
-            SWLOG_ERROR("%s : CURL: curl_slist_append header fail\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s : CURL: curl_slist_append header fail\n", __FUNCTION__);
             return DWNL_FAIL;
         }
     }else {
-        SWLOG_ERROR("%s : CURL: header field is empty\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: header field is empty\n", __FUNCTION__);
         return DWNL_FAIL;
     }
     ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
     if (ret_code != CURLE_OK) {
-        SWLOG_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
+        COMMONUTILITIES_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
         if( slist != NULL ) {
             curl_slist_free_all( slist );
         }
         return DWNL_FAIL;
     }
     byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
-    SWLOG_INFO("%s : Bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
-    SWLOG_INFO("%s : data received =%s\n", __FUNCTION__, (char *)pfile_dwnl->pDlData->pvOut);
+    COMMONUTILITIES_INFO("%s : Bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    COMMONUTILITIES_INFO("%s : data received =%s\n", __FUNCTION__, (char *)pfile_dwnl->pDlData->pvOut);
 
     if( slist != NULL ) {
         curl_slist_free_all( slist );
@@ -257,17 +257,17 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 #endif
 
     if (in_curl == NULL || pfile_dwnl == NULL || out_httpCode == NULL) {
-        SWLOG_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
         return DWNL_FAIL;
     }
     curl = (CURL *)in_curl;
 
     ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, pfile_dwnl->pPostFields, pfile_dwnl->sslverify);
     if(ret_code != CURLE_OK) {
-        SWLOG_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
         return DWNL_FAIL;
     } else {
-        SWLOG_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
     }
 
 
@@ -275,10 +275,10 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
     {
         ret_code = setMtlsHeaders(curl, auth);
         if(ret_code != CURLE_OK) {
-            SWLOG_ERROR("%s : CURL: setMtlsHeaders Failed\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s : CURL: setMtlsHeaders Failed\n", __FUNCTION__);
             return DWNL_FAIL;
         } else {
-            SWLOG_INFO("%s : CURL: setMtlsHeaders Success\n", __FUNCTION__);
+            COMMONUTILITIES_INFO("%s : CURL: setMtlsHeaders Success\n", __FUNCTION__);
         }
     }
 
@@ -291,7 +291,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
         ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         if (ret_code != CURLE_OK)
 	{
-            SWLOG_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
+            COMMONUTILITIES_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
             if( headers != NULL ) {
             curl_slist_free_all( headers );
             }
@@ -302,18 +302,18 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
     if (max_dwnl_speed > 0) {
     	ret_code = setThrottleMode(curl, (curl_off_t) max_dwnl_speed);
     	if(ret_code != CURLE_OK) {
-            SWLOG_ERROR("%s : CURL: setThrottleMode Failed\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s : CURL: setThrottleMode Failed\n", __FUNCTION__);
     	    return DWNL_FAIL;
     	} else {
-            SWLOG_INFO("%s : CURL: setThrottleMode Success\n", __FUNCTION__);
+            COMMONUTILITIES_INFO("%s : CURL: setThrottleMode Success\n", __FUNCTION__);
         }
     }
 #ifdef CURL_DEBUG
     ret_code = setCurlDebugOpt(curl, &verbosinfo);
     if (ret_code != CURLE_OK) {
-        SWLOG_ERROR("%s : CURL: Unable to Set Verbos\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: Unable to Set Verbos\n", __FUNCTION__);
     } else {
-        SWLOG_INFO("%s : CURL: Set Verbos Success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: Set Verbos Success\n", __FUNCTION__);
     }
 #endif
     if( *pfile_dwnl->pathname )
@@ -324,7 +324,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
     {
         byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
     }
-    SWLOG_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    COMMONUTILITIES_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
 
 #ifdef CURL_DEBUG
     if (verbosinfo.verboslog) {
@@ -354,33 +354,33 @@ int doAuthHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, int *out_httpC
 #endif
 
     if (in_curl == NULL || pfile_dwnl == NULL || out_httpCode == NULL) {
-        SWLOG_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
         return DWNL_FAIL;
     }
     curl = (CURL *)in_curl;
     ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, pfile_dwnl->pPostFields, pfile_dwnl->sslverify);
     if(ret_code != CURLE_OK) {
-        SWLOG_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
         return DWNL_FAIL;
     } else {
-        SWLOG_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
     }
     if( pfile_dwnl->pHeaderData != NULL && *pfile_dwnl->pHeaderData ) {
-        SWLOG_INFO("%s : CURL: Going to Set RequestHeaders\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: Going to Set RequestHeaders\n", __FUNCTION__);
     	slist = SetRequestHeaders(curl, slist, pfile_dwnl->pHeaderData);
     	if(slist == NULL) {
-            SWLOG_ERROR("%s : CURL: SetRequestHeaders Failed\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s : CURL: SetRequestHeaders Failed\n", __FUNCTION__);
             return DWNL_FAIL;
     	} else {
-            SWLOG_INFO("%s : CURL: SetRequestHeaders Success\n", __FUNCTION__);
+            COMMONUTILITIES_INFO("%s : CURL: SetRequestHeaders Success\n", __FUNCTION__);
     	}
     }
 #ifdef CURL_DEBUG
     ret_code = setCurlDebugOpt(curl, &verbosinfo);
     if (ret_code != CURLE_OK) {
-        SWLOG_ERROR("%s : CURL: Unable to Set Verbos\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : CURL: Unable to Set Verbos\n", __FUNCTION__);
     } else {
-        SWLOG_INFO("%s : CURL: Set Verbos Success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s : CURL: Set Verbos Success\n", __FUNCTION__);
     }
 #endif
     if( *pfile_dwnl->pathname )
@@ -391,7 +391,7 @@ int doAuthHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, int *out_httpC
     {
         byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
     }
-    SWLOG_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    COMMONUTILITIES_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
     if( slist != NULL ) {
         curl_slist_free_all( slist );
     }
