@@ -196,7 +196,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
     code = curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
 #endif
 #endif
-    code = curl_easy_setopt(curl, CURLOPT_SSLENGINE, "pkcs11");
+    code = curl_easy_setopt(curl, CURLOPT_SSLENGINE, "pkcs11")
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);	
     if(code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s : Curl ############# CURLOPT_SSLENGINE_DEFAULT failed with error %s\n", __FUNCTION__, curl_easy_strerror(code));
