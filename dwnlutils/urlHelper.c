@@ -184,7 +184,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
         return code;
     }
     COMMONUTILITIES_INFO("%s: certfile:%s:cert type:%s\n", __FUNCTION__, sec->cert_name, sec->cert_type);
-
+#if 0
 #ifdef LIBRDKCERTSELECTOR
     COMMONUTILITIES_INFO("%s: engine type:%s\n", __FUNCTION__, sec->engine);
     if (sec->engine[0] == '\0') {
@@ -194,9 +194,12 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
     }
 #else
     code = curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
-#endif	
+#endif
+#endif
+    code = curl_easy_setopt(curl, CURLOPT_SSLENGINE, "pkcs11");
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);	
     if(code != CURLE_OK) {
-        COMMONUTILITIES_ERROR("%s : Curl CURLOPT_SSLENGINE_DEFAULT failed with error %s\n", __FUNCTION__, curl_easy_strerror(code));
+        COMMONUTILITIES_ERROR("%s : Curl ############# CURLOPT_SSLENGINE_DEFAULT failed with error %s\n", __FUNCTION__, curl_easy_strerror(code));
     }
     do {
     if((strcmp(sec->cert_type, "P12")) == 0) {
