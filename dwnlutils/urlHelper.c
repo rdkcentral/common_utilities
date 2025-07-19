@@ -200,8 +200,8 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
     printf("DBG: ##### sec->engine ####### is %s \n", sec->engine);
     printf("DBG: ##### sec->engine ####### is %s \n", sec->engine);
     printf("DBG: ##### sec->engine ####### is %s \n", sec->engine);
-    code = curl_easy_setopt(curl, CURLOPT_SSLENGINE, "pkcs11")
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);	
+    code = curl_easy_setopt(curl, CURLOPT_SSLENGINE, "pkcs11");
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     if(code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s : Curl ############# CURLOPT_SSLENGINE_DEFAULT failed with error %s\n", __FUNCTION__, curl_easy_strerror(code));
     }
