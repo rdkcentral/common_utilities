@@ -915,6 +915,46 @@ TEST_F(urlHelperTestFixture, writeFunction_valid_Inputs)
     EXPECT_EQ(writeFunction(NULL, a, b, &test), a*b );
 }
 
+/*26.Test that passing NULL returns NULL */
+TEST(UrlEncodeStringTest, NullInputReturnsNull) {
+    char* result = urlEncodeString(nullptr);
+    EXPECT_EQ(result, nullptr);
+}
+
+/*27.Test that encoding an empty string returns an empty string */
+TEST(UrlEncodeStringTest, EmptyString) {
+    char* result = urlEncodeString("");
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "");
+    free(result);
+}
+
+/*28.Test that a simple alphanumeric string is unchanged */
+TEST(UrlEncodeStringTest, SimpleString) {
+    char* result = urlEncodeString("abc123");
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "abc123");
+    free(result);
+}
+
+/*29.Test that spaces are encoded as %20 */
+TEST(UrlEncodeStringTest, SpaceEncoding) {
+    char* result = urlEncodeString("hello world");
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "hello%20world");
+    free(result);
+}
+
+/*30.Test encoding of a string with all ASCII special characters */
+TEST(UrlEncodeStringTest, AllAscii) {
+    // Using a string with various ASCII characters that need encoding
+    const char* input = "!*'();:@&=+$,/?#[]";
+    char* result = urlEncodeString(input);
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "%21%2A%27%28%29%3B%3A%40%26%3D%2B%24%2C%2F%3F%23%5B%5D");
+    free(result);
+}
+
 GTEST_API_ int main(int argc, char *argv[]){
     char testresults_fullfilepath[GTEST_REPORT_FILEPATH_SIZE];
     char buffer[GTEST_REPORT_FILEPATH_SIZE];
