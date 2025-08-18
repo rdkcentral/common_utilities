@@ -73,6 +73,7 @@ static long performRequest(CURL *curl, CURLcode *curl_ret_status) {
     long httpCode = 0;
     char *serverurl = NULL;
     char *ip_addr = NULL;
+	char *engine = NULL;
     long port = 0;
     if(curl == NULL || curl_ret_status == NULL) {
         COMMONUTILITIES_ERROR("performRequest() parameter is NULL\n");
@@ -90,8 +91,10 @@ static long performRequest(CURL *curl, CURLcode *curl_ret_status) {
     curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &serverurl);
     curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip_addr);
     curl_easy_getinfo(curl, CURLINFO_PRIMARY_PORT, &port);
+	curl_easy_getinfo(curl, CURLINFO_SSL_ENGINES, &engine);
 
     COMMONUTILITIES_INFO("Curl Connected to %s (%s) port %ld\n", serverurl, ip_addr, port);
+	COMMONUTILITIES_INFO("Curl SSL Engine Info: %s\n", ssl_engine);
     COMMONUTILITIES_INFO("Curl return code =%d, http code=%ld\n", curlcode, httpCode);
 
     if(curlcode != CURLE_OK) {
