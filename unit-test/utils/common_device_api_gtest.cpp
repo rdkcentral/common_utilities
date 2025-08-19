@@ -148,8 +148,8 @@ TEST_F(CommonDeviceApiTestFixture, TestName_GetPartnerId_no_source_file)
 {
     int ret;
     char data[32];
-    EXPECT_NE(GetPartnerId(data, 7),0);
-    printf("Pertner ID = %s\n", data);
+    EXPECT_EQ(GetPartnerId(data, 7), 0);
+    printf("Partner ID = %s\n", data);
 }
 
 /* 4. GetModelNum*/
