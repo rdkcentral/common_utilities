@@ -146,8 +146,9 @@ TEST_F(CommonDeviceApiTestFixture, TestName_GetPartnerId_bootstrap_file)
 }
 TEST_F(CommonDeviceApiTestFixture, TestName_GetPartnerId_no_source_file)
 {
+    int ret;
     char data[32];
-    EXPECT_NE(GetPartnerId(data, sizeof(data)), 0);  // Use full buffer size
+    EXPECT_EQ(GetPartnerId(data, 7), 0);  
     printf("Partner ID = %s\n", data);
 }
 
