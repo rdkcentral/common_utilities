@@ -94,7 +94,7 @@ static long performRequest(CURL *curl, CURLcode *curl_ret_status) {
 	curl_easy_getinfo(curl, CURLINFO_SSL_ENGINES, &engine);
 
     COMMONUTILITIES_INFO("Curl Connected to %s (%s) port %ld\n", serverurl, ip_addr, port);
-	COMMONUTILITIES_INFO("Curl SSL Engine Info: %s\n", ssl_engine);
+	COMMONUTILITIES_INFO("Curl SSL Engine Info: %s\n", engine);
     COMMONUTILITIES_INFO("Curl return code =%d, http code=%ld\n", curlcode, httpCode);
 
     if(curlcode != CURLE_OK) {
