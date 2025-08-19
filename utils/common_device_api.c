@@ -131,6 +131,11 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
         {
             fgets( pPartnerId, szBufSize, fp );
             fclose( fp );
+        }
+        else if( (fp = popen( "syscfg get PartnerID", "r" )) != NULL )
+        {
+            fgets( pPartnerId, szBufSize, fp );
+            pclose( fp );
         }			
         else
         {
