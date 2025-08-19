@@ -38,7 +38,6 @@
 #ifndef GTEST_ENABLE
 #define BOOTSTRAP_FILE          "/opt/secure/RFC/bootstrap.ini"
 #define PARTNER_ID_FILE         "/opt/www/authService/partnerId3.dat"
-#define PARTNERID_INFO_FILE     "/tmp/partnerId.out"
 #define DEVICE_PROPERTIES_FILE  "/etc/device.properties"
 #define VERSION_FILE            "/version.txt"
 #define ESTB_MAC_FILE           "/tmp/.estb_mac"
