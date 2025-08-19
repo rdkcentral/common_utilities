@@ -18,6 +18,9 @@
 
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
+
+#define PARTNERID_INFO_FILE "/tmp/partnerId.out"
+
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
