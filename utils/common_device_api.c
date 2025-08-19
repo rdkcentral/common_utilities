@@ -124,6 +124,11 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
             }
             fclose( fp );
         }
+        else if( (fp = fopen( PARTNERID_INFO_FILE, "r" )) != NULL )
+        {
+            fgets( pPartnerId, szBufSize, fp );
+            fclose( fp );
+        }			
         else
         {
             snprintf( pPartnerId, szBufSize, "comcast" );
