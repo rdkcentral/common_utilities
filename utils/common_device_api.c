@@ -18,6 +18,9 @@
 
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
+
+#define PARTNERID_INFO_FILE "/tmp/partnerId.out"
+
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
@@ -124,6 +127,11 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
             }
             fclose( fp );
         }
+        else if( (fp = fopen( PARTNERID_INFO_FILE, "r" )) != NULL )
+        {
+            fgets( pPartnerId, szBufSize, fp );
+            fclose( fp );
+        }			
         else
         {
             snprintf( pPartnerId, szBufSize, "comcast" );
