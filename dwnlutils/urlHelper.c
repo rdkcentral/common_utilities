@@ -1008,6 +1008,42 @@ size_t writeFunction(void *contents, size_t size, size_t nmemb, void *userp)
     return size * nmemb;
 }
 
+/*
+ * urlEncodeString(): Converts a string to a URL-encoded string using libcurl.
+ * inputString : const char* pointer to the input (raw) string.
+ * Returns: char* pointer to the encoded string (must be freed by the caller), or NULL on failure.
+ * NOTE: Input sanity checks are handled by curl_easy_escape.
+ *       The encoded string is duplicated with strdup, so the caller is responsible for freeing it.
+ *       The third argument to curl_easy_escape is set to 0, which tells libcurl to determine
+ *       the length of the input string automatically using strlen().
+ */
+char* urlEncodeString(const char* inputString)
+{
+    if (!inputString) {
+        COMMONUTILITIES_ERROR("Input string is NULL in Function %s\n", __FUNCTION__);
+        return NULL;
+    }
+    char* encodedString = NULL;
+    CURL *curl = curl_easy_init();
+    if (curl) 
+    {
+        char *output = curl_easy_escape(curl, inputString, 0);
+        if (output) {
+            encodedString = strdup(output);
+            curl_free(output);
+        } else {
+            COMMONUTILITIES_ERROR("curl_easy_escape failed in Function %s\n", __FUNCTION__);
+        }
+        curl_easy_cleanup(curl);
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR("Error in curl_easy_init in Function %s\n", __FUNCTION__);
+    }
+    return encodedString;
+}
+
+
 #ifdef GTEST_ENABLE
 long (*getperformRequest(void)) (CURL *, CURLcode *) {
 	return &performRequest;

@@ -492,7 +492,7 @@ static inline char* construct_full_path(const char* base_path, const char* entry
     char* full_path = calloc(allocate_size, sizeof(char));
     if (full_path) {
         snprintf(full_path, allocate_size, "%s/%s", base_path, entry_name);
-        COMMONUTILITIES_INFO("Constructed full path: %s", full_path);
+        COMMONUTILITIES_DEBUG("Constructed full path: %s", full_path);
     } else {
         COMMONUTILITIES_ERROR("Failed to allocate memory for full path");
     }
@@ -550,7 +550,7 @@ int findPFile(char *path, char *search, char *out)
                 char* constructed_path = construct_full_path(path, entry->d_name);
                 if (constructed_path) {
                     strncpy(out, constructed_path, strlen(constructed_path) + 1); // Copy path to out
-                    COMMONUTILITIES_INFO(" findPFile : Constructed path out : %s", out);
+                    COMMONUTILITIES_DEBUG(" findPFile : Constructed path out : %s", out);
                     free(constructed_path);
                     constructed_path =NULL;
                 }
