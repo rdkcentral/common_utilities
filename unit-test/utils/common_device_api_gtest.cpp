@@ -146,10 +146,11 @@ TEST_F(CommonDeviceApiTestFixture, TestName_GetPartnerId_bootstrap_file)
 }
 TEST_F(CommonDeviceApiTestFixture, TestName_GetPartnerId_no_source_file)
 {
-    int ret;
-    char data[32];
-    EXPECT_NE(GetPartnerId(data, 7),0);
-    printf("Pertner ID = %s\n", data);
+    char data[32] = {0};
+
+    int ret = GetPartnerId(data, sizeof(data));
+    EXPECT_GT(ret, 0);  // Should succeed with default value
+    EXPECT_STREQ(data, "comcast");
 }
 
 /* 4. GetModelNum*/
