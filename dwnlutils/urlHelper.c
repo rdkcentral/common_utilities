@@ -183,6 +183,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
         COMMONUTILITIES_ERROR("%s: parameter is NULL\n", __FUNCTION__);
         return code;
     }
+    COMMONUTILITIES_INFO("%s: Saranya Test Code 1 \n",  __FUNCTION__);
     COMMONUTILITIES_INFO("%s: certfile:%s:cert type:%s\n", __FUNCTION__, sec->cert_name, sec->cert_type);
 
 #ifdef LIBRDKCERTSELECTOR
@@ -200,6 +201,7 @@ CURLcode setMtlsHeaders(CURL *curl, MtlsAuth_t *sec) {
     }
     do {
     if((strcmp(sec->cert_type, "P12")) == 0) {
+	COMMONUTILITIES_INFO("%s: Saranya Test Code 2 \n",  __FUNCTION__);
         COMMONUTILITIES_INFO("%s : set certfile:%s:paswd:<> and type:%s\n", __FUNCTION__, sec->cert_name, sec->cert_type);
         code = curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, sec->cert_type);
         if(code != CURLE_OK) {
