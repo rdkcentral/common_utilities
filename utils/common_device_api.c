@@ -132,11 +132,10 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
             fgets( pPartnerId, szBufSize, fp );
             fclose( fp );
         }
-        else if( (fp = popen( "syscfg get PartnerID", "r" )) != NULL )
+        else if( syscfg_get(NULL, "PartnerID", pPartnerId, szBufSize) == 0 )
         {
-            fgets( pPartnerId, szBufSize, fp );
-            pclose( fp );
-        }			
+            // Successfully retrieved PartnerID using syscfg
+        }
         else
         {
             snprintf( pPartnerId, szBufSize, "comcast" );
