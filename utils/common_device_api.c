@@ -132,10 +132,12 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
             fgets( pPartnerId, szBufSize, fp );
             fclose( fp );
         }
+        #ifndef RDKVSUPPORT
         else if( syscfg_get(NULL, "PartnerID", pPartnerId, szBufSize) == 0 )
         {
             // Successfully retrieved PartnerID using syscfg
         }
+        #endif
         else
         {
             snprintf( pPartnerId, szBufSize, "comcast" );
