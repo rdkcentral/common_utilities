@@ -34,7 +34,7 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <errno.h>
-#if !defined RDKVSUPPORT
+#ifndef RDKVSUPPORT
 #include "syscfg/syscfg.h"
 #endif
 
