@@ -34,7 +34,9 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <errno.h>
+#if !defined RDKVSUPPORT
 #include "syscfg/syscfg.h"
+#endif
 
 #ifndef GTEST_ENABLE
 #define BOOTSTRAP_FILE          "/opt/secure/RFC/bootstrap.ini"
