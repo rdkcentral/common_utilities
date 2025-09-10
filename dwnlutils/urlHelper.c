@@ -341,7 +341,7 @@ static size_t WriteMemoryCB( void *pvContents, size_t szOneContent, size_t numCo
 static size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata) {
     FILE *fp = userdata;
     if(fp != NULL && buffer != NULL) {
-        COMMONUTILITIES_INFO("header_callback():=%s\n",buffer);
+        COMMONUTILITIES_INFO("header_callback():=%s",buffer); // No need to end with new line \n as buffer already has \r\n
         fwrite(buffer, nitems, size, fp);
 	fflush(fp);
     }else {
