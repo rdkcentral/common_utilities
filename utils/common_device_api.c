@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <time.h>
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
 
@@ -103,6 +104,7 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
     FILE *fp;
     size_t i = 0;
     char buf[150];
+
 
     if( pPartnerId != NULL )
     {
@@ -406,4 +408,144 @@ bool CurrentRunningInst(const char *file)
     /* OK to proceed (lock will be released and file descriptor will be closed on exit) */
 
     return false;
+}
+
+/* function GetUTCTime - gets a formatted UTC device time. Example:
+    Tue Jul 12 21:56:06 UTC 2022 
+        Usage: size_t GetUTCTime <char *pUTCTime> <size_t szBufSize>
+ 
+            pUTCTime - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetUTCTime( char *pUTCTime, size_t szBufSize )
+{
+    struct tm gmttime;
+    time_t seconds;
+    size_t i = 0;
+
+    COMMONUTILITIES_DEBUG("GetUTCTime: Called with buffer size %zu\n", szBufSize);
+
+    if( pUTCTime != NULL )
+    {
+        time( &seconds );
+        gmtime_r( &seconds, &gmttime );
+        gmttime.tm_isdst = 0;           // UTC doesn't know about DST, perhaps unnecessary but be safe
+        i = strftime( pUTCTime, szBufSize, "%a %b %d %X UTC %Y", &gmttime );
+        if( !i )    // buffer wasn't big enough for strftime call above
+        {
+            *pUTCTime = 0;
+        }
+        COMMONUTILITIES_DEBUG("GetUTCTime: Returning time '%s' with length %zu\n", pUTCTime, i);
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetUTCTime: Error, input argument NULL\n" );
+    }
+    return i;
+}
+
+/* function GetCapabilities - gets the device capabilities.
+ 
+        Usage: size_t GetCapabilities <char *pCapabilities> <size_t szBufSize>
+ 
+            pCapabilities - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetCapabilities( char *pCapabilities, size_t szBufSize )
+{
+    size_t i = 0;
+    const char *capabilities = "rebootDecoupled&capabilities=RCDL&capabilities=supportsFullHttpUrl";
+
+    COMMONUTILITIES_DEBUG("GetCapabilities: Called with buffer size %zu\n", szBufSize);
+
+    if( pCapabilities != NULL )
+    {
+        i = snprintf( pCapabilities, szBufSize, "%s", capabilities );
+        COMMONUTILITIES_DEBUG("GetCapabilities: Returning capabilities '%s' with length %zu\n", pCapabilities, i);
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetCapabilities: Error, input argument NULL\n" );
+    }
+    return i;
+}
+
+/* function GetServerUrlFile - scans a file for a URL. 
+        Usage: size_t GetServerUrlFile <char *pServUrl> <size_t szBufSize> <char *pFileName>
+ 
+            pServUrl - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            pFileName - a character pointer to a filename to scan.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetServerUrlFile( char *pServUrl, size_t szBufSize, char *pFileName )
+{
+    FILE *fp;
+    char *pHttp, *pLb;
+    size_t i = 0;
+    char buf[256];
+
+    COMMONUTILITIES_DEBUG("GetServerUrlFile: Called with filename '%s', buffer size %zu\n", 
+                         pFileName ? pFileName : "NULL", szBufSize);
+
+    if( pServUrl != NULL && pFileName != NULL )
+    {
+        *pServUrl = 0;
+        if( (fp = fopen( pFileName, "r" )) != NULL )
+        {
+            pHttp = NULL;
+            while( (pHttp == NULL) && (fgets( buf, sizeof(buf), fp ) != NULL) )
+            {
+                if( (pHttp = strstr( buf, "https://" )) != NULL )
+                {
+                    if( (pLb = strchr( buf, (int)'#' )) != NULL )
+                    {
+                        if( pLb <= pHttp )
+                        {
+                            pHttp = NULL;
+                            continue;       // '#' is before http or at beginning means commented line
+                        }
+                        else
+                        {
+                            *pLb = 0;       // otherwise NULL terminate the string
+                        }
+                    }
+                    pLb = pHttp + 8;    // reuse pLb for parsing, pLb should point to first character after https://
+                    while( *pLb )   // convert non-alpha numerics (but not '.') or whitespace to NULL terminator
+                    {
+                        if( (!isalnum( *pLb ) && *pLb != '.' && *pLb != '/' && *pLb != '-' && *pLb != '_' && *pLb != ':') || isspace( *pLb ) )
+                        {
+                            *pLb = 0;   // NULL terminate at end of URL
+                            break;
+                        }
+                        ++pLb;
+                    }
+                }
+            }
+            fclose( fp );
+            if( pHttp != NULL )
+            {
+                i = snprintf( pServUrl, szBufSize, "%s", pHttp );
+                COMMONUTILITIES_DEBUG("GetServerUrlFile: Found URL '%s' with length %zu\n", pServUrl, i);
+            }
+        }
+        else
+        {
+            COMMONUTILITIES_INFO( "GetServerUrlFile: %s can't be opened\n", pFileName );
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetServerUrlFile: Error, input argument NULL\n" );
+    }
+    return i;
 }
