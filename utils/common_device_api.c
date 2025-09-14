@@ -839,3 +839,31 @@ size_t makeHttpHttps( char *pIn, size_t szpInSize )
     }
     return len;
 }
+
+/* function get_system_uptime - gets the system uptime in seconds.
+
+        Usage: bool get_system_uptime <double *uptime>
+
+            uptime - pointer to a double to store the uptime value.
+
+            RETURN - true if successful, false on error.
+*/
+bool get_system_uptime(double *uptime) 
+{
+    FILE* uptime_file = fopen("/proc/uptime", "r");
+    
+    COMMONUTILITIES_DEBUG("get_system_uptime: Called\n");
+    
+    if ((uptime_file != NULL) && (uptime != NULL)) {
+        if (fscanf(uptime_file, "%lf", uptime) == 1) {
+            fclose(uptime_file);
+            COMMONUTILITIES_DEBUG("get_system_uptime: Successfully read uptime %.2f seconds\n", *uptime);
+            return true;
+        }
+    }
+    if (uptime_file != NULL) {
+        fclose(uptime_file); 
+    }
+    COMMONUTILITIES_ERROR("get_system_uptime: Failed to read system uptime\n");
+    return false;
+}

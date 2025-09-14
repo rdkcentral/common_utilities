@@ -230,6 +230,16 @@ size_t GetFileContents( char **pOut, char *pFileName );
 */
 size_t makeHttpHttps( char *pIn, size_t szpInSize );
 
+/* function get_system_uptime - gets the system uptime in seconds.
+
+        Usage: bool get_system_uptime <double *uptime>
+
+            uptime - pointer to a double to store the uptime value.
+
+            RETURN - true if successful, false on error.
+*/
+bool get_system_uptime(double *uptime);
+
 size_t stripinvalidchar( char *pIn, size_t szIn );
 
 #endif
