@@ -105,6 +105,7 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
     size_t i = 0;
     char buf[150];
 
+    COMMONUTILITIES_INFO("*** CALLING GetPartnerId FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
 
     if( pPartnerId != NULL )
     {
@@ -354,6 +355,8 @@ size_t GetFirmwareVersion( char *pFWVersion, size_t szBufSize )
     char *pTmp;
     char buf[150];
 
+    COMMONUTILITIES_INFO("*** CALLING GetFirmwareVersion FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
+
     if( pFWVersion != NULL )
     {
         *pFWVersion = 0;
@@ -548,4 +551,291 @@ size_t GetServerUrlFile( char *pServUrl, size_t szBufSize, char *pFileName )
         COMMONUTILITIES_ERROR( "GetServerUrlFile: Error, input argument NULL\n" );
     }
     return i;
+}
+
+/* function GetTimezone - gets the timezone of the device.
+
+        Usage: size_t GetTimezone <char *pTimezone> <const char *cpuArch> <size_t szBufSize>
+
+            pTimezone - pointer to a char buffer to store the output string.
+
+            cpuArch - the CPU architecture (can be NULL).
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetTimezone( char *pTimezone, const char *cpuArch, size_t szBufSize )
+{
+    int ret;
+    FILE *fp;
+    char *pTmp;
+    size_t i = 0;
+    char buf[256];
+    char *timezonefile;
+    char *defaultimezone = "Universal";
+    char device_name[32];
+    char timeZone_offset_map[50];
+    char *zoneValue = NULL;
+
+    COMMONUTILITIES_DEBUG("GetTimezone: Called with cpuArch '%s', buffer size %zu\n", 
+                         cpuArch ? cpuArch : "NULL", szBufSize);
+
+    if( pTimezone != NULL )
+    {
+        *pTimezone = 0;
+        *timeZone_offset_map = 0;
+
+        ret = getDevicePropertyData("DEVICE_NAME", device_name, sizeof(device_name));
+        if (ret == UTILS_SUCCESS)
+        {
+            if (0 == (strncmp(device_name, "PLATCO", 6)))
+            {
+                if((fp = fopen( TIMEZONE_DST_FILE, "r" )) != NULL )
+                {
+                    COMMONUTILITIES_INFO("GetTimezone: Reading Timezone value from %s file...\n", TIMEZONE_DST_FILE );
+                    if (fgets( buf, sizeof(buf), fp ) != NULL)      // only read first line in file, timezone should be there
+                    {
+                        i = stripinvalidchar( buf, sizeof(buf) );
+                        COMMONUTILITIES_INFO("GetTimezone: Device TimeZone:%s\n", buf );
+                    }
+                    fclose( fp );
+                }
+
+                if( i == 0 )    // either TIMEZONE_DST_FILE non-existent or empty, set a default in pTimezone
+                {
+                    COMMONUTILITIES_INFO("GetTimezone: %s is empty or non-existent, default timezone America/New_York applied\n", TIMEZONE_DST_FILE);
+                    snprintf( buf, sizeof(buf), "America/New_York");
+                }
+
+                if((fp = fopen( TIMEZONE_OFFSET_MAP, "r" )) != NULL )
+                {
+                    while ( fgets(timeZone_offset_map, sizeof(timeZone_offset_map), fp ) != NULL )
+                    {
+                        if( strstr( timeZone_offset_map, buf ) != NULL )
+                        {
+                            zoneValue = strtok(timeZone_offset_map, ":");
+                            if( zoneValue != NULL )  // there's more after ':'
+                            {
+                                zoneValue = strtok(NULL, ":");
+                            }
+                            break; //match found, breaks the while loop
+                        }
+                    }
+                    fclose( fp );
+                }
+
+                if( zoneValue != NULL )
+                {
+                    i = snprintf( pTimezone, szBufSize, "%s", zoneValue );
+                }
+                else
+                {
+                    i = snprintf( pTimezone, szBufSize, "US/Eastern" );
+                    COMMONUTILITIES_INFO("GetTimezone: Given TimeZone not supported by XConf - default timezone US/Eastern is applied\n");
+                }
+                COMMONUTILITIES_INFO("GetTimezone: TimeZone Information after mapping : pTimezone = %s\n", pTimezone );
+            }
+            else
+            {
+                if( cpuArch != NULL && (0 == (strncmp( cpuArch, "x86", 3 ))) )
+                {
+                    timezonefile = OUTPUT_JSON_FILE_X86; //For cpu arch x86 file path is /tmp
+                }
+                else
+                {
+                    timezonefile = OUTPUT_JSON_FILE;      //File path is /opt
+                }
+
+                if( (fp = fopen( timezonefile, "r" )) != NULL )
+                {
+                    COMMONUTILITIES_INFO("GetTimezone: Reading Timezone value from %s file...\n", timezonefile );
+                    while( fgets( buf, sizeof(buf), fp ) != NULL )
+                    {
+                        if( (pTmp = strstr( buf, "timezone" )) != NULL )
+                        {
+                            while( *pTmp && *pTmp != ':' )  // should be left pointing to ':' at end of while
+                            {
+                                ++pTmp;
+                            }
+
+                            while( !isalnum( *pTmp ) )  // at end of while we should be pointing to first alphanumeric char after ':', this is timezone
+                            {
+                                ++pTmp;
+                            }
+                            i = snprintf( pTimezone, szBufSize, "%s", pTmp );
+                            i = stripinvalidchar( pTimezone, i );
+                            pTmp = pTimezone;
+                            i = 0;
+                            while( *pTmp != '"' && *pTmp )     // see if we have an end quote
+                            {
+                                ++i;    // recount chars for safety
+                                ++pTmp;
+                            }
+                            *pTmp = 0;                  // either we're pointing to the end " character or a 0
+                            COMMONUTILITIES_INFO("GetTimezone: Got timezone using %s successfully, value:%s\n", timezonefile, pTimezone );
+                            // Note: t2ValNotify removed - it's rdkfwupdater-specific
+                            break;
+                        }
+                    }
+                    fclose( fp );
+                }
+
+                if( !i && (fp = fopen( TIMEZONE_DST_FILE, "r" )) != NULL )    // if we didn't find it above, try default
+                {
+                    COMMONUTILITIES_INFO("GetTimezone: Timezone value from output.json is empty, Reading from %s file...\n", TIMEZONE_DST_FILE );
+                    if (fgets( buf, sizeof(buf), fp ) != NULL)              // only read first line
+                    {
+                        i = snprintf( pTimezone, szBufSize, "%s", buf );
+                        i = stripinvalidchar( pTimezone, i );
+                        COMMONUTILITIES_INFO("GetTimezone: Got timezone using %s successfully, value:%s\n", TIMEZONE_DST_FILE, pTimezone );
+                    }
+                    fclose( fp );
+                }
+
+                if ( !i )
+                {
+                    i = snprintf( pTimezone, szBufSize, "%s", defaultimezone );
+                    COMMONUTILITIES_INFO("GetTimezone: Timezone files %s and %s not found, proceeding with default timezone=%s\n", timezonefile, TIMEZONE_DST_FILE, pTimezone);
+                }
+            }
+        }
+        else
+        {
+            COMMONUTILITIES_ERROR("GetTimezone: getDevicePropertyData() for device_name fail\n");
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR("GetTimezone: Error, input argument NULL\n");
+    }
+    
+    COMMONUTILITIES_DEBUG("GetTimezone: Returning timezone '%s' with length %zu\n", pTimezone, i);
+    return i;
+}
+
+/* function GetFileContents - gets the contents of a file into a dynamically allocated buffer.
+
+        Usage: size_t GetFileContents <char **pOut> <char *pFileName>
+
+            pOut - the address of a char pointer (char **) where the dynamically allocated
+                    character buffer will be located.
+
+            pFileName - the name of the file to read.
+
+            RETURN - number of characters copied to the output buffer.
+
+            Notes - GetFileContents uses malloc to allocate the the buffer where the string is stored.
+                    The caller must use free(*pOut) when done using the buffer to avoid memory leaks.
+*/
+size_t GetFileContents( char **pOut, char *pFileName )
+{
+    FILE *fp;
+    char *pBuf = NULL;
+    char *pPtr;
+    size_t len = 0;
+
+    COMMONUTILITIES_DEBUG("GetFileContents: Called with filename '%s'\n", 
+                         pFileName ? pFileName : "NULL");
+
+    if( pOut != NULL && pFileName != NULL )
+    {
+        COMMONUTILITIES_INFO( "GetFileContents: pFileName = %s\n", pFileName );
+        if( (len=(size_t)getFileSize( pFileName )) != -1 )
+        {
+            COMMONUTILITIES_INFO( "GetFileContents: file len = %zu\n", len );
+            if( (fp=fopen( pFileName, "r" )) != NULL )
+            {
+                ++len;  // room for NULL, included in return value
+                pBuf = malloc( len );
+                if( pBuf != NULL )
+                {
+                    pPtr = pBuf;
+                    while( ((*pPtr=(char)fgetc( fp )) != EOF) && !feof( fp ) )
+                    {
+                        ++pPtr;
+                    }
+                    *pPtr = 0;
+                    COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", len-1);
+                }
+                else
+                {
+                    len = 0;
+                    COMMONUTILITIES_ERROR("GetFileContents: malloc failed for size %zu\n", len);
+                }
+                fclose( fp );
+            }
+            else
+            {
+                COMMONUTILITIES_ERROR("GetFileContents: Failed to open file %s\n", pFileName);
+                len = 0;
+            }
+        }
+        else
+        {
+            COMMONUTILITIES_ERROR("GetFileContents: getFileSize failed for %s\n", pFileName);
+        }
+        *pOut = pBuf;
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetFileContents: Error, input argument NULL\n" );
+    }
+    return len;
+}
+
+/* function makeHttpHttps - converts http:// URLs to https:// in place.
+
+        Usage: size_t makeHttpHttps <char *pIn> <size_t szpInSize>
+
+            pIn - pointer to a char buffer containing the URL to modify.
+
+            szpInSize - the size of the character buffer in argument 1.
+
+            RETURN - new length of the string after modification.
+*/
+size_t makeHttpHttps( char *pIn, size_t szpInSize )
+{
+    char *pTmp, *pEnd;
+    int i;
+    size_t len = 0;
+
+    COMMONUTILITIES_DEBUG("makeHttpHttps: Called with buffer size %zu\n", szpInSize);
+
+    if( pIn != NULL && szpInSize )
+    {
+       pEnd = pIn;
+        i = szpInSize - 1;
+        while( *pEnd && i )
+        {
+            --i;
+            ++pEnd;     // should be left pointing to '\0' with room to insert
+        }
+        len = pEnd - pIn;
+        if( i )     // check if room to insert
+        {
+            if( (pTmp = strstr( pIn, "http://" )) != NULL )
+            {
+                pTmp += 3;
+                while( pEnd > pTmp )
+                {
+                    *(pEnd + 1) = *pEnd;    // copy current char 1 position to right
+                    --pEnd;
+                }
+                ++pTmp;
+                *pTmp = 's';
+                ++len;
+                COMMONUTILITIES_DEBUG("makeHttpHttps: Converted http:// to https://, new length %zu\n", len);
+            }
+        }
+        else
+        {
+            COMMONUTILITIES_DEBUG("makeHttpHttps: No room to insert 's', buffer too small\n");
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR("makeHttpHttps: Error, input argument NULL or size 0\n");
+    }
+    return len;
 }
