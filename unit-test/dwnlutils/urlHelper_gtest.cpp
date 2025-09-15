@@ -680,7 +680,31 @@ TEST_F(urlHelperTestFixture, urlHelperDownloadFile)
 }
 TEST_F(urlHelperTestFixture, urlHelperDownloadFile_NULL_inputs)
 {
-    EXPECT_EQ(urlHelperDownloadFile(NULL, NULL, NULL, 0, NULL, NULL), 0);}
+    EXPECT_EQ(urlHelperDownloadFile(NULL, NULL, NULL, 0, NULL, NULL), 0);
+}
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl56_Retry_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[20] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Simulate: first call returns CURLE_RECV_ERROR (56), second returns CURLE_OK
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(2)
+        .WillOnce(Return(CURLE_RECV_ERROR))  // Simulate error 56
+        .WillOnce(Return(CURLE_OK));           // Success on retry
+
+    // urlHelperDownloadFile should retry internally and succeed
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
+
 
 /*20.urlHelperDownloadToMem*/
 TEST_F(urlHelperTestFixture, urlHelperDownloadToMem_pDlHeaderData_NULL)
