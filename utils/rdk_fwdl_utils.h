@@ -67,7 +67,7 @@ typedef enum {
 #ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
     ,eGetInstalledRdmManifestVersion
 #endif
-} SYSCMD;
+} DEVUTILS_SYSCMD;
 
 /* Below structure contains data from /etc/device.property */
 typedef struct deviceproperty {
