@@ -17,10 +17,76 @@
  */
 
 #include <time.h>
+#include <stdarg.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
+#include "json_parse.h"
+#include "downloadUtil.h"
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
+
+// Bundle metadata paths - conditional compilation
+#ifdef DEVICE_PROFILE_ARM_ATLAS_64X64
+    #define BUNDLE_METADATA_NVM_PATH    "/media/apps/etc/certs"
+    #define BUNDLE_METADATA_RFS_PATH    "/etc/certs"
+#else
+    #define BUNDLE_METADATA_NVM_PATH    "/tmp/certs"
+    #define BUNDLE_METADATA_RFS_PATH    "/tmp/rfc/certs"
+#endif
+
+// Command paths for RunCommand function
+#define WPEFRAMEWORKSECURITYUTILITY     "/usr/bin/WPEFrameworkSecurityUtility"
+#define MFRUTIL                         "/usr/bin/mfr_util %s"
+#define MD5SUM                          "/usr/bin/md5sum %s"
+#define RDKSSACLI                       "/usr/sbin/rdkssacli %s"
+
+#ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
+#define GETINSTALLEDRDMMANIFESTVERSIONSCRIPT    "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"
+#endif
+
+#define MAX_PERIPHERAL_ITEMS 4
+
+// String arrays for BuildRemoteInfo function
+static char *pRemCtrlStrings[MAX_PERIPHERAL_ITEMS] = {
+    "&remCtrl",
+    "&remCtrlAudio",
+    "&remCtrlDsp",
+    "&remCtrlKwModel"
+};
+
+static char *pNullStrings[MAX_PERIPHERAL_ITEMS] = {
+    "",
+    "",
+    "",
+    ""
+};
+
+static char *pEqualStrings[MAX_PERIPHERAL_ITEMS] = {
+    "=",
+    "=",
+    "=",
+    "="
+};
+
+static char *pTypeStrings[MAX_PERIPHERAL_ITEMS] = {
+    "_firmware_",
+    "_audio_",
+    "_dsp_",
+    "_kw_model_"
+};
+
+static char *pExtStrings[] = {
+    ".tgz,"
+};
+
+static char *pPeripheralName[MAX_PERIPHERAL_ITEMS] = {
+    "FwVer",
+    "AudioVer",
+    "DspVer",
+    "KwModelVer"
+};
 
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
@@ -743,7 +809,7 @@ size_t GetFileContents( char **pOut, char *pFileName )
         COMMONUTILITIES_INFO( "GetFileContents: pFileName = %s\n", pFileName );
         if( (len=(size_t)getFileSize( pFileName )) != -1 )
         {
-            COMMONUTILITIES_INFO( "GetFileContents: file len = %zu\n", len );
+            COMMONUTILIES_INFO( "GetFileContents: file len = %zu\n", len );
             if( (fp=fopen( pFileName, "r" )) != NULL )
             {
                 ++len;  // room for NULL, included in return value
@@ -866,4 +932,638 @@ bool get_system_uptime(double *uptime)
     }
     COMMONUTILITIES_ERROR("get_system_uptime: Failed to read system uptime\n");
     return false;
+}
+
+/* Helper function - secure popen wrapper for RunCommand */
+static FILE* v_secure_popen(const char* mode, const char* command, ...)
+{
+    char cmd_buffer[512];
+    va_list args;
+    
+    va_start(args, command);
+    vsnprintf(cmd_buffer, sizeof(cmd_buffer), command, args);
+    va_end(args);
+    
+    COMMONUTILITIES_DEBUG("v_secure_popen: Executing command: %s\n", cmd_buffer);
+    return popen(cmd_buffer, mode);
+}
+
+/* Helper function - secure pclose wrapper for RunCommand */
+static int v_secure_pclose(FILE* fp)
+{
+    return pclose(fp);
+}
+
+/* function RunCommand - runs a predefined system command using secure popen
+ 
+        Usage: size_t RunCommand <SYSCMD eSysCmd> <const char *pArgs> <char *pResult> <size_t szResultSize>
+ 
+            eSysCmd - the predefined system command to execute from SYSCMD enum
+ 
+            pArgs - arguments to pass to the command (NULL if no arguments required)
+ 
+            pResult - a pointer to a character buffer to store the command output
+ 
+            szResultSize - the maximum size of the result buffer
+ 
+            RETURN - the number of characters written to the result buffer
+ 
+            PREDEFINED COMMANDS:
+            "/usr/bin/WPEFrameworkSecurityUtility"                      eWpeFrameworkSecurityUtility
+            "/usr/bin/mfr_util %s"                                      eMfrUtil
+            "/usr/bin/md5sum %s"                                        eMD5Sum
+            "/usr/sbin/rdkssacli %s"                                    eRdkSsaCli
+            "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"     eGetInstalledRdmManifestVersion
+ 
+            %s in the command string indicates an argument (pArgs) is required
+*/
+size_t RunCommand( SYSCMD eSysCmd, const char *pArgs, char *pResult, size_t szResultSize )
+{
+    FILE *fp;
+    size_t nbytes_read = 0;
+
+    COMMONUTILITIES_INFO("*** CALLING RunCommand FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
+
+    if( pResult != NULL && szResultSize >= 1 )
+    {
+        *pResult = 0;
+        switch( eSysCmd )
+        {
+           case eMD5Sum :
+               if( pArgs != NULL )
+               {
+                   fp = v_secure_popen( "r", MD5SUM, pArgs );
+               }
+               else
+               {
+                   fp = NULL;
+                   COMMONUTILITIES_ERROR( "RunCommand: Error, md5sum requires an input argument\n" );
+               }
+               break;
+
+           case eRdkSsaCli :
+               if( pArgs != NULL )
+               {
+                   fp = v_secure_popen( "r", RDKSSACLI, pArgs );
+               }
+               else
+               {
+                   fp = NULL;
+                   COMMONUTILITIES_ERROR( "RunCommand: Error, rdkssacli requires an input argument\n" );
+               }
+               break;
+
+           case eMfrUtil :
+               if( pArgs != NULL )
+               {
+                   fp = v_secure_popen( "r", MFRUTIL, pArgs );
+               }
+               else
+               {
+                   fp = NULL;
+                   COMMONUTILITIES_ERROR( "RunCommand: Error, mfr_util requires an input argument\n" );
+               }
+               break;
+
+           case eWpeFrameworkSecurityUtility :
+               fp = v_secure_popen( "r", WPEFRAMEWORKSECURITYUTILITY );
+               break;
+
+#ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
+           case eGetInstalledRdmManifestVersion :
+               fp = v_secure_popen( "r", GETINSTALLEDRDMMANIFESTVERSIONSCRIPT );
+               break;
+#endif
+
+           default:
+               fp = NULL;
+               COMMONUTILITIES_ERROR( "RunCommand: Error, unknown request type %d\n", (int)eSysCmd );
+               break;
+        }
+
+        if( fp != NULL )
+        {
+            nbytes_read = fread( pResult, 1, szResultSize - 1, fp );
+            v_secure_pclose( fp );
+            if( nbytes_read != 0 )
+            {
+                COMMONUTILITIES_INFO( "RunCommand: Successful read %zu bytes\n", nbytes_read );
+                pResult[nbytes_read] = '\0';
+                nbytes_read = strnlen( pResult, szResultSize ); // fread might include NULL characters, get accurate count
+            }
+            else
+            {
+                COMMONUTILITIES_ERROR( "RunCommand: fread fails:%zu\n", nbytes_read );
+            }
+            COMMONUTILITIES_DEBUG( "RunCommand: output=%s\n", pResult );
+        }
+        else
+        {
+            COMMONUTILITIES_ERROR( "RunCommand: Failed to open pipe command execution\n" );
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "RunCommand: Error, input argument invalid\n" );
+    }
+    return nbytes_read;
+}
+
+/* function GetPDRIFileName - returns the PDRI for the device. 
+        Usage: size_t GetPDRIFileName <char *pPDRIFilename> <size_t szBufSize>
+ 
+            pPDRIFilename - pointer to a char buffer to store the output string.
+            szBufSize - the size of the character buffer in argument 1.
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetPDRIFileName( char *pPDRIFilename, size_t szBufSize )
+{
+    char *pTmp;
+    size_t len = 0;
+
+    if( pPDRIFilename != NULL )
+    {
+        len = RunCommand( eMfrUtil, "--PDRIVersion", pPDRIFilename, szBufSize );
+        if( len && ((pTmp = strcasestr( pPDRIFilename, "failed" )) == NULL) )   // if "failed" is not found
+        {
+            COMMONUTILITIES_INFO( "GetPDRIFileName: PDRI Version = %s\n", pPDRIFilename );
+            // t2ValNotify("PDRI_Version_split", pPDRIFilename); // TODO: Add telemetry support if needed
+        }
+        else
+        {
+            *pPDRIFilename = 0;
+            len = 0;
+            COMMONUTILITIES_ERROR( "GetPDRIFileName: PDRI filename retrieving Failed ...\n" );
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetPDRIFileName: Error, input argument NULL\n" );
+    }
+    return len;
+}
+
+/* function BuildRemoteInfo - Formats the "periperalFirmwares" string for remote info part of xconf communication
+        Usage: size_t BuildRemoteInfo <JSON *pItem> <char *pRemoteInfo> <size_t szMaxBuf> <bool bAddremCtrl>
+ 
+            pItem - a pointer to a JSON structure that contains the remote info.
+            pRemoteInfo - a pointer to a character buffer to store the output
+            szMaxBuf - the maximum size of the buffer
+            bAddremCtrl - if true then prefix values with &remCtrl. false does not add prefix
+            RETURN - the number of characters written to the buffer
+*/
+size_t BuildRemoteInfo( JSON *pItem, char *pRemoteInfo, size_t szMaxBuf, bool bAddremCtrl )
+{
+    char **pPrefix;
+    char **pMid;
+    char *pSuffix;
+    size_t szBufRemaining, szRunningLen = 0;
+    int iLen = 0;
+    int i = 0;
+    int x;
+    char productBuf[100];
+    char versionBuf[50];
+
+    if( pItem != NULL && pRemoteInfo != NULL )
+    {
+        szBufRemaining = szMaxBuf;
+        COMMONUTILITIES_INFO( "BuildRemoteInfo: Start\n" );
+
+        i = GetJsonVal( pItem, "Product", productBuf, sizeof(productBuf) );
+        if( i )
+        {
+            if( bAddremCtrl == true )
+            {
+                pPrefix = pRemCtrlStrings;
+                pMid = pEqualStrings;
+                pSuffix = *pNullStrings;
+            }
+            else
+            {
+                pPrefix = pNullStrings;
+                pMid = pTypeStrings;
+                pSuffix = *pExtStrings;
+            }
+
+            /*
+                Now try to find the json values in the listed in the pPeripheralName array.
+                If bAddRemCtrl is true then the output will be formatted similar to the following for each value in the list;
+                    &remCtrlXR11-20=1.1.1.1&remCtrlAudioXR11-20=0.1.0.0&remCtrlDspXR11-20=0.1.0.0&remCtrlKwModelXR11-20=0.1.0.0
+                Otherwise the output will be formatted similar to the following for each value in the list;
+                    XR11-20_firmware_1.1.1.1.tgz,XR11-20_audio_0.1.0.0.tgz,XR11-20_dsp_0.1.0.0.tgz,XR11-20_kw_model_0.1.0.0.tgz
+                Note that model name and version numbers are variables depending on the device
+            */
+
+            for( x=0; x < MAX_PERIPHERAL_ITEMS; x++ )
+            {
+                i = GetJsonVal( pItem, pPeripheralName[x], versionBuf, sizeof(versionBuf) );
+                if( i )
+                {
+                    iLen = snprintf( pRemoteInfo + szRunningLen, szBufRemaining, "%s%s%s%s%s", *pPrefix, productBuf, *pMid, versionBuf, pSuffix );
+                    if (iLen >= szBufRemaining) {
+                        COMMONUTILITIES_INFO( "Buffer is Full\n" );
+                        iLen = szBufRemaining;
+                        break;
+                    }
+                    ++pPrefix;
+                    ++pMid;
+                    szBufRemaining -= iLen;
+                    szRunningLen += iLen;
+                }
+            }
+        }
+        COMMONUTILITIES_INFO( "BuildRemoteInfo: End\n" );
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "BuildRemoteInfo: Error, input argument(s) invalid\n" );
+    }
+    return (size_t)iLen;
+}
+
+/* function GetRemoteInfo - gets the remote info of the device.
+        Usage: size_t GetRemoteInfo <char *pRemoteInfo> <size_t szBufSize>
+ 
+            pRemoteInfo - pointer to a char buffer to store the output string.
+            szBufSize - the size of the character buffer in argument 1.
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetRemoteInfo( char *pRemoteInfo, size_t szBufSize )
+{
+    size_t len, sztotlen = 0;
+    JSON *pJson, *pItem;
+    char *pJsonStr;
+    size_t szBufRemaining;
+    unsigned index, num;
+
+    if( pRemoteInfo != NULL )
+    {
+        *pRemoteInfo = 0;
+        pJsonStr = GetJson( PERIPHERAL_JSON_FILE );
+        if( pJsonStr != NULL )
+        {
+            szBufRemaining = szBufSize;
+            pJson = ParseJsonStr( pJsonStr );
+            if( pJson != NULL )
+            {
+                if( IsJsonArray( pJson ) )
+                {
+                    num = GetJsonArraySize( pJson );
+                    for( index = 0; index < num; index++ )
+                    {
+                        pItem = GetJsonArrayItem( pJson, index );
+                        if( pItem != NULL )
+                        {
+                            len = BuildRemoteInfo( pItem, pRemoteInfo + sztotlen, szBufRemaining, true );
+                            sztotlen += len;
+                            if( len <= szBufRemaining ) // make sure not to roll value over
+                            {
+                                szBufRemaining -= len;
+                            }
+                            if( szBufRemaining <= 1 )    // if it's 1 then buf is full since NULL isn't counted
+                            {
+                                COMMONUTILITIES_INFO( "%s: WARNING, buffer is full and will be truncated, sztotlen=%zu\n", __FUNCTION__, sztotlen );
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    sztotlen = BuildRemoteInfo( pJson, pRemoteInfo, szBufSize, true );
+                }
+                FreeJson( pJson );
+            }
+            free( pJsonStr );
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetRemoteInfo: Error, input argument NULL\n" );
+    }
+    COMMONUTILITIES_INFO( "%s: returning sztotlen=%zu\n", __FUNCTION__, sztotlen );
+    return sztotlen;
+}
+
+/* function GetInstalledBundles - gets the bundles installed on a device. 
+        Usage: size_t GetInstalledBundles <char *pBundles> <size_t szBufSize>
+ 
+            pBundles - pointer to a char buffer to store the output string.
+            szBufSize - the size of the character buffer in argument 1.
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetInstalledBundles(char *pBundles, size_t szBufSize)
+{
+    JSON *pJsonTop;
+    JSON *pJson;
+    char *pJsonStr;
+    size_t len;
+    size_t szRunningLen = 0;
+    metaDataFileList_st *installedBundleListNode = NULL, *tmpNode = NULL;
+
+    if (pBundles != NULL)
+    {
+        *pBundles = 0;
+        installedBundleListNode = getInstalledBundleFileList();
+
+        while (installedBundleListNode != NULL)
+        {
+            COMMONUTILITIES_INFO("GetInstalledBundles: calling GetJson with arg = %s\n", installedBundleListNode->fileName);
+            pJsonStr = GetJson(installedBundleListNode->fileName);
+            if (pJsonStr != NULL)
+            {
+                COMMONUTILITIES_INFO("GetInstalledBundles: pJsonStr = %s\n", pJsonStr);
+                pJsonTop = ParseJsonStr(pJsonStr);
+                COMMONUTILITIES_INFO("GetInstalledBundles: ParseJsonStr returned =%s\n", pJsonStr);
+                pJson = pJsonTop;
+                if (pJsonTop != NULL)
+                {
+                    while (pJson != NULL)
+                    {
+                        len = GetJsonVal(pJson, "name", installedBundleListNode->fileName, sizeof(installedBundleListNode->fileName));
+                        if (len)
+                        {
+                            if (szRunningLen)
+                            {
+                                *(pBundles + szRunningLen) = ',';
+                                ++szRunningLen;
+                            }
+                            len = snprintf(pBundles + szRunningLen, szBufSize - szRunningLen, "%s:", installedBundleListNode->fileName);
+                            szRunningLen += len;
+                            len = GetJsonVal(pJson, "version", installedBundleListNode->fileName, sizeof(installedBundleListNode->fileName));
+                            len = snprintf(pBundles + szRunningLen, szBufSize - szRunningLen, "%s", installedBundleListNode->fileName);
+                            COMMONUTILITIES_INFO("Updated Bundles = %s\n", pBundles);
+                            szRunningLen += len;
+                        }
+                        pJson = pJson->next; // need "next" getter function
+                    }
+                    FreeJson(pJsonTop);
+                }
+                free(pJsonStr);
+            }
+            tmpNode = installedBundleListNode;
+            installedBundleListNode = installedBundleListNode->next;
+            free(tmpNode);
+        }
+        COMMONUTILITIES_INFO("GetInstalledBundles: pBundles = %s\n", pBundles);
+        COMMONUTILITIES_INFO("GetInstalledBundles: szRunningLen = %zu\n", szRunningLen);
+    }
+
+    return szRunningLen;
+}
+
+/* function getInstalledBundleFileList - gets the list of bundles installed on a device.
+        Usage: metaDataFileList_st *getInstalledBundleFileList()
+        Input : void
+        RETURN - List of installed Bundle in NVM and RFS directory
+*/
+metaDataFileList_st *getInstalledBundleFileList()
+{
+    metaDataFileList_st *metadataNVMls = NULL, *metadataRFSls = NULL, *metaDataList = NULL;
+
+    metadataNVMls = getMetaDataFile(BUNDLE_METADATA_NVM_PATH);
+    if (metadataNVMls == NULL)
+    {
+        COMMONUTILITIES_INFO("Certificate does not exist in NVM Path\n");
+    }
+
+    metadataRFSls = getMetaDataFile(BUNDLE_METADATA_RFS_PATH);
+    if (metadataRFSls == NULL)
+    {
+        COMMONUTILITIES_INFO("Certificate does not exist in RFS Path\n");
+    }
+
+    if ((metadataNVMls == NULL) && (metadataRFSls == NULL))
+    {
+        COMMONUTILITIES_INFO("No metadata found only in CPE");
+    }
+    else if ((metadataNVMls) && (metadataRFSls == NULL))
+    {
+        metaDataList = metadataNVMls;
+        COMMONUTILITIES_INFO("No metadata found only in %s\n", BUNDLE_METADATA_NVM_PATH);
+    }
+    else if ((metadataNVMls == NULL) && (metadataRFSls))
+    {
+        metaDataList = metadataRFSls;
+        COMMONUTILITIES_INFO("No metadata found only in %s\n", BUNDLE_METADATA_RFS_PATH);
+    }
+    else if ((metadataNVMls) && (metadataRFSls))
+    {
+        metaDataList = mergeLists(metadataNVMls, metadataRFSls);
+    }
+
+    return metaDataList;
+}
+
+/* function getMetaDataFile - gets the files list in the directory
+        Usage: metaDataFileList_st *getMetaDataFile(char *dir)
+        dir : directory of NVM or RFS Path
+        RETURN - List of installed Bundle in NVM or RFS directory
+*/
+metaDataFileList_st *getMetaDataFile(char *dir)
+{
+    metaDataFileList_st *newnode = NULL, *prevnode = NULL, *headNode = NULL;
+    struct dirent *pDirent = NULL;
+
+    DIR *directory = opendir(dir);
+    if (directory)
+    {
+        while ((pDirent = readdir(directory)) != NULL)
+        {
+            if (pDirent->d_type == DT_REG && strstr(pDirent->d_name, "_package.json") != NULL)
+            {
+                newnode = (metaDataFileList_st *)malloc(sizeof(metaDataFileList_st));
+                COMMONUTILITIES_INFO("GetInstalledBundles: found %s\n", pDirent->d_name);
+                snprintf(newnode->fileName, sizeof(newnode->fileName), "%s/%s", dir, pDirent->d_name);
+                newnode->next = NULL;
+                if (headNode == NULL)
+                {
+                    headNode = newnode;
+                    prevnode = headNode;
+                }
+                else
+                {
+                    prevnode->next = newnode;
+                    prevnode = newnode;
+                }
+            }
+        }
+        closedir(directory);
+    }
+    else
+    {
+        COMMONUTILITIES_INFO("%s does not exist\n", dir);
+    }
+    return headNode;
+}
+
+/* function mergeLists - merge the RFS and NVM file list.
+        Usage: metaDataFileList_st * mergeLists(metaDataFileList_st *nvmList, metaDataFileList_st *rfsList)
+        nvmList : NVM files list
+        rfsList : RFS files list
+        RETURN - common files list of installed Bundle in NVM and RFS directory
+*/
+metaDataFileList_st * mergeLists(metaDataFileList_st *nvmList, metaDataFileList_st *rfsList)
+{
+   metaDataFileList_st  tmp;
+   metaDataFileList_st *currentNVMNode = nvmList;
+   metaDataFileList_st *currentRFSNode = rfsList;
+   metaDataFileList_st *metaDataList = &tmp;
+   metaDataFileList_st *next = NULL, *removeDup = NULL;
+   int cmpval = 0;
+  
+  tmp.next = NULL;
+  while(currentRFSNode && currentNVMNode)
+  {
+      cmpval = strncmp(currentRFSNode->fileName,currentNVMNode->fileName, sizeof(currentRFSNode->fileName));
+      next = (cmpval < 0) ? currentRFSNode : currentNVMNode;
+
+      metaDataList->next = next;
+      metaDataList = next;
+     
+      if (cmpval < 0) 
+      {
+          currentRFSNode = currentRFSNode->next;
+      } 
+      else 
+      {
+          currentNVMNode = currentNVMNode->next;
+      }
+   }
+
+  metaDataList->next = currentRFSNode ? currentRFSNode : currentNVMNode;
+
+  removeDup = tmp.next;
+  
+  while(removeDup)
+  {
+      if(removeDup->next && strncmp(removeDup->fileName, removeDup->next->fileName, sizeof(removeDup->fileName)) == 0)
+      {
+          removeDup->next = removeDup->next->next;
+      }
+      removeDup = removeDup->next;
+  }
+  
+  return tmp.next;
+}
+
+/* function GetAdditionalFwVerInfo - returns the PDRI filename plus Remote Info for the device. 
+        Usage: size_t GetAdditionalFwVerInfo <char *pAdditionalFwVerInfo> <size_t szBufSize>
+ 
+            pAdditionalFwVerInfo - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetAdditionalFwVerInfo( char *pAdditionalFwVerInfo, size_t szBufSize )
+{
+    size_t len = 0;
+
+    COMMONUTILITIES_INFO("*** CALLING GetAdditionalFwVerInfo FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
+
+    if( pAdditionalFwVerInfo != NULL )
+    {
+        len = GetPDRIFileName( pAdditionalFwVerInfo, szBufSize );
+	if( len < szBufSize )
+        {
+            len += GetRemoteInfo( (pAdditionalFwVerInfo + len), (szBufSize - len) );
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR( "GetAdditionalFwVerInfo: Error, input argument NULL\n" );
+    }
+
+    return len;
+}
+
+/* function GetRemoteVers - gets the peripheral versions of the device.
+ 
+        Usage: size_t GetRemoteVers <char *pRemoteVers > <size_t szBufSize>
+ 
+            pRemoteVers - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+        (this is identical to GetRemoteInfo except there is no prefix to the string)
+*/
+size_t GetRemoteVers( char *pRemoteVers , size_t szBufSize )
+{
+    size_t len = 0;
+    JSON *pJson, *pItem;
+    char *pJsonStr;
+    unsigned index, num;
+
+    COMMONUTILITIES_INFO("*** CALLING GetRemoteVers FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
+
+    if( pRemoteVers  != NULL )
+    {
+        *pRemoteVers  = 0;
+        pJsonStr = GetJson( PERIPHERAL_JSON_FILE );
+        if( pJsonStr != NULL )
+        {
+            pJson = ParseJsonStr( pJsonStr );
+            if( pJson != NULL )
+            {
+                if( IsJsonArray( pJson ) )
+                {
+                    num = GetJsonArraySize( pJson );
+                    for( index = 0; index < num; index++ )
+                    {
+                        pItem = GetJsonArrayItem( pJson, index );
+                        if( pItem != NULL )
+                        {
+                            len += BuildRemoteInfo( pItem, pRemoteVers  + len, szBufSize - len, false );
+                        }
+                    }
+                }
+                else
+                {
+                    len = BuildRemoteInfo( pJson, pRemoteVers , szBufSize, false );
+                }
+                FreeJson( pJson );
+            }
+            free( pJsonStr );
+        }
+    }
+    else
+    {
+        COMMONUTILITIES_INFO( "GetRemoteVers: Error, input argument NULL\n" );
+    }
+
+    return len;
+}
+
+/* function GetRdmManifestVersion - gets the remote info of the device.
+ 
+        Usage: size_t GetRdmManifestVersion <char *pRdmManifestVersion> <size_t szBufSize>
+ 
+            pRdmManifestVersion - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetRdmManifestVersion( char *pRdmManifestVersion, size_t szBufSize )
+{
+    size_t len = 0;
+
+    COMMONUTILITIES_INFO("*** CALLING GetRdmManifestVersion FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
+
+#ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
+    if( pRdmManifestVersion != NULL )
+    {
+	*pRdmManifestVersion = 0;
+        len = RunCommand( eGetInstalledRdmManifestVersion, NULL, pRdmManifestVersion, szBufSize );
+    }
+    else
+    {
+        COMMONUTILITIES_INFO( "GetRdmManifestVersion: Error, input argument NULL\n" );
+    }
+#else
+    // TODO: Add C implemementation
+#endif
+    return len;
 }
