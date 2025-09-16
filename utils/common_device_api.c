@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define _GNU_SOURCE  // Required for strcasestr
 #include <time.h>
 #include <stdarg.h>
 #include <dirent.h>
@@ -46,7 +47,11 @@
 #define GETINSTALLEDRDMMANIFESTVERSIONSCRIPT    "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"
 #endif
 
+#define PERIPHERAL_JSON_FILE            "/opt/persistent/rdm/peripheral.json"
 #define MAX_PERIPHERAL_ITEMS 4
+
+static metaDataFileList_st *getMetaDataFile(char *dir);
+static metaDataFileList_st *mergeLists(metaDataFileList_st *nvmList, metaDataFileList_st *rfsList);
 
 // String arrays for BuildRemoteInfo function
 static char *pRemCtrlStrings[MAX_PERIPHERAL_ITEMS] = {
@@ -809,7 +814,7 @@ size_t GetFileContents( char **pOut, char *pFileName )
         COMMONUTILITIES_INFO( "GetFileContents: pFileName = %s\n", pFileName );
         if( (len=(size_t)getFileSize( pFileName )) != -1 )
         {
-            COMMONUTILIES_INFO( "GetFileContents: file len = %zu\n", len );
+            COMMONUTILITIES_INFO( "GetFileContents: file len = %zu\n", len );
             if( (fp=fopen( pFileName, "r" )) != NULL )
             {
                 ++len;  // room for NULL, included in return value
@@ -1360,7 +1365,7 @@ metaDataFileList_st *getInstalledBundleFileList()
         dir : directory of NVM or RFS Path
         RETURN - List of installed Bundle in NVM or RFS directory
 */
-metaDataFileList_st *getMetaDataFile(char *dir)
+static metaDataFileList_st *getMetaDataFile(char *dir)
 {
     metaDataFileList_st *newnode = NULL, *prevnode = NULL, *headNode = NULL;
     struct dirent *pDirent = NULL;
@@ -1403,7 +1408,7 @@ metaDataFileList_st *getMetaDataFile(char *dir)
         rfsList : RFS files list
         RETURN - common files list of installed Bundle in NVM and RFS directory
 */
-metaDataFileList_st * mergeLists(metaDataFileList_st *nvmList, metaDataFileList_st *rfsList)
+static metaDataFileList_st * mergeLists(metaDataFileList_st *nvmList, metaDataFileList_st *rfsList)
 {
    metaDataFileList_st  tmp;
    metaDataFileList_st *currentNVMNode = nvmList;
