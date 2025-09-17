@@ -59,15 +59,7 @@ typedef enum {
     #define GETRDMMANIFESTVERSION_IN_SCRIPT
 #endif
 
-typedef enum {
-    eDEVUTILS_MD5Sum,
-    eDEVUTILS_RdkSsaCli,
-    eDEVUTILS_MfrUtil,
-    eDEVUTILS_WpeFrameworkSecurityUtility
-#ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
-    ,eDEVUTILS_GetInstalledRdmManifestVersion
-#endif
-} DEVUTILS_SYSCMD;
+
 
 /* Below structure contains data from /etc/device.property */
 typedef struct deviceproperty {

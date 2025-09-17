@@ -30,15 +30,7 @@
 
 
 
-// Command paths for RunCommand function
-#define WPEFRAMEWORKSECURITYUTILITY     "/usr/bin/WPEFrameworkSecurityUtility"
-#define MFRUTIL                         "/usr/bin/mfr_util %s"
-#define MD5SUM                          "/usr/bin/md5sum %s"
-#define RDKSSACLI                       "/usr/sbin/rdkssacli %s"
 
-#ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
-#define GETINSTALLEDRDMMANIFESTVERSIONSCRIPT    "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"
-#endif
 
 #define PERIPHERAL_JSON_FILE            "/opt/persistent/rdm/peripheral.json"
 #define MAX_PERIPHERAL_ITEMS 4
@@ -817,136 +809,7 @@ bool get_system_uptime(double *uptime)
     return false;
 }
 
-/* Helper function - secure popen wrapper for RunCommand */
-static FILE* v_secure_popen(const char* mode, const char* command, ...)
-{
-    char cmd_buffer[512];
-    va_list args;
-    
-    va_start(args, command);
-    vsnprintf(cmd_buffer, sizeof(cmd_buffer), command, args);
-    va_end(args);
-    
-    COMMONUTILITIES_DEBUG("v_secure_popen: Executing command: %s\n", cmd_buffer);
-    return popen(cmd_buffer, mode);
-}
 
-/* Helper function - secure pclose wrapper for RunCommand */
-static int v_secure_pclose(FILE* fp)
-{
-    return pclose(fp);
-}
 
-/* function RunCommand - runs a predefined system command using secure popen        Usage: size_t RunCommand <DEVUTILS_SYSCMD eSysCmd> <const char *pArgs> <char *pResult> <size_t szResultSize>
 
-            eSysCmd - the predefined system command to execute from DEVUTILS_SYSCMD enum
- 
-            pArgs - arguments to pass to the command (NULL if no arguments required)
- 
-            pResult - a pointer to a character buffer to store the command output
- 
-            szResultSize - the maximum size of the result buffer
- 
-            RETURN - the number of characters written to the result buffer
- 
-            PREDEFINED COMMANDS:
-            "/usr/bin/WPEFrameworkSecurityUtility"                      eWpeFrameworkSecurityUtility
-            "/usr/bin/mfr_util %s"                                      eMfrUtil
-            "/usr/bin/md5sum %s"                                        eMD5Sum
-            "/usr/sbin/rdkssacli %s"                                    eRdkSsaCli
-            "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"     eGetInstalledRdmManifestVersion
- 
-            %s in the command string indicates an argument (pArgs) is required
-*/
-size_t RunCommand( DEVUTILS_SYSCMD eSysCmd, const char *pArgs, char *pResult, size_t szResultSize )
-{
-    FILE *fp;
-    size_t nbytes_read = 0;
-
-    COMMONUTILITIES_INFO("*** CALLING RunCommand FROM COMMON_UTILITIES/LIBFWUTILS ***\n");
-
-    if( pResult != NULL && szResultSize >= 1 )
-    {
-        *pResult = 0;
-        switch( eSysCmd )
-        {
-           case eDEVUTILS_MD5Sum :
-               if( pArgs != NULL )
-               {
-                   fp = v_secure_popen( "r", MD5SUM, pArgs );
-               }
-               else
-               {
-                   fp = NULL;
-                   COMMONUTILITIES_ERROR( "RunCommand: Error, md5sum requires an input argument\n" );
-               }
-               break;
-
-           case eDEVUTILS_RdkSsaCli :
-               if( pArgs != NULL )
-               {
-                   fp = v_secure_popen( "r", RDKSSACLI, pArgs );
-               }
-               else
-               {
-                   fp = NULL;
-                   COMMONUTILITIES_ERROR( "RunCommand: Error, rdkssacli requires an input argument\n" );
-               }
-               break;
-
-           case eDEVUTILS_MfrUtil :
-               if( pArgs != NULL )
-               {
-                   fp = v_secure_popen( "r", MFRUTIL, pArgs );
-               }
-               else
-               {
-                   fp = NULL;
-                   COMMONUTILITIES_ERROR( "RunCommand: Error, mfr_util requires an input argument\n" );
-               }
-               break;
-
-           case eDEVUTILS_WpeFrameworkSecurityUtility :
-               fp = v_secure_popen( "r", WPEFRAMEWORKSECURITYUTILITY );
-               break;
-
-#ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
-           case eDEVUTILS_GetInstalledRdmManifestVersion :
-               fp = v_secure_popen( "r", GETINSTALLEDRDMMANIFESTVERSIONSCRIPT );
-               break;
-#endif
-
-           default:
-               fp = NULL;
-               COMMONUTILITIES_ERROR( "RunCommand: Error, unknown request type %d\n", (int)eSysCmd );
-               break;
-        }
-
-        if( fp != NULL )
-        {
-            nbytes_read = fread( pResult, 1, szResultSize - 1, fp );
-            v_secure_pclose( fp );
-            if( nbytes_read != 0 )
-            {
-                COMMONUTILITIES_INFO( "RunCommand: Successful read %zu bytes\n", nbytes_read );
-                pResult[nbytes_read] = '\0';
-                nbytes_read = strnlen( pResult, szResultSize ); // fread might include NULL characters, get accurate count
-            }
-            else
-            {
-                COMMONUTILITIES_ERROR( "RunCommand: fread fails:%zu\n", nbytes_read );
-            }
-            COMMONUTILITIES_DEBUG( "RunCommand: output=%s\n", pResult );
-        }
-        else
-        {
-            COMMONUTILITIES_ERROR( "RunCommand: Failed to open pipe command execution\n" );
-        }
-    }
-    else
-    {
-        COMMONUTILITIES_ERROR( "RunCommand: Error, input argument invalid\n" );
-    }
-    return nbytes_read;
-}
 

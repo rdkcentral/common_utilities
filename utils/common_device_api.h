@@ -234,28 +234,7 @@ size_t makeHttpHttps( char *pIn, size_t szpInSize );
 */
 bool get_system_uptime(double *uptime);
 
-/* function RunCommand - runs a predefined system command using secure popen        Usage: size_t RunCommand <DEVUTILS_SYSCMD eSysCmd> <const char *pArgs> <char *pResult> <size_t szResultSize>
 
-            eSysCmd - the predefined system command to execute from DEVUTILS_SYSCMD enum
- 
-            pArgs - arguments to pass to the command (NULL if no arguments required)
- 
-            pResult - a pointer to a character buffer to store the command output
- 
-            szResultSize - the maximum size of the result buffer
- 
-            RETURN - the number of characters written to the result buffer
- 
-            PREDEFINED COMMANDS:
-            "/usr/bin/WPEFrameworkSecurityUtility"                      eDEVUTILS_WpeFrameworkSecurityUtility
-            "/usr/bin/mfr_util %s"                                      eDEVUTILS_MfrUtil
-            "/usr/bin/md5sum %s"                                        eDEVUTILS_MD5Sum
-            "/usr/sbin/rdkssacli %s"                                    eDEVUTILS_RdkSsaCli
-            "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"     eDEVUTILS_GetInstalledRdmManifestVersion
- 
-            %s in the command string indicates an argument (pArgs) is required
-*/
-size_t RunCommand(DEVUTILS_SYSCMD eSysCmd, const char *pArgs, char *pResult, size_t szResultSize);
 
 size_t stripinvalidchar( char *pIn, size_t szIn );
 
