@@ -43,49 +43,6 @@
 #define PERIPHERAL_JSON_FILE            "/opt/persistent/rdm/peripheral.json"
 #define MAX_PERIPHERAL_ITEMS 4
 
-static metaDataFileList_st *getMetaDataFile(char *dir);
-static metaDataFileList_st *mergeLists(metaDataFileList_st *nvmList, metaDataFileList_st *rfsList);
-
-// String arrays for BuildRemoteInfo function
-static char *pRemCtrlStrings[MAX_PERIPHERAL_ITEMS] = {
-    "&remCtrl",
-    "&remCtrlAudio",
-    "&remCtrlDsp",
-    "&remCtrlKwModel"
-};
-
-static char *pNullStrings[MAX_PERIPHERAL_ITEMS] = {
-    "",
-    "",
-    "",
-    ""
-};
-
-static char *pEqualStrings[MAX_PERIPHERAL_ITEMS] = {
-    "=",
-    "=",
-    "=",
-    "="
-};
-
-static char *pTypeStrings[MAX_PERIPHERAL_ITEMS] = {
-    "_firmware_",
-    "_audio_",
-    "_dsp_",
-    "_kw_model_"
-};
-
-static char *pExtStrings[] = {
-    ".tgz,"
-};
-
-static char *pPeripheralName[MAX_PERIPHERAL_ITEMS] = {
-    "FwVer",
-    "AudioVer",
-    "DspVer",
-    "KwModelVer"
-};
-
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
