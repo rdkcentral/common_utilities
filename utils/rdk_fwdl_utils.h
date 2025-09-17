@@ -60,12 +60,12 @@ typedef enum {
 #endif
 
 typedef enum {
-    eMD5Sum,
-    eRdkSsaCli,
-    eMfrUtil,
-    eWpeFrameworkSecurityUtility
+    eDEVUTILS_MD5Sum,
+    eDEVUTILS_RdkSsaCli,
+    eDEVUTILS_MfrUtil,
+    eDEVUTILS_WpeFrameworkSecurityUtility
 #ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
-    ,eGetInstalledRdmManifestVersion
+    ,eDEVUTILS_GetInstalledRdmManifestVersion
 #endif
 } DEVUTILS_SYSCMD;
 

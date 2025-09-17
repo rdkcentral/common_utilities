@@ -57,14 +57,10 @@
 #define OUTPUT_JSON_FILE_X86    "/tmp/output.json"
 #define TIMEZONE_DST_FILE       "/tmp/timeZoneDST"
 #define TIMEZONE_OFFSET_MAP     "/tmp/timeZone_offset_map"
-#define PERIPHERAL_JSON_FILE    "/tmp/rc-proxy-params.json"
+
 #endif
 
-typedef struct metaDataFileList
-{
-    char fileName[512];
-    struct metaDataFileList *next;
-}metaDataFileList_st;
+
 
 /* function GetAccountID - gets the account ID of the device.
 
@@ -184,18 +180,7 @@ size_t GetUTCTime( char *pUTCTime, size_t szBufSize );
 */
 size_t GetCapabilities( char *pCapabilities, size_t szBufSize );
 
-/* function GetServerUrlFile - scans a file for a URL. 
-        Usage: size_t GetServerUrlFile <char *pServUrl> <size_t szBufSize> <char *pFileName>
- 
-            pServUrl - pointer to a char buffer to store the output string.
 
-            szBufSize - the size of the character buffer in argument 1.
-
-            pFileName - a character pointer to a filename to scan.
-
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetServerUrlFile( char *pServUrl, size_t szBufSize, char *pFileName );
 
 /* function GetTimezone - gets the timezone of the device.
 
@@ -262,11 +247,11 @@ bool get_system_uptime(double *uptime);
             RETURN - the number of characters written to the result buffer
  
             PREDEFINED COMMANDS:
-            "/usr/bin/WPEFrameworkSecurityUtility"                      eWpeFrameworkSecurityUtility
-            "/usr/bin/mfr_util %s"                                      eMfrUtil
-            "/usr/bin/md5sum %s"                                        eMD5Sum
-            "/usr/sbin/rdkssacli %s"                                    eRdkSsaCli
-            "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"     eGetInstalledRdmManifestVersion
+            "/usr/bin/WPEFrameworkSecurityUtility"                      eDEVUTILS_WpeFrameworkSecurityUtility
+            "/usr/bin/mfr_util %s"                                      eDEVUTILS_MfrUtil
+            "/usr/bin/md5sum %s"                                        eDEVUTILS_MD5Sum
+            "/usr/sbin/rdkssacli %s"                                    eDEVUTILS_RdkSsaCli
+            "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"     eDEVUTILS_GetInstalledRdmManifestVersion
  
             %s in the command string indicates an argument (pArgs) is required
 */
@@ -274,75 +259,6 @@ size_t RunCommand(DEVUTILS_SYSCMD eSysCmd, const char *pArgs, char *pResult, siz
 
 size_t stripinvalidchar( char *pIn, size_t szIn );
 
-/* function GetAdditionalFwVerInfo - returns the PDRI filename plus Remote Info for the device.
-        Usage: size_t GetAdditionalFwVerInfo <char *pAdditionalFwVerInfo> <size_t szBufSize>
- 
-            pAdditionalFwVerInfo - pointer to a char buffer to store the output string.
-            szBufSize - the size of the character buffer in argument 1.
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetAdditionalFwVerInfo( char *pAdditionalFwVerInfo, size_t szBufSize );
 
-/* function GetPDRIFileName - returns the PDRI for the device.
-        Usage: size_t GetPDRIFileName <char *pPDRIFilename> <size_t szBufSize>
- 
-            pPDRIFilename - pointer to a char buffer to store the output string.
-            szBufSize - the size of the character buffer in argument 1.
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetPDRIFileName( char *pPDRIFilename, size_t szBufSize );
-
-/* function GetInstalledBundles - gets the bundles installed on a device.
-        Usage: size_t GetInstalledBundles <char *pBundles> <size_t szBufSize>
- 
-            pBundles - pointer to a char buffer to store the output string.
-            szBufSize - the size of the character buffer in argument 1.
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetInstalledBundles(char *pBundles, size_t szBufSize);
-
-/* function GetRemoteInfo - gets the remote info of the device.
-        Usage: size_t GetRemoteInfo <char *pRemoteInfo> <size_t szBufSize>
- 
-            pRemoteInfo - pointer to a char buffer to store the output string.
-            szBufSize - the size of the character buffer in argument 1.
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetRemoteInfo( char *pRemoteInfo, size_t szBufSize );
-
-/* function GetRemoteVers - gets the peripheral versions of the device.
-        Usage: size_t GetRemoteVers <char *pRemoteVers > <size_t szBufSize>
- 
-            pRemoteVers - pointer to a char buffer to store the output string.
-            szBufSize - the size of the character buffer in argument 1.
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetRemoteVers( char *pRemoteVers , size_t szBufSize );
-
-/* function GetRdmManifestVersion - gets the remote info of the device.
-        Usage: size_t GetRdmManifestVersion <char *pRdmManifestVersion> <size_t szBufSize>
- 
-            pRdmManifestVersion - pointer to a char buffer to store the output string.
-            szBufSize - the size of the character buffer in argument 1.
-            RETURN - number of characters copied to the output buffer.
-*/
-size_t GetRdmManifestVersion( char *pRdmManifestVersion, size_t szBufSize );
-
-/* function BuildRemoteInfo - Formats the "periperalFirmwares" string for remote info part of xconf communication
-        Usage: size_t BuildRemoteInfo <JSON *pItem> <char *pRemoteInfo> <size_t szMaxBuf> <bool bAddremCtrl>
- 
-            pItem - a pointer to a JSON structure that contains the remote info.
-            pRemoteInfo - a pointer to a character buffer to store the output
-            szMaxBuf - the maximum size of the buffer
-            bAddremCtrl - if true then prefix values with &remCtrl. false does not add prefix
-            RETURN - the number of characters written to the buffer
-*/
-size_t BuildRemoteInfo( JSON *pItem, char *pRemoteInfo, size_t szMaxBuf, bool bAddremCtrl );
-
-/* function getInstalledBundleFileList - gets the list of bundles installed on a device.
-        Usage: metaDataFileList_st *getInstalledBundleFileList()
-        RETURN - pointer to linked list of metadata files, or NULL on error
-*/
-metaDataFileList_st *getInstalledBundleFileList();
 
 #endif
