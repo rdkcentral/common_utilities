@@ -50,7 +50,7 @@ int main( int argc, char *argv[] )
     int iRet = 1;
 
     log_init();
-    SWLOG_INFO("Starting jsonwrite\n");
+    COMMONUTILITIES_INFO("Starting jsonwrite\n");
     if( argc >= 3  && *argv[2] )
     {
         outfile = argv[2];
@@ -66,9 +66,8 @@ int main( int argc, char *argv[] )
     }
     else
     {
-        SWLOG_ERROR( "Error: Too few arguments, must contain an input file name\nUsage %s <input filename> <optional output file name>\n", argv[0] );
+        COMMONUTILITIES_ERROR( "Error: Too few arguments, must contain an input file name\nUsage %s <input filename> <optional output file name>\n", argv[0] );
     }
     log_exit();
     return iRet;
 }
-

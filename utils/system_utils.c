@@ -43,7 +43,7 @@ int filePresentCheck(const char *file_name) {
     struct stat sfile;
 
     if(file_name == NULL) {
-        SWLOG_ERROR("%s Invalid Parameter\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s Invalid Parameter\n", __FUNCTION__);
         return ret;
     }
     
@@ -69,24 +69,24 @@ int cmdExec(const char *cmd, char *output, unsigned int size_buff) {
     int nbytes_read = RDK_API_FAILURE;
 
     if(cmd == NULL || output == NULL || size_buff == 0) {
-        SWLOG_ERROR("%s Invalid Parameter\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s Invalid Parameter\n", __FUNCTION__);
         return ret;
     }
     if(size_buff > MAX_OUT_BUFF_POPEN) {
-        SWLOG_ERROR("%s size_buff should not be > %d. Provided buffer size=%u\n", __FUNCTION__, MAX_OUT_BUFF_POPEN, size_buff);
+        COMMONUTILITIES_ERROR("%s size_buff should not be > %d. Provided buffer size=%u\n", __FUNCTION__, MAX_OUT_BUFF_POPEN, size_buff);
         return ret;
     }
     fp = popen(cmd, "r");
     if(fp == NULL) {
-        SWLOG_ERROR("%s Failed to open pipe command execution:%s\n", __FUNCTION__, cmd);
+        COMMONUTILITIES_ERROR("%s Failed to open pipe command execution:%s\n", __FUNCTION__, cmd);
         return ret;
     }
     nbytes_read = fread(output, 1, size_buff - 1, fp);
     if(nbytes_read != -1) {
-        SWLOG_INFO("%s Successful read %d bytes\n", __FUNCTION__, nbytes_read);
+        COMMONUTILITIES_INFO("%s Successful read %d bytes\n", __FUNCTION__, nbytes_read);
         output[nbytes_read] = '\0';
     }else {
-        SWLOG_ERROR("%s fread fails:%d\n", __FUNCTION__, nbytes_read);
+        COMMONUTILITIES_ERROR("%s fread fails:%d\n", __FUNCTION__, nbytes_read);
         pclose(fp);
         return ret;
     }
@@ -105,12 +105,12 @@ int getFileSize(const char *file_name)
     struct stat st;
 
     if (file_name == NULL) {
-        SWLOG_ERROR("%s : File name not present\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : File name not present\n", __FUNCTION__);
         return ret;
     }
     ret = stat(file_name, &st);
     if (ret == -1) {
-        SWLOG_ERROR("%s : File unable to stat\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s : File unable to stat\n", __FUNCTION__);
         return ret;
     }
     file_size = st.st_size;
@@ -127,16 +127,16 @@ int logFileData(const char *file_path) {
     char tbuff[80];
 
     if(file_path == NULL) {
-        SWLOG_INFO("logFileData() File path is NULL\n");
+        COMMONUTILITIES_INFO("logFileData() File path is NULL\n");
         return ret;
     }
     fp = fopen(file_path, "r");
     if(fp == NULL) {
-        SWLOG_INFO("logFileData() File unable to open\n");
+        COMMONUTILITIES_INFO("logFileData() File unable to open\n");
         return ret;
     }
     while((fgets(tbuff, sizeof(tbuff), fp) != NULL)) {
-        SWLOG_INFO("%s\n", tbuff);
+        COMMONUTILITIES_INFO("%s\n", tbuff);
         ret = 1;
     }
     fclose(fp);
@@ -156,17 +156,17 @@ int createDir(const char *dirname) {
         if (folder_fd == NULL) {
             ret = mkdir(dirname, 0777);
             if (-1 == ret) {
-                SWLOG_INFO("%s : Unable to create folder:%s\n", __FUNCTION__, dirname);
+                COMMONUTILITIES_INFO("%s : Unable to create folder:%s\n", __FUNCTION__, dirname);
                 ret = RDK_API_FAILURE;
             }
         } else {
-            SWLOG_INFO("%s :Already Folder exist:%s\n", __FUNCTION__, dirname);
+            COMMONUTILITIES_INFO("%s :Already Folder exist:%s\n", __FUNCTION__, dirname);
             closedir(folder_fd);
         }
     }
     else
     {
-       SWLOG_ERROR("%s parameter is NULL\n", __FUNCTION__);
+       COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
        ret = RDK_API_FAILURE;
     }
     return ret ;
@@ -185,12 +185,12 @@ int eraseFolderExcePramaFile(const char *folder, const char* file_name, const ch
     char oldfile[512];
 
     if (folder == NULL || file_name == NULL || model_num == NULL) {
-        SWLOG_ERROR("%s parameter is NULL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
         return ret;
     }
     folder_fd = opendir(folder);
     if (folder_fd == NULL) {
-        SWLOG_ERROR("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
+        COMMONUTILITIES_ERROR("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
         return ret;
     }
     while((dir = readdir(folder_fd)) != NULL) {
@@ -198,7 +198,7 @@ int eraseFolderExcePramaFile(const char *folder, const char* file_name, const ch
             continue;
         } else if(strstr(dir->d_name, model_num)) {
             snprintf(oldfile, sizeof(oldfile), "%s/%s", folder, dir->d_name);
-            SWLOG_INFO("%s Deleting old software file.%s\n", dir->d_name, oldfile);
+            COMMONUTILITIES_INFO("%s Deleting old software file.%s\n", dir->d_name, oldfile);
             unlink(oldfile);
         }
     }
@@ -216,13 +216,13 @@ int createFile(const char *file_name) {
     FILE *fp = NULL;
 
     if (file_name == NULL) {
-        SWLOG_ERROR("%s: Parameter is NULL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Parameter is NULL\n", __FUNCTION__);
         return ret;
     }
-    SWLOG_INFO("%s: Trying to create file=%s\n", __FUNCTION__, file_name);
+    COMMONUTILITIES_INFO("%s: Trying to create file=%s\n", __FUNCTION__, file_name);
     fp = fopen(file_name, "w");
     if (fp == NULL) {
-        SWLOG_ERROR("%s: Unable to open file=%s\n", __FUNCTION__, file_name);
+        COMMONUTILITIES_ERROR("%s: Unable to open file=%s\n", __FUNCTION__, file_name);
         return ret;
     } else {
         fclose(fp);
@@ -264,7 +264,7 @@ int eraseTGZItemsMatching( const char *folder, const char* file_name )
                             if( pDirFile != NULL )
                             {
                                 snprintf( pDirFile, szAllocSize, "%s/%s", folder, dir->d_name );
-                                SWLOG_INFO( "Deleting file = %s\n", pDirFile );
+                                COMMONUTILITIES_INFO( "Deleting file = %s\n", pDirFile );
                                 unlink( pDirFile );
                                 free( pDirFile );
                                 ret = 0;
@@ -277,12 +277,12 @@ int eraseTGZItemsMatching( const char *folder, const char* file_name )
         }
         else
         {
-            SWLOG_INFO("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
+            COMMONUTILITIES_INFO("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
         }
     }
     else
     {
-        SWLOG_ERROR("%s parameter is NULL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
     }
     return ret;
 }
@@ -308,24 +308,24 @@ size_t GetHwMacAddress( char *iface, char *pMac, size_t szBufSize )
 
             if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1)
             {
-                SWLOG_ERROR("GetHwMacAddress: ioctl SIOCGIFHWADDR failed:%s\n", strerror(errno));
+                COMMONUTILITIES_ERROR("GetHwMacAddress: ioctl SIOCGIFHWADDR failed:%s\n", strerror(errno));
             }
             else
             {
                 mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
                 ret = snprintf(pMac, szBufSize, "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x" , mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-                SWLOG_INFO("GetHwMacAddress: MAC address: %s and ret=%zu\n", pMac, ret);
+                COMMONUTILITIES_INFO("GetHwMacAddress: MAC address: %s and ret=%zu\n", pMac, ret);
             }
             close(fd);
         }
         else
         {
-            SWLOG_ERROR("GetHwAddress: socket create failed:%s\n", strerror(errno));
+            COMMONUTILITIES_ERROR("GetHwAddress: socket create failed:%s\n", strerror(errno));
         }
     }
     else
     {
-        SWLOG_ERROR("GetHwAddress: Invalid Parameter\n");
+        COMMONUTILITIES_ERROR("GetHwAddress: Invalid Parameter\n");
     }
     return ret;
 }
@@ -342,15 +342,15 @@ unsigned int getFreeSpace(char *path)
     struct statfs vfs;
 
     if(path == NULL) {
-        SWLOG_ERROR("filesystem path is NULL\n");
+        COMMONUTILITIES_ERROR("filesystem path is NULL\n");
         return 0;
     }
     if(path[0] != '/') {
-        SWLOG_ERROR("Invalid path %s\n", path);
+        COMMONUTILITIES_ERROR("Invalid path %s\n", path);
         return 0;
     }
     if (statfs(path, & vfs) != 0) {
-        SWLOG_ERROR("Failed to get the file system details: %s\n", path);
+        COMMONUTILITIES_ERROR("Failed to get the file system details: %s\n", path);
         return 0;
     }
 
@@ -370,20 +370,20 @@ unsigned int checkFileSystem(char *path)
     FILE *fptest = NULL;
 
     if(path == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return 0;
     }
     snprintf(file_path, RDK_FILEPATH_LEN, "%s/testfile", path);
 
     fptest = fopen(file_path, "w");
     if(fptest == NULL) {
-        SWLOG_ERROR("Unable create file: %s\n", file_path);
+        COMMONUTILITIES_ERROR("Unable create file: %s\n", file_path);
         return 0;
     }
     fclose(fptest);
 
     if(remove(file_path)) {
-        SWLOG_ERROR("%s is in working condition\n", path);
+        COMMONUTILITIES_ERROR("%s is in working condition\n", path);
         return 0;
     }
     return 1;
@@ -402,13 +402,13 @@ int findSize(char *fileName)
 
 
     if(fileName == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return 0;
     }
 
     if (stat(fileName, &st) != 0)
     {
-        SWLOG_ERROR("Failed to get the file size: %s\n",fileName);
+        COMMONUTILITIES_ERROR("Failed to get the file size: %s\n",fileName);
         return 0;
     }
 
@@ -431,20 +431,28 @@ int findFile(char *dir, char *search)
     struct stat statbuf;
 
     if(dir == NULL) {
-        SWLOG_ERROR("Invalid directory path\n");
+        COMMONUTILITIES_ERROR("Invalid directory path\n");
         return 0;
     }
     if(search == NULL) {
-        SWLOG_ERROR("Invalid file name\n");
+        COMMONUTILITIES_ERROR("Invalid file name\n");
         return 0;
     }
 
     if((dp = opendir(dir)) == NULL) {
         return found;
     }
-    chdir(dir);
+    if (chdir(dir) != 0) {
+        COMMONUTILITIES_ERROR("Failed to change directory to %s \n", dir);
+        closedir(dp);
+        return 0;
+    }
     while((entry = readdir(dp)) != NULL) {
-        lstat(entry->d_name, &statbuf);
+        if (lstat(entry->d_name, &statbuf) == -1) {
+            COMMONUTILITIES_ERROR("lstat failed for %s: %s\n", entry->d_name, strerror(errno));
+            closedir(dp);
+            return 0;
+        }       
         if(!strcmp(entry->d_name, search)) {
             found = 1;
             break;
@@ -462,11 +470,34 @@ int findFile(char *dir, char *search)
             }
         }
     }
-    chdir("..");
+    if (chdir("..") != 0) {
+        COMMONUTILITIES_ERROR("Failed to change directory to parent\n");
+        closedir(dp);
+        return 0;
+    }
     closedir(dp);
     return found;
 }
 
+/** @brief Constructs a full file or directory path by concatenating a base path and an entry name with a '/' separator.
+ *
+ *  @param base_path The base directory path.
+ *  @param entry_name The file or directory name to append.
+ *  @return Pointer to the newly allocated string containing the full path 
+ */
+
+static inline char* construct_full_path(const char* base_path, const char* entry_name) 
+{
+    size_t allocate_size = strlen(base_path) + strlen(entry_name) + 2; // 1 for '/' and 1 for '\0'
+    char* full_path = calloc(allocate_size, sizeof(char));
+    if (full_path) {
+        snprintf(full_path, allocate_size, "%s/%s", base_path, entry_name);
+        COMMONUTILITIES_DEBUG("Constructed full path: %s", full_path);
+    } else {
+        COMMONUTILITIES_ERROR("Failed to allocate memory for full path");
+    }
+    return full_path;
+}
 /** @brief This Function search for the folder/file in given path
  *  with partial name.
  *
@@ -479,43 +510,28 @@ int findFile(char *dir, char *search)
  */
 int findPFile(char *path, char *search, char *out)
 {
-    size_t path_len;
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return found;
     }
     if(search == NULL) {
-        SWLOG_ERROR("Invalid file name\n");
+        COMMONUTILITIES_ERROR("Invalid file name\n");
         return 0;
     }
     if(out == NULL) {
-        SWLOG_ERROR("Invalid out pointer\n");
+        COMMONUTILITIES_ERROR("Invalid out pointer\n");
         return 0;
     }
-
-    // stat for the path
-    stat(path, &stat_path);
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
-    }
-
     // if not possible to read the directory for this user
     if ((dir = opendir(path)) == NULL) {
-        SWLOG_ERROR("Can't open the directory\n");
+        COMMONUTILITIES_ERROR("Can't open the directory\n");
         return found;
     }
-
-    // the length of the path
-    path_len = strlen(path);
 
     // iteration through entries in the directory
     while ((found == 0) && (entry = readdir(dir)) != NULL) {
@@ -524,21 +540,20 @@ int findPFile(char *path, char *search, char *out)
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-
-
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strcpy(full_path, path);
-            strcat(full_path, "/");
-            strcat(full_path, entry->d_name);
+            full_path = construct_full_path(path, entry->d_name);
             found = findPFile(full_path, search, out);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out) {
-                strcpy(out, path);
-                strcat(out, "/");
-                strcat(out, entry->d_name);
+                char* constructed_path = construct_full_path(path, entry->d_name);
+                if (constructed_path) {
+                    strncpy(out, constructed_path, strlen(constructed_path) + 1); // Copy path to out
+                    COMMONUTILITIES_DEBUG(" findPFile : Constructed path out : %s", out);
+                    free(constructed_path);
+                    constructed_path =NULL;
+                }
             }
             found = 1;
         }
@@ -569,38 +584,28 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
     char *full_path = NULL;
     DIR *dir;
     int found = 0;
-    struct stat stat_path;
     struct dirent *entry;
 
     if(path == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return found;
     }
     if(search == NULL) {
-        SWLOG_ERROR("Invalid file name\n");
+        COMMONUTILITIES_ERROR("Invalid file name\n");
         return 0;
     }
     if(out == NULL) {
-        SWLOG_ERROR("Invalid out pointer\n");
+        COMMONUTILITIES_ERROR("Invalid out pointer\n");
         return 0;
     }
     if(found_t == NULL) {
-        SWLOG_ERROR("Invalid found_t pointer\n");
+        COMMONUTILITIES_ERROR("Invalid found_t pointer\n");
         return 0;
-    }
-
-    // stat for the path
-    stat(path, &stat_path);
-
-    // if path does not exists or is not dir - exit with status -1
-    if (S_ISDIR(stat_path.st_mode) == 0) {
-        SWLOG_ERROR("Invalid directory\n");
-        return found;
     }
 
     // if not possible to read the directory for this user
     if ((dir = opendir(path)) == NULL) {
-        SWLOG_ERROR("Can't open the directory\n");
+        COMMONUTILITIES_ERROR("Can't open the directory\n");
         return found;
     }
 
@@ -613,21 +618,16 @@ int findPFileAll(char *path, char *search, char **out, int *found_t, int max_lis
         if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             continue;
         }
-
+        size_t allocate_size = path_len + strlen(entry->d_name) + 2;
         if (entry->d_type == DT_DIR) {
             // determinate a full path of an entry
-            full_path = calloc(path_len + strlen(entry->d_name) + 2, sizeof(char));
-            strcpy(full_path, path);
-            strcat(full_path, "/");
-            strcat(full_path, entry->d_name);
-
+            full_path = construct_full_path(path, entry->d_name);
             found = findPFileAll(full_path, search, out, found_t, max_list);
         }
         else if(fnmatch(search, entry->d_name, 0) == 0) {
             if(out[*found_t]) {
-                strcpy(out[*found_t], path);
-                strcat(out[*found_t], "/");
-                strcat(out[*found_t], entry->d_name);
+                snprintf(out[*found_t], allocate_size , "%s/%s", path, entry->d_name);
+                COMMONUTILITIES_INFO(" findPFileAll : Constructed path , out : %s\n", out[*found_t]);
                 (*found_t)++;
             }
             if((*found_t) >= max_list)
@@ -659,17 +659,17 @@ int isDataInList(char **pList,char *pData,int count)
     int found = 0;
 
     if(pList == NULL) {
-        SWLOG_ERROR("Invalid list pointer\n");
+        COMMONUTILITIES_ERROR("Invalid list pointer\n");
         return 0;
     }
     if(pData == NULL) {
-        SWLOG_ERROR("Invalid data pointer\n");
+        COMMONUTILITIES_ERROR("Invalid data pointer\n");
         return 0;
     }
 
     for(index = 0; index < count; index++){
         if(strcmp(pList[index], pData) == 0){
-            SWLOG_INFO("Data %s is present in the list\n",pData);
+            COMMONUTILITIES_INFO("Data %s is present in the list\n",pData);
             found = 1;
             break;
         }
@@ -689,10 +689,9 @@ int emptyFolder(char *folderPath)
 {
     DIR *dir = opendir(folderPath);
     struct dirent *entry;
-    char filePath[RDK_APP_PATH_LEN];
-
+    char filePath[RDK_APP_PATH_LEN+1] = {0};  
     if (dir == NULL) {
-        SWLOG_ERROR("Error opening directory\n");
+        COMMONUTILITIES_ERROR("Error opening directory\n");
         return RDK_API_FAILURE;
     }
 
@@ -700,15 +699,19 @@ int emptyFolder(char *folderPath)
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
         }
-
         snprintf(filePath, RDK_APP_PATH_LEN+1, "%s/%s", folderPath, entry->d_name);
-
         if (entry->d_type == DT_DIR) {
-            emptyFolder(filePath);
+            
+            if (emptyFolder(filePath) != RDK_API_SUCCESS) {
+                COMMONUTILITIES_ERROR("Failed to empty folder: %s\n", filePath);
+            }
             rmdir(filePath);
         }
         else {
-            remove(filePath);
+             if (remove(filePath) != 0) {
+                 closedir(dir);
+                 return RDK_API_FAILURE;
+             }                        
         }
     }
 
@@ -728,7 +731,7 @@ int emptyFolder(char *folderPath)
 int removeFile(char *filePath)
 {
     if (filePath == NULL) {
-        SWLOG_ERROR("Invalid file path\n");
+        COMMONUTILITIES_ERROR("Invalid file path\n");
         return RDK_API_FAILURE;
     }
 
@@ -754,23 +757,24 @@ int copyFiles(char *src, char *dst)
     int n = 0;
 
     if(src == NULL) {
-        SWLOG_ERROR("Invalid src file\n");
+        COMMONUTILITIES_ERROR("Invalid src file\n");
         return RDK_API_FAILURE;
     }
     if(dst == NULL) {
-        SWLOG_ERROR("Invalid dst file\n");
+        COMMONUTILITIES_ERROR("Invalid dst file\n");
         return RDK_API_FAILURE;
     }
 
     fpin = fopen(src, "rb");
     if(fpin == NULL) {
-        SWLOG_ERROR("Failed to open src file: %s\n", src);
+        COMMONUTILITIES_ERROR("Failed to open src file: %s\n", src);
         return RDK_API_FAILURE;
     }
 
     fpout = fopen(dst, "wb");
     if(fpout == NULL) {
-        SWLOG_ERROR("Failed to open dst file: %s\n", dst);
+        COMMONUTILITIES_ERROR("Failed to open dst file: %s\n", dst);
+        fclose(fpin);
         return RDK_API_FAILURE;
     }
 
@@ -796,8 +800,8 @@ int fileCheck(char *pFilepath)
 {
     FILE *fp = fopen(pFilepath, "r");
     if(fp) {
-        return 1;
         fclose(fp);
+        return 1;
     }
     else {
         return 0;
@@ -816,12 +820,15 @@ int folderCheck(char *path)
     struct stat stat_path;
 
     if(path == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return 0;
     }
 
     // stat for the path
-    stat(path, &stat_path);
+    if (stat(path, &stat_path) != 0) {
+        COMMONUTILITIES_ERROR("Error accessing the path: %s\n", path);
+        return 0;
+    }
 
     // if path does not exists or is not dir - exit with status -1
     if (S_ISDIR(stat_path.st_mode) == 0) {
@@ -843,7 +850,7 @@ char* getExtension(char *filename)
     char *extension;
 
     if(filename == NULL) {
-        SWLOG_ERROR("Invalid file name\n");
+        COMMONUTILITIES_ERROR("Invalid file name\n");
         return NULL;
     }
 
@@ -869,11 +876,11 @@ char* getPartStr(char *fullpath, char *delim)
     char *extension;
 
     if(fullpath == NULL) {
-        SWLOG_ERROR("Invalid file name\n");
+        COMMONUTILITIES_ERROR("Invalid file name\n");
         return NULL;
     }
     if(delim == NULL) {
-        SWLOG_ERROR("Invalid delim\n");
+        COMMONUTILITIES_ERROR("Invalid delim\n");
         return NULL;
     }
 
@@ -899,7 +906,7 @@ char* getPartChar(char *fullpath, char delim)
     char *extension;
 
     if(fullpath == NULL) {
-        SWLOG_ERROR("Invalid file name\n");
+        COMMONUTILITIES_ERROR("Invalid file name\n");
         return NULL;
     }
 
@@ -932,7 +939,7 @@ void copyCommandOutput (char *cmd, char *out, int len)
     if (fp) {
         if(out) {
             if (fgets (out, len, fp) != NULL) {
-                size_t len = strlen (out);
+                len = strlen (out);
                 if ((len > 0) && (out[len - 1] == '\n'))
                     out[len - 1] = 0;
             }
@@ -940,7 +947,7 @@ void copyCommandOutput (char *cmd, char *out, int len)
         pclose (fp);
     }
     else {
-        SWLOG_WARN("Failed to run the command: %s\n", cmd);
+        COMMONUTILITIES_WARN("Failed to run the command: %s\n", cmd);
     }
 }
 
@@ -957,11 +964,11 @@ int tarExtract(char *in_file, char *out_path)
     char buff[MAX_BUFF_SIZE] = {0};
 
     if(in_file == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return RDK_API_FAILURE;
     }
     if(out_path == NULL) {
-        SWLOG_ERROR("Invalid output path\n");
+        COMMONUTILITIES_ERROR("Invalid output path\n");
         return RDK_API_FAILURE;
     }
 
@@ -985,11 +992,11 @@ int arExtract(char *in_file, char *out_path)
     char buff[MAX_BUFF_SIZE] = {0};
 
     if(in_file == NULL) {
-        SWLOG_ERROR("Invalid input path\n");
+        COMMONUTILITIES_ERROR("Invalid input path\n");
         return RDK_API_FAILURE;
     }
     if(out_path == NULL) {
-        SWLOG_ERROR("Invalid output path\n");
+        COMMONUTILITIES_ERROR("Invalid output path\n");
         return RDK_API_FAILURE;
     }
 
@@ -1008,16 +1015,16 @@ unsigned int getFileLastModifyTime(char *file_name)
     struct stat attr;
     int ret = 0;
     if (file_name == NULL) {
-        SWLOG_ERROR("Parameter is NULL\n");
+        COMMONUTILITIES_ERROR("Parameter is NULL\n");
         return ret;
     }
     memset(&attr, '\0', sizeof(attr));
     ret = stat(file_name, &attr);
     if (ret != 0) {
-        SWLOG_ERROR("File: %s not present: %d\n", file_name, ret);
+        COMMONUTILITIES_ERROR("File: %s not present: %d\n", file_name, ret);
         return 0;
     }
-    SWLOG_INFO("Last mod time: %lu\n", attr.st_mtime);
+    COMMONUTILITIES_INFO("Last mod time: %lu\n", attr.st_mtime);
     return attr.st_mtime;
 }
 
@@ -1029,10 +1036,10 @@ time_t getCurrentSysTimeSec(void)
 {
     time_t curtime = time(0);
     if (curtime == ((time_t) -1)) {
-        SWLOG_INFO("time return error\n");
+        COMMONUTILITIES_INFO("time return error\n");
         return 0;
     } else {
-        SWLOG_INFO("current system time=%lu\n", curtime);
+        COMMONUTILITIES_INFO("current system time=%lu\n", curtime);
     }
     return curtime;
 }
@@ -1117,29 +1124,25 @@ int strRmDuplicate(char **in, int len)
 void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* outValue){
     char lines[1024];
     char *token;
+    if (!strtokvalue || !string || !outValue) { 
+        COMMONUTILITIES_ERROR("Invalid Parameters %p %p %p", strtokvalue, string, outValue); 
+        return; 
+    }
     FILE *file = fopen(path,"r");
-
-    if( (strtokvalue != NULL) && (string != NULL) && ( outValue != NULL) ){
-        if( file ){
-            while(fgets(lines, sizeof(lines), file)){
-                token = strtok(lines, strtokvalue);
-
-                while(token != NULL){
-                    if(strcmp(token,string) == 0 ){
-                        strncpy(outValue, strtok(NULL,strtokvalue),128);
-                        break;
-                    }
-                    token = strtok(NULL,strtokvalue);
-                }
+    if( file ){
+        while(fgets(lines, sizeof(lines), file)){
+        token = strtok(lines, strtokvalue);
+        while(token != NULL){
+            if(strcmp(token,string) == 0 ){
+                strncpy(outValue, strtok(NULL,strtokvalue),128);
+                break;
             }
-
-            fclose(file);
+            token = strtok(NULL,strtokvalue);
         }
-        else{
-            SWLOG_ERROR("file open failed %s\n",path);
         }
+        fclose(file);
     }
     else{
-        SWLOG_ERROR("Invalid Parameters %p %p %p",strtokvalue, string, outValue);
-    }
+            COMMONUTILITIES_ERROR("file open failed %s\n",path);
+        }
 }

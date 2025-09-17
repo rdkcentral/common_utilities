@@ -25,15 +25,23 @@
 #if defined(RDK_LOGGER)
 #include "rdk_debug.h"
 
-#define SWLOG_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
-#define SWLOG_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.FWUPG", format"\n", ##__VA_ARGS__)
+#define SWLOG_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
+#define SWLOG_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
+#define SWLOG_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
+#define SWLOG_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
+#define SWLOG_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
+#define SWLOG_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
+
+#define COMMONUTILITIES_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
+#define COMMONUTILITIES_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
+#define COMMONUTILITIES_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
+#define COMMONUTILITIES_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
+#define COMMONUTILITIES_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
+#define COMMONUTILITIES_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
 
 #else
 #define SW_LOG_INFO      (1)
+#define COMMON_UTILITIES_INFO     (1)
 void swLog(unsigned int level, const char *msg, ...);
 
 #define SWLOG_TRACE(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
@@ -42,6 +50,13 @@ void swLog(unsigned int level, const char *msg, ...);
 #define SWLOG_WARN(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
 #define SWLOG_ERROR(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
 #define SWLOG_FATAL(FORMAT...) swLog(SW_LOG_INFO, __FILE__, __LINE__, FORMAT)
+
+#define COMMONUTILITIES_TRACE(FORMAT...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_DEBUG(FORMAT...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_INFO(FORMAT...)   swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_WARN(FORMAT...)   swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_ERROR(FORMAT...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
+#define COMMONUTILITIES_FATAL(FORMAT...)  swLog(COMMON_UTILITIES_INFO, __FILE__, __LINE__, FORMAT)
 
 #endif
 
@@ -76,4 +91,3 @@ int log_init();
 void log_exit();
 
 #endif
-

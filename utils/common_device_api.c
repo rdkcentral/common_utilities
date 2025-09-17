@@ -18,6 +18,9 @@
 
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
+
+#define PARTNERID_INFO_FILE "/tmp/partnerId.out"
+
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
@@ -79,7 +82,7 @@ size_t GetEstbMac( char *pEstbMac, size_t szBufSize )
     }
     else
     {
-        SWLOG_ERROR( "GetEstbMac: Error, input argument NULL\n" );
+        COMMONUTILITIES_ERROR( "GetEstbMac: Error, input argument NULL\n" );
     }
     return i;
 }
@@ -119,11 +122,21 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
                     {
                         ;
                     }
-                    snprintf( pPartnerId, szBufSize, "%s", buf );
+                    snprintf( pPartnerId, szBufSize, "%s", pTmp );
                 }
             }
             fclose( fp );
         }
+        else if( (fp = fopen( PARTNERID_INFO_FILE, "r" )) != NULL )
+        {
+            fgets( pPartnerId, szBufSize, fp );
+            fclose( fp );
+        }
+        else if( (fp = popen( "syscfg get PartnerID", "r" )) != NULL )
+        {
+            fgets( pPartnerId, szBufSize, fp );
+            pclose( fp );
+        }			
         else
         {
             snprintf( pPartnerId, szBufSize, "comcast" );
@@ -132,7 +145,7 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
     }
     else
     {
-        SWLOG_ERROR( "GetPartnerId: Error, input argument NULL\n" );
+        COMMONUTILITIES_ERROR( "GetPartnerId: Error, input argument NULL\n" );
     }
     return i;
 }
@@ -177,12 +190,12 @@ size_t GetModelNum( char *pModelNum, size_t szBufSize )
         }
         else
         {
-            SWLOG_ERROR( "GetModelNum: Cannot open %s for reading\n", DEVICE_PROPERTIES_FILE );
+            COMMONUTILITIES_ERROR( "GetModelNum: Cannot open %s for reading\n", DEVICE_PROPERTIES_FILE );
         }
     }
     else
     {
-        SWLOG_ERROR( "GetModelNum: Error, input argument NULL\n" );
+        COMMONUTILITIES_ERROR( "GetModelNum: Error, input argument NULL\n" );
     }
     return i;
 }
@@ -208,12 +221,12 @@ size_t GetMFRName( char *pMFRName, size_t szBufSize )
 	}
         else
         {
-            SWLOG_ERROR( "GetMFRName: Cannot open %s for reading\n", "/tmp/.manufacturer" );
+            COMMONUTILITIES_ERROR( "GetMFRName: Cannot open %s for reading\n", "/tmp/.manufacturer" );
         }
     }
     else
     {
-        SWLOG_ERROR( "GetMFRName: Error, input argument NULL\n" );
+        COMMONUTILITIES_ERROR( "GetMFRName: Error, input argument NULL\n" );
     }
     return i;
 
@@ -313,7 +326,7 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
     }
     else
     {
-        SWLOG_ERROR( "GetBuildType: Error, input argument NULL\n" );
+        COMMONUTILITIES_ERROR( "GetBuildType: Error, input argument NULL\n" );
     }
     if( peBuildTypeOut != NULL )
     {
@@ -366,7 +379,7 @@ size_t GetFirmwareVersion( char *pFWVersion, size_t szBufSize )
     }
     else
     {
-        SWLOG_INFO( "GetFirmwareVersion: Error, input argument NULL\n" );
+        COMMONUTILITIES_INFO( "GetFirmwareVersion: Error, input argument NULL\n" );
     }
     return i;
 }
@@ -379,13 +392,13 @@ bool CurrentRunningInst(const char *file)
 
     if (fd == -1)
     {
-        SWLOG_ERROR( "CurrentRunningInst: Failed to open lock file\n" );
+        COMMONUTILITIES_ERROR( "CurrentRunningInst: Failed to open lock file\n" );
         return false;
     }
 
     if (flock(fd, LOCK_EX | LOCK_NB) != 0)
     {
-        SWLOG_ERROR( "CurrentRunningInst: Failed to aquire lock\n" );
+        COMMONUTILITIES_ERROR( "CurrentRunningInst: Failed to aquire lock\n" );
         close(fd);
         return true;
     }

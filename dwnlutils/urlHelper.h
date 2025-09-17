@@ -136,6 +136,8 @@ int allocDowndLoadDataMem( DownloadData *pDwnData, int szDataSize );
 bool checkDeviceInternetConnection(long);
 size_t writeFunction(void *contents, size_t size, size_t nmemb, void *userp);
 void closeFile(DownloadData *data, struct curlprogress *prog, FILE *fp);
+char* urlEncodeString(const char* inputString); // This will internally use curl_easy_escape
+
 #if CURL_DEBUG
 CURLcode setCurlDebugOpt(CURL *curl, DbgData_t *debug);
 #endif
