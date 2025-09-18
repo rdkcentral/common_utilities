@@ -15,5 +15,5 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-SUBDIRS = dwnlutils utils parsejson
+SUBDIRS = parsejson dwnlutils utils
 
