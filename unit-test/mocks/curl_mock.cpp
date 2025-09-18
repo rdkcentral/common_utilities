@@ -18,6 +18,8 @@
 
 #include <iostream>
 #include "curl_mock.h"
+#include <cstdarg>
+
 
 using namespace std;
 
