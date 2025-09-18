@@ -61,7 +61,7 @@ extern "C" CURLcode curl_easy_getinfo(CURL *curl, CURLINFO info, ...)
     void* param = va_arg(args, void*);
     va_end(args);
     printf("Inside Mock Function curl_easy_getinfo\n");
-    return g_CurlWrapperMock->curl_easy_getinfo(curl, info, NULL);
+    return g_CurlWrapperMock->curl_easy_getinfo(curl, info, param);
 }
 extern "C" const char* curl_easy_strerror(CURLcode errornum)
 {
