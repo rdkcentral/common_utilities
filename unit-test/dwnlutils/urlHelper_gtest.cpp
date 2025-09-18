@@ -702,7 +702,7 @@ TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl56_Retry_Success)
         .WillOnce(Return(CURLE_OK));           // Success on retry
 
     // urlHelperDownloadFile should retry internally and succeed
-    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, NULL, 0, &httpcode, &curl_status), 0);
 }
 
 
