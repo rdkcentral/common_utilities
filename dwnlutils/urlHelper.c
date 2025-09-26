@@ -341,7 +341,7 @@ static size_t WriteMemoryCB( void *pvContents, size_t szOneContent, size_t numCo
 static size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata) {
     FILE *fp = userdata;
     if(fp != NULL && buffer != NULL) {
-        COMMONUTILITIES_INFO("header_callback():=%s\n",buffer);
+        COMMONUTILITIES_INFO("header_callback():=%s",buffer); // No need to end with new line \n as buffer already has \r\n
         fwrite(buffer, nitems, size, fp);
 	fflush(fp);
     }else {
@@ -720,7 +720,7 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 		     }
                 }
                 *httpCode_ret_status = performRequest(curl, curl_ret_status);
-                 if((*curl_ret_status == 18) || (*curl_ret_status == 28)) {
+                 if((*curl_ret_status == 18) || (*curl_ret_status == 28) || (*curl_ret_status == 56)) {
                      seek_place = 0;
                      seek_place = ftell((FILE*)data.pvOut);
 		     if( seek_place < 0)

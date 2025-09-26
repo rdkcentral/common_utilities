@@ -122,7 +122,7 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
                     {
                         ;
                     }
-                    snprintf( pPartnerId, szBufSize, "%s", buf );
+                    snprintf( pPartnerId, szBufSize, "%s", pTmp );
                 }
             }
             fclose( fp );
