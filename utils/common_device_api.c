@@ -18,6 +18,7 @@
 
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
+#include <utctx/utctx_api.h>
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
@@ -132,12 +133,22 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
             fgets( pPartnerId, szBufSize, fp );
             fclose( fp );
         }
-        else if( (fp = popen( "syscfg get PartnerID", "r" )) != NULL )
-        {
-            fgets( pPartnerId, szBufSize, fp );
-            pclose( fp );
-        }			
         else
+        {
+            // Use utopia API instead of syscfg command line
+            UtopiaContext ctx;
+            if (Utopia_Init(&ctx) == 0)
+            {
+                char utopia_value[256] = {0};
+                if (Utopia_GetNamed(&ctx, UtopiaValue_Syscfg, "PartnerID", utopia_value, sizeof(utopia_value)) == 0)
+                {
+                    snprintf(pPartnerId, szBufSize, "%s", utopia_value);
+                }
+                Utopia_Free(&ctx, 0);
+            }
+        }
+        
+        if( *pPartnerId == 0 )
         {
             snprintf( pPartnerId, szBufSize, "comcast" );
         }
