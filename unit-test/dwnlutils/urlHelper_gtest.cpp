@@ -680,7 +680,227 @@ TEST_F(urlHelperTestFixture, urlHelperDownloadFile)
 }
 TEST_F(urlHelperTestFixture, urlHelperDownloadFile_NULL_inputs)
 {
-    EXPECT_EQ(urlHelperDownloadFile(NULL, NULL, NULL, 0, NULL, NULL), 0);}
+    EXPECT_EQ(urlHelperDownloadFile(NULL, NULL, NULL, 0, NULL, NULL), 0);
+}
+
+// Test retry logic for CURL 56 (CURLE_RECV_ERROR): should succeed on second attempt
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl56_Logic_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[32] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Mock curl_easy_setopt to always succeed
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Generic curl_easy_getinfo matcher for calls other than RESPONSE_CODE
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Mock RESPONSE_CODE to set httpcode to 200
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_,CURLINFO_RESPONSE_CODE, _))
+    .WillRepeatedly([](CURL*, CURLINFO, void* param) {
+        printf("MOCKED: setting http_code to 200\n");
+        *static_cast<long*>(param) = 200;
+        return CURLE_OK;
+    });
+
+    // Simulate first perform returns CURLE_RECV_ERROR (56), second returns CURLE_OK (success after one retry)
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(2)
+        .WillOnce(Return(CURLE_RECV_ERROR))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
+
+// Test multiple retries for CURL 56: should succeed after five attempts
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl56_NORetry_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[32] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Mock curl_easy_setopt to always succeed
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Generic curl_easy_getinfo matcher for calls other than RESPONSE_CODE
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Mock RESPONSE_CODE to set httpcode to 200
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_,CURLINFO_RESPONSE_CODE, _))
+    .WillRepeatedly([](CURL*, CURLINFO, void* param) {
+        printf("MOCKED: setting http_code to 200\n");
+        *static_cast<long*>(param) = 200;
+        return CURLE_OK;
+    });
+
+    // Simulate four perform calls return CURLE_RECV_ERROR (56), fifth returns CURLE_OK
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(5)
+        .WillOnce(Return(CURLE_RECV_ERROR))
+        .WillOnce(Return(CURLE_RECV_ERROR))
+        .WillOnce(Return(CURLE_RECV_ERROR))
+        .WillOnce(Return(CURLE_RECV_ERROR))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
+
+// Test retry logic for CURL 18 (CURLE_PARTIAL_FILE): should succeed on second attempt
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl18_Logic_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[32] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Mock curl_easy_setopt to always succeed
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Generic curl_easy_getinfo matcher for calls other than RESPONSE_CODE
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Mock RESPONSE_CODE to set httpcode to 200
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_,CURLINFO_RESPONSE_CODE, _))
+    .WillRepeatedly([](CURL*, CURLINFO, void* param) {
+        printf("MOCKED: setting http_code to 200\n");
+        *static_cast<long*>(param) = 200;
+        return CURLE_OK;
+    });
+
+    // Simulate first perform returns CURLE_PARTIAL_FILE (18), second returns CURLE_OK (success after one retry)
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(2)
+        .WillOnce(Return(CURLE_PARTIAL_FILE))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
+
+// Test multiple retries for CURL 18: should succeed after five attempts
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl18_NORetry_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[32] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Mock curl_easy_setopt to always succeed
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Generic curl_easy_getinfo matcher for calls other than RESPONSE_CODE
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Mock RESPONSE_CODE to set httpcode to 200
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_,CURLINFO_RESPONSE_CODE, _))
+    .WillRepeatedly([](CURL*, CURLINFO, void* param) {
+        printf("MOCKED: setting http_code to 200\n");
+        *static_cast<long*>(param) = 200;
+        return CURLE_OK;
+    });
+
+    // Simulate four perform calls return CURLE_PARTIAL_FILE (18), fifth returns CURLE_OK
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(5)
+        .WillOnce(Return(CURLE_PARTIAL_FILE))
+        .WillOnce(Return(CURLE_PARTIAL_FILE))
+        .WillOnce(Return(CURLE_PARTIAL_FILE))
+        .WillOnce(Return(CURLE_PARTIAL_FILE))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
+
+// Test retry logic for CURL 28 (CURLE_OPERATION_TIMEDOUT): should succeed on second attempt
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl28_Logic_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[32] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Mock curl_easy_setopt to always succeed
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Generic curl_easy_getinfo matcher for calls other than RESPONSE_CODE
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Mock RESPONSE_CODE to set httpcode to 200
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_,CURLINFO_RESPONSE_CODE, _))
+    .WillRepeatedly([](CURL*, CURLINFO, void* param) {
+        printf("MOCKED: setting http_code to 200\n");
+        *static_cast<long*>(param) = 200;
+        return CURLE_OK;
+    });
+
+    // Simulate first perform returns CURLE_OPERATION_TIMEDOUT (28), second returns CURLE_OK (success after one retry)
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(2)
+        .WillOnce(Return(CURLE_OPERATION_TIMEDOUT))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
+
+// Test multiple retries for CURL 28: should succeed after five attempts
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl28_NORetry_Success)
+{
+    void *Curl_req = nullptr;
+    Curl_req = doCurlInit();
+
+    char pathname[32] = "/tmp/file.txt";
+    CURLcode curl_status = -1;
+    int httpcode = 0;
+
+    // Mock curl_easy_setopt to always succeed
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Generic curl_easy_getinfo matcher for calls other than RESPONSE_CODE
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .WillRepeatedly(Return(CURLE_OK));
+
+    // Mock RESPONSE_CODE to set httpcode to 200
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_,CURLINFO_RESPONSE_CODE, _))
+    .WillRepeatedly([](CURL*, CURLINFO, void* param) {
+        printf("MOCKED: setting http_code to 200\n");
+        *static_cast<long*>(param) = 200;
+        return CURLE_OK;
+    });
+
+    // Simulate four perform calls return CURLE_OPERATION_TIMEDOUT (28), fifth returns CURLE_OK
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .Times(5)
+        .WillOnce(Return(CURLE_OPERATION_TIMEDOUT))
+        .WillOnce(Return(CURLE_OPERATION_TIMEDOUT))
+        .WillOnce(Return(CURLE_OPERATION_TIMEDOUT))
+        .WillOnce(Return(CURLE_OPERATION_TIMEDOUT))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(urlHelperDownloadFile(Curl_req, pathname, (char*)"0", 0, &httpcode, &curl_status), 0);
+}
 
 /*20.urlHelperDownloadToMem*/
 TEST_F(urlHelperTestFixture, urlHelperDownloadToMem_pDlHeaderData_NULL)
@@ -913,6 +1133,46 @@ TEST_F(urlHelperTestFixture, writeFunction_valid_Inputs)
     size_t b=3;
     char test[10] = "test";
     EXPECT_EQ(writeFunction(NULL, a, b, &test), a*b );
+}
+
+/*26.Test that passing NULL returns NULL */
+TEST(UrlEncodeStringTest, NullInputReturnsNull) {
+    char* result = urlEncodeString(nullptr);
+    EXPECT_EQ(result, nullptr);
+}
+
+/*27.Test that encoding an empty string returns an empty string */
+TEST(UrlEncodeStringTest, EmptyString) {
+    char* result = urlEncodeString("");
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "");
+    free(result);
+}
+
+/*28.Test that a simple alphanumeric string is unchanged */
+TEST(UrlEncodeStringTest, SimpleString) {
+    char* result = urlEncodeString("abc123");
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "abc123");
+    free(result);
+}
+
+/*29.Test that spaces are encoded as %20 */
+TEST(UrlEncodeStringTest, SpaceEncoding) {
+    char* result = urlEncodeString("hello world");
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "hello%20world");
+    free(result);
+}
+
+/*30.Test encoding of a string with all ASCII special characters */
+TEST(UrlEncodeStringTest, AllAscii) {
+    // Using a string with various ASCII characters that need encoding
+    const char* input = "!*'();:@&=+$,/?#[]";
+    char* result = urlEncodeString(input);
+    ASSERT_NE(result, nullptr);
+    EXPECT_STREQ(result, "%21%2A%27%28%29%3B%3A%40%26%3D%2B%24%2C%2F%3F%23%5B%5D");
+    free(result);
 }
 
 GTEST_API_ int main(int argc, char *argv[]){
