@@ -20,6 +20,8 @@
 #define DEVICE_UTILS_H_
 
 #include "rdk_fwdl_utils.h"
+#include "system_utils.h"
+#include "json_parse.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -41,13 +43,25 @@
 #define DEVICE_PROPERTIES_FILE  "/etc/device.properties"
 #define VERSION_FILE            "/version.txt"
 #define ESTB_MAC_FILE           "/tmp/.estb_mac"
+#define OUTPUT_JSON_FILE        "/opt/output.json"
+#define OUTPUT_JSON_FILE_X86    "/tmp/output.json"
+#define TIMEZONE_DST_FILE       "/opt/persistent/timeZoneDST"
+#define TIMEZONE_OFFSET_MAP     "/etc/timeZone_offset_map"
 #else
 #define BOOTSTRAP_FILE          "/tmp/bootstrap.ini"
 #define PARTNER_ID_FILE         "/tmp/partnerId3.dat"
 #define DEVICE_PROPERTIES_FILE  "/tmp/device.properties"
 #define VERSION_FILE            "/tmp/version.txt"
 #define ESTB_MAC_FILE           "/tmp/estbmacfile"
+#define OUTPUT_JSON_FILE        "/tmp/output.json"
+#define OUTPUT_JSON_FILE_X86    "/tmp/output.json"
+#define TIMEZONE_DST_FILE       "/tmp/timeZoneDST"
+#define TIMEZONE_OFFSET_MAP     "/tmp/timeZone_offset_map"
+
 #endif
+
+
+
 /* function GetAccountID - gets the account ID of the device.
 
         Usage: size_t GetAccountID <char *pAccountID> <size_t szBufSize>
@@ -142,6 +156,88 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize );
 */
 bool CurrentRunningInst(const char *file);
 
+/* function GetUTCTime - gets a formatted UTC device time. Example:
+    Tue Jul 12 21:56:06 UTC 2022 
+        Usage: size_t GetUTCTime <char *pUTCTime> <size_t szBufSize>
+ 
+            pUTCTime - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetUTCTime( char *pUTCTime, size_t szBufSize );
+
+/* function GetCapabilities - gets the device capabilities.
+ 
+        Usage: size_t GetCapabilities <char *pCapabilities> <size_t szBufSize>
+ 
+            pCapabilities - pointer to a char buffer to store the output string.
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetCapabilities( char *pCapabilities, size_t szBufSize );
+
+
+
+/* function GetTimezone - gets the timezone of the device.
+
+        Usage: size_t GetTimezone <char *pTimezone> <const char *cpuArch> <size_t szBufSize>
+
+            pTimezone - pointer to a char buffer to store the output string.
+
+            cpuArch - the CPU architecture (can be NULL).
+
+            szBufSize - the size of the character buffer in argument 1.
+
+            RETURN - number of characters copied to the output buffer.
+*/
+size_t GetTimezone( char *pTimezone, const char *cpuArch, size_t szBufSize );
+
+/* function GetFileContents - gets the contents of a file into a dynamically allocated buffer.
+
+        Usage: size_t GetFileContents <char **pOut> <char *pFileName>
+
+            pOut - the address of a char pointer (char **) where the dynamically allocated
+                    character buffer will be located.
+
+            pFileName - the name of the file to read.
+
+            RETURN - number of characters copied to the output buffer.
+
+            Notes - GetFileContents uses malloc to allocate the the buffer where the string is stored.
+                    The caller must use free(*pOut) when done using the buffer to avoid memory leaks.
+*/
+size_t GetFileContents( char **pOut, char *pFileName );
+
+/* function makeHttpHttps - converts http:// URLs to https:// in place.
+
+        Usage: size_t makeHttpHttps <char *pIn> <size_t szpInSize>
+
+            pIn - pointer to a char buffer containing the URL to modify.
+
+            szpInSize - the size of the character buffer in argument 1.
+
+            RETURN - new length of the string after modification.
+*/
+size_t makeHttpHttps( char *pIn, size_t szpInSize );
+
+/* function get_system_uptime - gets the system uptime in seconds.
+
+        Usage: bool get_system_uptime <double *uptime>
+
+            uptime - pointer to a double to store the uptime value.
+
+            RETURN - true if successful, false on error.
+*/
+bool get_system_uptime(double *uptime);
+
+
+
 size_t stripinvalidchar( char *pIn, size_t szIn );
+
+
 
 #endif

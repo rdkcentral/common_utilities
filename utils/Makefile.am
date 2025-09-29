@@ -18,7 +18,9 @@
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_CFLAGS += -Wall -Werror $(CFLAGS)
+AM_CFLAGS += -Wall -Werror $(cjson_CFLAGS) $(CFLAGS)
+AM_CFLAGS += -I$(top_srcdir)/parsejson -I$(top_srcdir)/dwnlutils
+AM_CFLAGS += -I$(top_builddir)/parsejson -I$(top_builddir)/dwnlutils
 
 lib_LTLIBRARIES = libfwutils.la
 libfwutils_la_SOURCES = rdk_fwdl_utils.c \
@@ -27,6 +29,8 @@ libfwutils_la_SOURCES = rdk_fwdl_utils.c \
 			common_device_api.c
 
 libfwutils_la_LDFLAGS = -shared -fPIC -lrdkloggers
+libfwutils_la_LIBADD = $(top_builddir)/parsejson/libparsejson.la \
+                       $(top_builddir)/dwnlutils/libdwnlutil.la
 
 libfwutils_la_include_HEADERS = rdk_fwdl_utils.h \
 			        system_utils.h \
