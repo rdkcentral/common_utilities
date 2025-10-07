@@ -28,13 +28,6 @@
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
-
-
-
-
-#define PERIPHERAL_JSON_FILE            "/opt/persistent/rdm/peripheral.json"
-#define MAX_PERIPHERAL_ITEMS 4
-
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
