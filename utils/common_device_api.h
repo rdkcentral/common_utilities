@@ -80,6 +80,7 @@ size_t GetModelNum(char *pModelNum, size_t szBufSize );
 */
 size_t GetMFRName(char *pMFRName, size_t szBufSize );
 
+bool GetLabsignedValue(char *pBuf, size_t szBufSize);
 /* function GetBuildType - gets the build type of the device in lowercase. Optionally, sets an enum
     indication the build type.
     Example: vbn or prod or qa or dev
