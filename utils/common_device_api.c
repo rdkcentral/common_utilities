@@ -335,6 +335,68 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
     return i;
 }
 
+bool GetLabsignedValue(char *pBuf, size_t szBufSize){
+    FILE *fp;
+    size_t i = 0;
+    char *pTmp = NULL, *pTmp2 =NULL;
+    bool pOut = false;
+    char buf[150];
+
+    if ( pBuf != NULL ){
+		*pBuf = 0;
+        if( (fp = fopen( DEVICE_PROPERTIES_FILE, "r" )) != NULL )
+        {
+            while( fgets( buf, sizeof(buf), fp ) != NULL )
+            {
+                pTmp = strstr( buf, "LABSIGNED_ENABLED=" );
+                if( pTmp && pTmp == buf )   // if match found and match is first character on line
+                {
+                    pTmp = strchr( pTmp, '=' );
+		    if(pTmp != NULL){
+		    ++pTmp;
+                    i = snprintf( pBuf, szBufSize, "%s", pTmp );
+                    i = stripinvalidchar( pBuf, i );
+                    pTmp = pBuf;
+                    while( *pTmp )
+                    {
+                        *pTmp = tolower( *pTmp );
+                        ++pTmp;
+                    }
+		  		  }
+			    break;
+               }
+            }
+            fclose( fp );
+        } else {
+        COMMONUTILITIES_ERROR("GetLabsignedValue: Error, failed to open properties file\n");
+        return false;
+        } 
+
+        if( *pBuf == 0 )
+        {
+			 COMMONUTILITIES_ERROR( "GetLabsignedValue: Error, LABSIGNED_ENABLED not found or empty!!!\n" );
+		} else {
+			pTmp = pBuf;
+            GetFirmwareVersion( buf, sizeof(buf) );
+            pTmp2 = buf;
+            while( *pTmp2 )
+            {
+                *pTmp2 = tolower( *pTmp2 );
+                ++pTmp2;
+            }
+
+			pTmp2 = buf;
+		}
+        if(( strstr( pTmp2, "labsigned") != NULL) && strstr(pTmp, "true")){
+             pOut = true;	 
+		}
+	}
+     return pOut;
+}
+             
+       
+			
+        
 /* function GetFirmwareVersion - gets the firmware version of the device.
 
         Usage: size_t GetFirmwareVersion <char *pFWVersion> <size_t szBufSize>
