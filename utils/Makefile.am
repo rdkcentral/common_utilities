@@ -26,7 +26,7 @@ libfwutils_la_SOURCES = rdk_fwdl_utils.c \
                         rdkv_cdl_log_wrapper.c \
 			common_device_api.c
 
-libfwutils_la_LDFLAGS = -shared -fPIC -lrdkloggers
+libfwutils_la_LDFLAGS = -shared -fPIC -lrdkloggers -lutopiautil -lutctx
 
 libfwutils_la_include_HEADERS = rdk_fwdl_utils.h \
 			        system_utils.h \
