@@ -18,6 +18,7 @@
 
 #include "common_device_api.h"
 #include "rdkv_cdl_log_wrapper.h"
+#include <syscfg/syscfg.h>
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
@@ -132,11 +133,10 @@ size_t GetPartnerId( char *pPartnerId, size_t szBufSize )
             fgets( pPartnerId, szBufSize, fp );
             fclose( fp );
         }
-        else if( (fp = popen( "syscfg get PartnerID", "r" )) != NULL )
+	else if (syscfg_get(NULL, "PartnerID", buffer, sizeof(buffer)) == 0)
         {
-            fgets( pPartnerId, szBufSize, fp );
-            pclose( fp );
-        }			
+            snprintf(pPartnerId, szBufSize, "%s", buffer);
+	}
         else
         {
             snprintf( pPartnerId, szBufSize, "comcast" );

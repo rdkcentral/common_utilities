@@ -19,6 +19,7 @@ AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
 AM_CFLAGS += -Wall -Werror $(CFLAGS)
+AM_CFLAGS += -I${STAGING_INCDIR}/syscfg
 
 lib_LTLIBRARIES = libfwutils.la
 libfwutils_la_SOURCES = rdk_fwdl_utils.c \
