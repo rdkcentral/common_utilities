@@ -40,5 +40,6 @@ unsigned int doGetDwnlBytes(void *in_curl);
 int setForceStop(int value);
 int getJsonRpcData(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_token, int *out_httpCode );
 int doCurlPutRequest(void *in_curl, FileDwnl_t *pfile_dwnl, char *jsonrpc_auth_token, int *out_httpCode);
+int doHttpFileUpload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, int *out_httpCode );
 
 #endif /* VIDEO_DWNLUTILS_DOWNLOADUTIL_H_ */
