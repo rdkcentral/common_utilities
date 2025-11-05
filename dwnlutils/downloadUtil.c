@@ -335,6 +335,93 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
     return (int)curl_status;
 }
 
+/*
+ * doHttpFileUpload(): Use for HTTP file upload (PUT)
+ * in_curl    : curl pointer from curl_init
+ * pfile_dwnl : Structure pointer contains remote URL, local file path, header data, sslverify, etc.
+ * auth       : Structure contains certificate and key, NULL if not required
+ * out_httpCode: Send back http status.
+ * Return     : curl_ret_status : Send back curl status
+ */
+int doHttpFileUpload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, int *out_httpCode )
+{
+    CURL *curl;
+    CURLcode ret_code = CURLE_OK;
+    CURLcode curl_status = -1;
+    struct curl_slist *headers = NULL;
+    FILE *file = NULL;
+    long file_size = 0;
+
+    if (in_curl == NULL || pfile_dwnl == NULL || out_httpCode == NULL || pfile_dwnl->pathname == NULL || pfile_dwnl->url == NULL) {
+        COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
+        return DWNL_FAIL;
+    }
+    curl = (CURL *)in_curl;
+
+    // Open file to upload
+    file = fopen(pfile_dwnl->pathname, "rb");
+    if (!file) {
+        COMMONUTILITIES_ERROR("%s: Unable to open file %s\n", __FUNCTION__, pfile_dwnl->pathname);
+        return DWNL_FAIL;
+    }
+
+    // Get file size
+    fseek(file, 0L, SEEK_END);
+    file_size = ftell(file);
+    rewind(file);
+
+    ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, NULL, pfile_dwnl->sslverify);
+    if(ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
+        fclose(file);
+        return DWNL_FAIL;
+    }
+
+    if( auth != NULL ) {
+        ret_code = setMtlsHeaders(curl, auth);
+        if(ret_code != CURLE_OK) {
+            COMMONUTILITIES_ERROR("%s : CURL: setMtlsHeaders Failed\n", __FUNCTION__);
+            fclose(file);
+            return DWNL_FAIL;
+        }
+    }
+
+    // Add custom headers if present
+    if (pfile_dwnl->pHeaderData && *pfile_dwnl->pHeaderData) {
+        headers = curl_slist_append(headers, pfile_dwnl->pHeaderData);
+    }
+    if (headers) {
+        ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        if (ret_code != CURLE_OK) {
+            COMMONUTILITIES_ERROR("SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
+            curl_slist_free_all(headers);
+            fclose(file);
+            return DWNL_FAIL;
+        }
+    }
+
+    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+    curl_easy_setopt(curl, CURLOPT_PUT, 1L);
+    curl_easy_setopt(curl, CURLOPT_READDATA, file);
+    curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_size);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+
+    ret_code = curl_easy_perform(curl);
+    curl_status = ret_code;
+
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, out_httpCode);
+
+    COMMONUTILITIES_INFO("%s : File Uploaded, curl ret status=%d, http code=%d\n", __FUNCTION__, curl_status, *out_httpCode);
+
+    if (headers) {
+        curl_slist_free_all(headers);
+    }
+    fclose(file);
+
+    return (int)curl_status;
+}
+
+
 /* doAuthHttpFileDownload(): Use for codebig download
  * pfile_dwnl : Structure pointer contains post fields, url, download path, chunkdownload retry, sslverify status
  * auth : Structure contains certificate and key
