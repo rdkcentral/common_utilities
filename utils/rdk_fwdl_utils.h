@@ -55,6 +55,12 @@ typedef enum {
     eQA
 } BUILDTYPE;
 
+#ifndef GETRDMMANIFESTVERSION_IN_SCRIPT
+    #define GETRDMMANIFESTVERSION_IN_SCRIPT
+#endif
+
+
+
 /* Below structure contains data from /etc/device.property */
 typedef struct deviceproperty {
         BUILDTYPE eBuildType;           // keep buildtype as an enum, easier to compare
