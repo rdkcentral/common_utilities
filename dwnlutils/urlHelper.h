@@ -29,7 +29,10 @@
 #include <curl/curl.h>
 #include <ctype.h>
 
+#ifndef CURL_TLS_TIMEOUT //This is to provide an option Define custom timeout using DFLAGS
 #define CURL_TLS_TIMEOUT 7200L
+#endif
+
 #define CURL_PROGRESS_FILE "/opt/curl_progress"
 
 #define MAX_BUFF_SIZE 512
@@ -136,6 +139,8 @@ int allocDowndLoadDataMem( DownloadData *pDwnData, int szDataSize );
 bool checkDeviceInternetConnection(long);
 size_t writeFunction(void *contents, size_t size, size_t nmemb, void *userp);
 void closeFile(DownloadData *data, struct curlprogress *prog, FILE *fp);
+char* urlEncodeString(const char* inputString); // This will internally use curl_easy_escape
+
 #if CURL_DEBUG
 CURLcode setCurlDebugOpt(CURL *curl, DbgData_t *debug);
 #endif
