@@ -24,7 +24,7 @@ lib_LTLIBRARIES = libuploadutil.la
 libuploadutil_la_SOURCES = uploadUtil.c \
                            mtls_upload.c
 
-libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector
+libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la 
 
 libuploadutil_la_include_HEADERS = uploadUtil.h \
