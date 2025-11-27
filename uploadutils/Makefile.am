@@ -32,6 +32,10 @@ libuploadutil_la_include_HEADERS = uploadUtil.h \
 libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -DLIBRDKCERTSELECTOR
 libuploadutil_la_includedir = ${includedir}
 
+if IS_LIBRDKCERTSEL_ENABLED
+libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
+AM_LDFLAGS = -lRdkCertSelector
+endif
 
 bin_PROGRAMS = uploadutil_test
 
@@ -52,7 +56,4 @@ uploadutil_test_LDADD += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir
 #uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 #uploadutil_test_LDADD += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la
 
-if IS_LIBRDKCERTSEL_ENABLED
-libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
-AM_LDFLAGS = -lRdkCertSelector
-endif
+
