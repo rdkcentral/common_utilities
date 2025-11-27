@@ -26,13 +26,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#ifdef RDK_LOGGER_ENABLED
-#include "rdk_debug.h"
-#define LOG_UPLOAD "LOG.RDK.UPLOAD"
-#define UPLOAD_LOG(level, ...) RDK_LOG(level, LOG_UPLOAD, __VA_ARGS__)
-#else
-#define UPLOAD_LOG(level, ...) printf(__VA_ARGS__)
-#endif
+#include "rdkv_cdl_log_wrapper.h"
 
 #ifdef LIBRDKCERTSELECTOR
 
@@ -46,7 +40,7 @@
 /**
  * @brief Retrieve mTLS certificate for upload operation
  */
-MtlsAuthStatus uploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
+MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
 {
     char *certUri = NULL;
     char *certPass = NULL;
@@ -54,23 +48,23 @@ MtlsAuthStatus uploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
     char *certFile = NULL;
 
     if (!sec || !pthisCertSel) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "[%s:%d] Invalid parameters\n", __FUNCTION__, __LINE__);
+        COMMONUTILITIES_ERROR("[%s:%d] Invalid parameters\n", __FUNCTION__, __LINE__);
         return MTLS_CERT_FETCH_FAILURE;
     }
 
     rdkcertselectorStatus_t certStat = rdkcertselector_getCert(*pthisCertSel, &certUri, &certPass);
 
     if (certStat != certselectorOk || certUri == NULL || certPass == NULL) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "[%s:%d] Failed to retrieve certificate for MTLS\n", 
+        COMMONUTILITIES_ERROR("[%s:%d] Failed to retrieve certificate for MTLS\n", 
                    __FUNCTION__, __LINE__);
         
         rdkcertselector_free(pthisCertSel);
         
         if (*pthisCertSel == NULL) {
-            UPLOAD_LOG(RDK_LOG_INFO, "[%s:%d] Cert selector memory freed\n", 
+            COMMONUTILITIES_INFO("[%s:%d] Cert selector memory freed\n", 
                        __FUNCTION__, __LINE__);
         } else {
-            UPLOAD_LOG(RDK_LOG_ERROR, "[%s:%d] Cert selector memory free failed\n", 
+            COMMONUTILITIES_ERROR("[%s:%d] Cert selector memory free failed\n", 
                        __FUNCTION__, __LINE__);
         }
         
@@ -104,7 +98,7 @@ MtlsAuthStatus uploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
     strncpy(sec->cert_type, "P12", sizeof(sec->cert_type) - 1);
     sec->cert_type[sizeof(sec->cert_type) - 1] = '\0';
 
-    UPLOAD_LOG(RDK_LOG_INFO, "[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
+    COMMONUTILITIES_INFO("[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
     
     return MTLS_CERT_FETCH_SUCCESS;
@@ -124,7 +118,7 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
     int result = -1;
 
     if (!curl || !file_upload || !src_file || !pthisCertSel || !upload_url) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Invalid parameters\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
 
@@ -133,9 +127,9 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
         http_code = 0;
         
         /* Fetch certificate */
-        mtls_status = uploadGetCert(&sec, pthisCertSel);
+        mtls_status = getCertificateForUpload(&sec, pthisCertSel);
         if (mtls_status == MTLS_CERT_FETCH_FAILURE) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: Certificate fetch failed\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s: Certificate fetch failed\n", __FUNCTION__);
             result = -1;
             break;
         }
@@ -144,30 +138,30 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
         curl_ret_code = performHttpMetadataPost(curl, file_upload, &sec, &http_code);
         
         if (curl_ret_code != 0 || http_code < 200 || http_code >= 300) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: Metadata POST failed curl=%d http=%ld\n",
+            COMMONUTILITIES_ERROR("%s: Metadata POST failed curl=%d http=%ld\n",
                        __FUNCTION__, curl_ret_code, http_code);
             result = -1;
             continue;
         }
         
-        UPLOAD_LOG(RDK_LOG_INFO, "%s: Metadata POST success (HTTP %ld)\n",
+        COMMONUTILITIES_INFO("%s: Metadata POST success (HTTP %ld)\n",
                    __FUNCTION__, http_code);
         
         /* Stage 2: Extract S3 URL and perform S3 PUT with same mTLS cert */
         char s3_url[S3_URL_BUF];
         if (extractS3PresignedUrl("/tmp/httpresult.txt", s3_url, sizeof(s3_url)) != 0) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: Failed to extract S3 URL\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s: Failed to extract S3 URL\n", __FUNCTION__);
             result = -1;
             continue;
         }
         
         if (performS3PutUpload(s3_url, src_file, &sec) != 0) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: S3 PUT failed\n", __FUNCTION__);
+            COMMONUTILITIES_ERROR("%s: S3 PUT failed\n", __FUNCTION__);
             result = -1;
             continue;
         }
         
-        UPLOAD_LOG(RDK_LOG_INFO, "%s: Complete two-stage upload success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: Complete two-stage upload success\n", __FUNCTION__);
         result = 0;
         break;
 
@@ -187,7 +181,7 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
     static rdkcertselector_h thisCertSel = NULL;
 
     if (!upload_url || !src_file) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Invalid arguments\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Invalid arguments\n", __FUNCTION__);
         return -1;
     }
 
@@ -207,15 +201,15 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
 
     curl = doCurlInit();
     if (!curl) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: CURL init failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: CURL init failed\n", __FUNCTION__);
         return -1;
     }
 
     if (!thisCertSel) {
         thisCertSel = rdkcertselector_new(NULL, NULL, "MTLS");
         if (!thisCertSel) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: Cert selector init failed\n", __FUNCTION__);
-            doStopDownload(curl);
+            COMMONUTILITIES_ERROR("%s: Cert selector init failed\n", __FUNCTION__);
+            doStopUpload(curl);
             return -1;
         }
     }
@@ -225,7 +219,7 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
                                                    &thisCertSel, upload_url);
 
     if (curl) {
-        doStopDownload(curl);
+        doStopUpload(curl);
         curl = NULL;
     }
     rdkcertselector_free(&thisCertSel);
