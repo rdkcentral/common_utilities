@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         printf("Usage: %s <upload_url> <file_path>\n", argv[0]);
         return 1;
     }
-
+    rdk_logger_init("/etc/debug.ini");
     const char *upload_url = argv[1];
     const char *file_path = argv[2];
 
