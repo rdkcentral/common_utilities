@@ -23,6 +23,11 @@ AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS) -DLIBRDKCERTSELECTOR
 lib_LTLIBRARIES = libuploadutil.la
 libuploadutil_la_SOURCES = uploadUtil.c \
                            mtls_upload.c
+if USE_CPC_CODE
+libuploadutil_la_SOURCES += \
+    ${top_srcdir}/src/cedmInterface-cpc/codebigUtils.c\
+    ${top_srcdir}/src/cedmInterface-cpc/mtlsUtils.c
+endif
 
 libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la 
@@ -32,6 +37,11 @@ libuploadutil_la_include_HEADERS = uploadUtil.h \
 
 libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -DLIBRDKCERTSELECTOR
 libuploadutil_la_includedir = ${includedir}
+
+if USE_CPC_CODE
+libuploadutil_la_CFLAGS += -I${top_srcdir}/src/cedmInterface-cpc
+libuploadutil_la_la_CPPFLAGS += -I${top_srcdir}/src/cedmInterface-cpc
+endif
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
