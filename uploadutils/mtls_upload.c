@@ -46,7 +46,7 @@
 /**
  * @brief Retrieve mTLS certificate for upload operation
  */
-MtlsAuthStatus loguploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
+MtlsAuthStatus uploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
 {
     char *certUri = NULL;
     char *certPass = NULL;
@@ -133,7 +133,7 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
         http_code = 0;
         
         /* Fetch certificate */
-        mtls_status = loguploadGetCert(&sec, pthisCertSel);
+        mtls_status = uploadGetCert(&sec, pthisCertSel);
         if (mtls_status == MTLS_CERT_FETCH_FAILURE) {
             UPLOAD_LOG(RDK_LOG_ERROR, "%s: Certificate fetch failed\n", __FUNCTION__);
             result = -1;
