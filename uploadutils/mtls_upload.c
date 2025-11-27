@@ -227,4 +227,8 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
     return status;
 }
 
+#else /* !LIBRDKCERTSELECTOR */
+
+COMMONUTILITIES_ERROR("Two-stage upload not supported without LIBRDKCERTSELECTOR\n");
+
 #endif /* LIBRDKCERTSELECTOR */
