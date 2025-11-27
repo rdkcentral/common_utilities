@@ -29,7 +29,7 @@ libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS)
 libuploadutil_la_include_HEADERS = uploadUtil.h \
                                    mtls_upload.h
 
-libuploadutil_la_CPPFLAGS = -I${top_srcdir}/dwnlutils
+libuploadutil_la_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils
 libuploadutil_la_includedir = ${includedir}
 
 if IS_LIBRDKCERTSEL_ENABLED
