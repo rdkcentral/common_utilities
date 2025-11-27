@@ -27,30 +27,34 @@
 #include <string.h>
 #include <curl/curl.h>
 
-#ifdef RDK_LOGGER_ENABLED
-#include "rdk_debug.h"
-#define LOG_UPLOAD "LOG.RDK.UPLOAD"
-#define UPLOAD_LOG(level, ...) RDK_LOG(level, LOG_UPLOAD, __VA_ARGS__)
-#else
-#define UPLOAD_LOG(level, ...) printf(__VA_ARGS__)
-#endif
+#include "rdkv_cdl_log_wrapper.h"
+
+void doStopUpload(void *curl)
+{
+    CURL *curl_dest;
+    if (curl != NULL) {
+        curl_dest = (CURL *)curl;
+        COMMONUTILITIES_INFO("%s : CURL: free resources\n", __FUNCTION__);
+        urlHelperDestroyCurl(curl_dest);
+    }
+}
 
 int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url_sz)
 {
     if (!result_file || !out_url || out_url_sz == 0) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Invalid parameters\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
     
     FILE *fp = fopen(result_file, "rb");
     if (!fp) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Unable to open result file %s\n", __FUNCTION__, result_file);
+        COMMONUTILITIES_ERROR("%s: Unable to open result file %s\n", __FUNCTION__, result_file);
         return -1;
     }
     
     if (!fgets(out_url, (int)out_url_sz, fp)) {
         fclose(fp);
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Failed to read S3 URL\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Failed to read S3 URL\n", __FUNCTION__);
         return -1;
     }
     
@@ -62,7 +66,7 @@ int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url
     return 0;
 }
 
-int performS3PutUpload(const char *s3url, const char *localfile, const MtlsAuth_t *auth)
+int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *auth)
 {
     CURL *curl = NULL;
     CURLcode ret_code = CURLE_OK;
@@ -70,20 +74,20 @@ int performS3PutUpload(const char *s3url, const char *localfile, const MtlsAuth_
     long http_code = 0;
     
     if (!s3url || !localfile) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Invalid parameters\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
     
-    curl = urlHelperCreateCurl();
+    curl = (CURL *)doCurlInit();
     if (!curl) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: CURL init failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: CURL init failed\n", __FUNCTION__);
         return -1;
     }
     
     /* Set common curl options with NULL POST fields for PUT operation */
     ret_code = setCommonCurlOpt(curl, s3url, NULL, true);
     if (ret_code != CURLE_OK) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: setCommonCurlOpt failed: %s\n",
+        COMMONUTILITIES_ERROR("%s: setCommonCurlOpt failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
         urlHelperDestroyCurl(curl);
         return -1;
@@ -93,7 +97,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, const MtlsAuth_
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
         if (ret_code != CURLE_OK) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: setMtlsHeaders failed: %s\n",
+            COMMONUTILITIES_ERROR("%s: setMtlsHeaders failed: %s\n",
                     __FUNCTION__, curl_easy_strerror(ret_code));
             urlHelperDestroyCurl(curl);
             return -1;
@@ -102,7 +106,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, const MtlsAuth_
     
     fp = fopen(localfile, "rb");
     if (!fp) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Failed to open %s\n", __FUNCTION__, localfile);
+        COMMONUTILITIES_ERROR("%s: Failed to open %s\n", __FUNCTION__, localfile);
         urlHelperDestroyCurl(curl);
         return -1;
     }
@@ -120,14 +124,14 @@ int performS3PutUpload(const char *s3url, const char *localfile, const MtlsAuth_
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
     fclose(fp);
-    urlHelperDestroyCurl(curl);
+    doStopUpload(curl);
 
     if (ret_code == CURLE_OK && http_code >= 200 && http_code < 300) {
-        UPLOAD_LOG(RDK_LOG_INFO, "%s: S3 PUT success (HTTP %ld)\n", __FUNCTION__, http_code);
+        COMMONUTILITIES_INFO("%s: S3 PUT success (HTTP %ld)\n", __FUNCTION__, http_code);
         return 0;
     }
     
-    UPLOAD_LOG(RDK_LOG_ERROR, "%s: S3 PUT failed: curl=%d, HTTP=%ld\n", __FUNCTION__, ret_code, http_code);
+    COMMONUTILITIES_ERROR("%s: S3 PUT failed: curl=%d, HTTP=%ld\n", __FUNCTION__, ret_code, http_code);
     return -1;
 }
 
@@ -147,7 +151,7 @@ int performHttpMetadataPost(void *in_curl,
 
     if (!in_curl || !pfile_upload || !out_httpCode || 
         !pfile_upload->pathname || !pfile_upload->url) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Parameter validation failed\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Parameter validation failed\n", __FUNCTION__);
         return (int)UPLOAD_FAIL;
     }
 
@@ -157,7 +161,7 @@ int performHttpMetadataPost(void *in_curl,
     ret_code = setCommonCurlOpt(curl, pfile_upload->url, 
                                 pfile_upload->pPostFields, pfile_upload->sslverify);
     if (ret_code != CURLE_OK) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: setCommonCurlOpt failed: %s\n",
+        COMMONUTILITIES_ERROR("%s: setCommonCurlOpt failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
         return (int)ret_code;
     }
@@ -166,7 +170,7 @@ int performHttpMetadataPost(void *in_curl,
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
         if (ret_code != CURLE_OK) {
-            UPLOAD_LOG(RDK_LOG_ERROR, "%s: setMtlsHeaders failed: %s\n",
+            COMMONUTILITIES_ERROR("%s: setMtlsHeaders failed: %s\n",
                     __FUNCTION__, curl_easy_strerror(ret_code));
             return (int)ret_code;
         }
@@ -194,7 +198,7 @@ int performHttpMetadataPost(void *in_curl,
         if (headers) {
             ret_code = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             if (ret_code != CURLE_OK) {
-                UPLOAD_LOG(RDK_LOG_ERROR, "%s: CURLOPT_HTTPHEADER failed: %s\n",
+                COMMONUTILITIES_ERROR("%s: CURLOPT_HTTPHEADER failed: %s\n",
                         __FUNCTION__, curl_easy_strerror(ret_code));
                 curl_slist_free_all(headers);
                 return (int)ret_code;
@@ -205,7 +209,7 @@ int performHttpMetadataPost(void *in_curl,
     /* Capture response body */
     resp_fp = fopen("/tmp/httpresult.txt", "wb");
     if (!resp_fp) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: Failed to open response file\n", __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: Failed to open response file\n", __FUNCTION__);
         if (headers) curl_slist_free_all(headers);
         return (int)UPLOAD_FAIL;
     }
@@ -215,15 +219,15 @@ int performHttpMetadataPost(void *in_curl,
     /* Perform request */
     ret_code = curl_easy_perform(curl);
     if (ret_code != CURLE_OK) {
-        UPLOAD_LOG(RDK_LOG_ERROR, "%s: curl_easy_perform failed: %s\n",
+        COMMONUTILITIES_ERROR("%s: curl_easy_perform failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
     } else {
-        UPLOAD_LOG(RDK_LOG_INFO, "%s: curl_easy_perform success\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: curl_easy_perform success\n", __FUNCTION__);
     }
 
     /* Extract HTTP code */
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, out_httpCode);
-    UPLOAD_LOG(RDK_LOG_INFO, "%s: HTTP response code=%ld\n", __FUNCTION__, *out_httpCode);
+    COMMONUTILITIES_INFO("%s: HTTP response code=%ld\n", __FUNCTION__, *out_httpCode);
 
     /* Cleanup */
     fclose(resp_fp);
