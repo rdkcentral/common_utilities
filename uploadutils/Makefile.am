@@ -40,7 +40,7 @@ uploadutil_test_SOURCES = uploadUtil.c \
                           main_upload_test.c
 
 uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils
-uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -ldwnlutil -lfwutils -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -ldwnlutil -lfwutils -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
