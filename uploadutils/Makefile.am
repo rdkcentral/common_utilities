@@ -36,7 +36,8 @@ libuploadutil_la_includedir = ${includedir}
 bin_PROGRAMS = uploadutil_test
 
 uploadutil_test_SOURCES = uploadUtil.c \
-                          mtls_upload.c
+                          mtls_upload.c \
+                          main_upload_test.c
 
 uploadutil_test_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils
 uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector
