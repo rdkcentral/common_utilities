@@ -56,7 +56,7 @@ typedef enum {
  * structure with certificate path, password, type, and engine information.
  * Handles file:// URI scheme conversion.
  */
-MtlsAuthStatus uploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
+MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
 
 /**
  * @brief Upload file using two-stage workflow with certificate rotation
@@ -65,7 +65,7 @@ MtlsAuthStatus uploadGetCert(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
  * @return 0 on success, -1 on failure
  *
  * Implements two-stage upload with automatic certificate rotation:
- * 1. Fetches certificate via uploadGetCert()
+ * 1. Fetches certificate via getCertificateForUpload()
  * 2. Performs metadata POST to obtain S3 presigned URL
  * 3. Performs S3 PUT to upload file content
  * 4. On failure, requests TRY_ANOTHER certificate and retries
