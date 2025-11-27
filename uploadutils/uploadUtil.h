@@ -65,6 +65,12 @@ typedef struct {
 } FileUpload_t;
 
 /**
+ * @brief Stop upload and free CURL resources
+ * @param curl CURL handle to cleanup
+ */
+void doStopUpload(void *curl);
+
+/**
  * @brief Extract S3 presigned URL from HTTP response file
  * @param result_file Path to file containing response data
  * @param out_url Output buffer for extracted URL
@@ -87,7 +93,7 @@ int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url
  * authentication for secure uploads. Validates HTTP response codes
  * (expects 2xx for success).
  */
-int performS3PutUpload(const char *s3url, const char *localfile, const MtlsAuth_t *auth);
+int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *auth);
 
 /**
  * @brief Perform HTTP metadata POST with optional mTLS authentication
