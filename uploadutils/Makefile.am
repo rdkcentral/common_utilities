@@ -32,6 +32,15 @@ libuploadutil_la_include_HEADERS = uploadUtil.h \
 libuploadutil_la_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils
 libuploadutil_la_includedir = ${includedir}
 
+# Debug binary for testing
+bin_PROGRAMS = uploadutil_test
+
+uploadutil_test_SOURCES = uploadUtil.c \
+                          mtls_upload.c
+
+uploadutil_test_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils
+uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector
+
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
 AM_LDFLAGS = -lRdkCertSelector
