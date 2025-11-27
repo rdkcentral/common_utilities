@@ -1,5 +1,5 @@
 # Copyright 2025 RDK Management
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -39,8 +39,8 @@ uploadutil_test_SOURCES = uploadUtil.c \
                           mtls_upload.c \
                           main_upload_test.c
 
-uploadutil_test_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils
-uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector
+uploadutil_test_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils
+uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -ldwnlutil -lfwutils
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
