@@ -88,6 +88,7 @@ AC_CONFIG_FILES([Makefile
     utils/Makefile
     parsejson/Makefile
     uploadutils/Makefile
+    uploadbin/Makefile
     ])
 
 BUILD_BINS="false"
