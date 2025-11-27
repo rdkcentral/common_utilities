@@ -18,7 +18,7 @@
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS)
+AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS) -DLIBRDKCERTSELECTOR
 
 lib_LTLIBRARIES = libuploadutil.la
 libuploadutil_la_SOURCES = uploadUtil.c \
@@ -29,7 +29,7 @@ libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS)
 libuploadutil_la_include_HEADERS = uploadUtil.h \
                                    mtls_upload.h
 
-libuploadutil_la_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils
+libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -DLIBRDKCERTSELECTOR
 libuploadutil_la_includedir = ${includedir}
 
 # Debug binary for testing
@@ -39,8 +39,8 @@ uploadutil_test_SOURCES = uploadUtil.c \
                           mtls_upload.c \
                           main_upload_test.c
 
-uploadutil_test_CPPFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils
-uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -ldwnlutil -lfwutils
+uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils
+uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -ldwnlutil -lfwutils -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
