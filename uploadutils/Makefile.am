@@ -70,7 +70,7 @@ uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top
 if USE_CPC_CODE
 uploadutil_test_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
 endif
-uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -lRdkCertSelector -lrfcapi -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+uploadutil_test_LDADD = -lrfcapi -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 uploadutil_test_LDADD += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la
 
 
