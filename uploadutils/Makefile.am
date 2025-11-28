@@ -25,7 +25,7 @@ libuploadutil_la_SOURCES = uploadUtil.c \
                            mtls_upload.c
 if USE_CPC_CODE
 libuploadutil_la_SOURCES += \
-    ${top_srcdir}/src/cedmInterface-cpc/codebigUtils.c
+    ${top_srcdir}/src/upload_util-cpc/upload_util/codebigUtils.c
 endif
 
 libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
@@ -38,7 +38,7 @@ libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -DLIBR
 libuploadutil_la_includedir = ${includedir}
 
 if USE_CPC_CODE
-libuploadutil_la_CFLAGS += -I${top_srcdir}/src/cedmInterface-cpc
+libuploadutil_la_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
 endif
 
 if IS_LIBRDKCERTSEL_ENABLED
@@ -63,12 +63,12 @@ uploadutil_test_SOURCES = uploadUtil.c \
                           codebig_upload.c
 if USE_CPC_CODE
 uploadutil_test_SOURCES += \
-    ${top_srcdir}/src/cedmInterface-cpc/codebigUtils.c
+    ${top_srcdir}/src/upload_util-cpc/upload_util/codebigUtils.c
 endif
 
 uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils  -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
 if USE_CPC_CODE
-uploadutil_test_CFLAGS += -I${top_srcdir}/src/cedmInterface-cpc
+uploadutil_test_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
 endif
 uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 uploadutil_test_LDADD += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la
