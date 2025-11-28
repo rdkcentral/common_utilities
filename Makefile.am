@@ -15,5 +15,5 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-SUBDIRS = parsejson dwnlutils utils uploadutils uploadbin
+SUBDIRS = parsejson dwnlutils utils uploadutils
 
