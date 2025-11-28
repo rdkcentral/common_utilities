@@ -59,7 +59,8 @@ bin_PROGRAMS = uploadutil_test
 
 uploadutil_test_SOURCES = uploadUtil.c \
                           mtls_upload.c \
-                          main_upload_test.c
+                          main_upload_test.c \
+                          codebig_upload.c
 if USE_CPC_CODE
 uploadutil_test_SOURCES += \
     ${top_srcdir}/src/cedmInterface-cpc/codebigUtils.c
