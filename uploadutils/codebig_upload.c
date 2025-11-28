@@ -29,8 +29,6 @@
 
 #include "rdkv_cdl_log_wrapper.h"
 
-
-#define FILESCHEME "file://"
 #define URL_MAX 512
 #define PATHNAME_MAX 256
 #define S3_URL_BUF 1024
