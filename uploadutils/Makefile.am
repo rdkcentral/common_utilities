@@ -66,7 +66,7 @@ uploadutil_test_SOURCES += \
     ${top_srcdir}/src/cedmInterface-cpc/codebigUtils.c
 endif
 
-uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils -DLIBRDKCERTSELECTOR
+uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils  -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
 if USE_CPC_CODE
 uploadutil_test_CFLAGS += -I${top_srcdir}/src/cedmInterface-cpc
 endif
