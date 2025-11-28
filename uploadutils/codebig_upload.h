@@ -31,40 +31,54 @@
 extern "C" {
 #endif
 
-/* CodeBig server types */
-#define INVALID_SERVICE    0
-#define SSR_SERVICE        1
-#define XCONF_SERVICE      2
-#define CIXCONF_SERVICE    4
-#define DAC15_SERVICE      14
+/* CodeBig server types - matching rdkfwupdater definitions */
+#define HTTP_SSR_DIRECT      0
+#define HTTP_SSR_CODEBIG     1
+#define HTTP_XCONF_DIRECT    2
+#define HTTP_XCONF_CODEBIG   3
+#define HTTP_UNKNOWN         5
 
-#define MAX_HEADER_LEN     512
-#define MAX_CODEBIG_URL    1024
+#define MAX_HEADER_LEN       512
+#define MAX_CODEBIG_URL      1024
 
 /**
  * @brief Create CodeBig authorization signature for upload operation
  * 
- * @param server_type Type of CodeBig service (SSR_SERVICE, XCONF_SERVICE, etc.)
- * @param SignInput Input data to create signature for (typically upload URL)
+ * @param server_type Type of CodeBig service (HTTP_SSR_CODEBIG, HTTP_XCONF_CODEBIG, etc.)
+ * @param src_file Local file path to upload
  * @param signurl Buffer to store the signed CodeBig URL
  * @param signurlsize Size of signurl buffer
  * @param outhheader Buffer to store authorization header
  * @param outHeaderSize Size of outhheader buffer
  * @return 0 on success, non-zero on failure
  */
-int doCodeBigSigningForUpload(int server_type, const char* SignInput, 
+int doCodeBigSigningForUpload(int server_type, const char* src_file, 
                               char *signurl, size_t signurlsize, 
                               char *outhheader, size_t outHeaderSize);
 
 /**
- * @brief Upload file using CodeBig two-stage workflow with mTLS
+ * @brief External CodeBig signing function (implemented in separate library)
  * 
- * @param upload_url Original upload URL to be signed with CodeBig
+ * @param server_type Type of CodeBig service
+ * @param SignInput Input data to create signature for
+ * @param signurl Buffer to store the signed CodeBig URL
+ * @param signurlsize Size of signurl buffer
+ * @param outhheader Buffer to store authorization header
+ * @param outHeaderSize Size of outhheader buffer
+ * @return 0 on success, non-zero on failure
+ */
+extern int doCodeBigSigning(int server_type, const char* SignInput, 
+                            char *signurl, size_t signurlsize, 
+                            char *outhheader, size_t outHeaderSize);
+
+/**
+ * @brief Upload file using CodeBig workflow with authorization
+ * 
  * @param src_file Local file path to upload
  * @param server_type CodeBig server type
  * @return 0 on success, negative value on failure
  */
-int uploadFileWithCodeBigFlow(const char *upload_url, const char *src_file, int server_type);
+int uploadFileWithCodeBigFlow(const char *src_file, int server_type);
 
 #ifdef __cplusplus
 }
