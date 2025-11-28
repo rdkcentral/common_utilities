@@ -57,7 +57,7 @@ typedef struct {
  * @brief Upload request descriptor for metadata POST stage
  */
 typedef struct {
-    const char *url;                /**< Target endpoint URL */
+    char *url;                /**< Target endpoint URL */
     char *pathname;                 /**< Local file path (used for filename parameter) */
     char *pPostFields;              /**< Additional POST fields (optional) */
     int sslverify;                  /**< SSL peer verification (0=disabled, 1=enabled) */
