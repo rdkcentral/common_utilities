@@ -25,6 +25,7 @@
 #include "downloadUtil.h"
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "rdkv_cdl_log_wrapper.h"
 
@@ -38,45 +39,51 @@
  * @brief Create CodeBig authorization signature for upload operation
  * 
  * This function interfaces with CodeBig service to obtain authorization
- * signatures and signed URLs for upload operations.
+ * signatures and upload URLs for upload operations based on file and service type.
  */
-int doCodeBigSigningForUpload(int server_type, const char* SignInput, 
+int doCodeBigSigningForUpload(int server_type, const char* src_file, 
                               char *signurl, size_t signurlsize, 
                               char *outhheader, size_t outHeaderSize)
 {
-    if (!SignInput || !signurl || !outhheader) {
+    if (!src_file || !signurl || !outhheader) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
 
-    // TODO: Implement actual CodeBig signing logic
-    // This is a placeholder implementation
-    COMMONUTILITIES_INFO("%s: CodeBig signing for server_type=%d, input=%s\n", 
-               __FUNCTION__, server_type, SignInput);
+    // Validate server type
+    if (server_type != HTTP_SSR_CODEBIG && server_type != HTTP_XCONF_CODEBIG) {
+        COMMONUTILITIES_ERROR("%s: Invalid CodeBig server type: %d\n", __FUNCTION__, server_type);
+        return -1;
+    }
     
-    // For now, just copy the input URL as signed URL
-    strncpy(signurl, SignInput, signurlsize - 1);
-    signurl[signurlsize - 1] = '\0';
+    COMMONUTILITIES_INFO("%s: CodeBig signing for server_type=%d, file=%s\n", 
+               __FUNCTION__, server_type, src_file);
+
+    // Call the actual CodeBig signing implementation from external library
+    // This matches rdkfwupdater pattern where doCodeBigSigning is implemented elsewhere
+    int signFailed = doCodeBigSigning(server_type, src_file, signurl, signurlsize, outhheader, outHeaderSize);
     
-    // Create placeholder authorization header
-    snprintf(outhheader, outHeaderSize, "Authorization: Bearer placeholder_token");
-    
-    COMMONUTILITIES_INFO("%s: CodeBig signing successful\n", __FUNCTION__);
-    return 0;
+    if (signFailed == 0) {
+        COMMONUTILITIES_INFO("%s: CodeBig signing successful\n", __FUNCTION__);
+        return 0; // Return 0 for success when URL is provided
+    } else {
+        COMMONUTILITIES_ERROR("%s: CodeBig signing failed with code: %d\n", __FUNCTION__, signFailed);
+        return -1; // Return -1 for failure
+    }
 }
 
 /**
  * @brief CodeBig upload with authorization
  */
 static int performCodeBigUpload(void *curl, FileUpload_t *file_upload,
-                                const char *src_file, const char *upload_url, int server_type)
+                                const char *src_file, int server_type)
 {
     int curl_ret_code = -1;
     long http_code = 0;
     char codebig_url[MAX_CODEBIG_URL];
     char auth_header[MAX_HEADER_LEN];
 
-    if (!curl || !file_upload || !src_file || !upload_url) {
+    if (!curl || !file_upload || !src_file) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -85,7 +92,7 @@ static int performCodeBigUpload(void *curl, FileUpload_t *file_upload,
     memset(auth_header, 0, sizeof(auth_header));
     
     /* Step 1: Get CodeBig signed URL and authorization header */
-    if (doCodeBigSigningForUpload(server_type, upload_url, codebig_url, 
+    if (doCodeBigSigningForUpload(server_type, src_file, codebig_url, 
                                   sizeof(codebig_url), auth_header, sizeof(auth_header)) != 0) {
         COMMONUTILITIES_ERROR("%s: CodeBig signing failed\n", __FUNCTION__);
         return -1;
@@ -128,20 +135,19 @@ static int performCodeBigUpload(void *curl, FileUpload_t *file_upload,
 /**
  * @brief Upload file using CodeBig workflow
  */
-int uploadFileWithCodeBigFlow(const char *upload_url, const char *src_file, int server_type)
+int uploadFileWithCodeBigFlow(const char *src_file, int server_type)
 {
     void *curl = NULL;
     FileUpload_t file_upload;
     int status = -1;
 
-    if (!upload_url || !src_file) {
+    if (!src_file) {
         COMMONUTILITIES_ERROR("%s: Invalid arguments\n", __FUNCTION__);
         return -1;
     }
 
     /* Validate server type */
-    if (server_type != SSR_SERVICE && server_type != XCONF_SERVICE && 
-        server_type != CIXCONF_SERVICE && server_type != DAC15_SERVICE) {
+    if (server_type != HTTP_SSR_CODEBIG && server_type != HTTP_XCONF_CODEBIG) {
         COMMONUTILITIES_ERROR("%s: Invalid CodeBig server type: %d\n", __FUNCTION__, server_type);
         return -1;
     }
@@ -150,8 +156,9 @@ int uploadFileWithCodeBigFlow(const char *upload_url, const char *src_file, int 
     memset(&file_upload, 0, sizeof(FileUpload_t));
     char urlbuf[URL_MAX];
     char pathbuf[PATHNAME_MAX];
-    strncpy(urlbuf, upload_url, URL_MAX - 1);
-    urlbuf[URL_MAX - 1] = '\0';
+    
+    // URL will be filled by CodeBig signing
+    urlbuf[0] = '\0';
     strncpy(pathbuf, src_file, PATHNAME_MAX - 1);
     pathbuf[PATHNAME_MAX - 1] = '\0';
     file_upload.url        = urlbuf;
@@ -167,7 +174,7 @@ int uploadFileWithCodeBigFlow(const char *upload_url, const char *src_file, int 
     }
 
     /* Perform CodeBig upload */
-    status = performCodeBigUpload(curl, &file_upload, src_file, upload_url, server_type);
+    status = performCodeBigUpload(curl, &file_upload, src_file, server_type);
 
     doStopUpload(curl);
     return status;
