@@ -33,7 +33,8 @@ libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lR
 libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la 
 
 libuploadutil_la_include_HEADERS = uploadUtil.h \
-                                   mtls_upload.h
+                                   mtls_upload.h \
+                                   codebig_upload.h
 
 libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
 libuploadutil_la_includedir = ${includedir}
