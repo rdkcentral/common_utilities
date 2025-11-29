@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 #ifdef LIBRDKCERTSELECTOR
-#include "rdkcertselector.h"
+//#include "rdkcertselector.h"
 
 /**
  * @enum MtlsAuthStatus
