@@ -39,7 +39,7 @@ void doStopUpload(void *curl)
     }
 }
 
-int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url_sz)
+int extractS3PresignedUrl(const char *result_bibiile, char *out_url, size_t out_url_sz)
 {
     if (!result_file || !out_url || out_url_sz == 0) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
