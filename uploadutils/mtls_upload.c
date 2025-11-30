@@ -40,9 +40,10 @@
 /**
  * @brief Retrieve mTLS certificate for upload operation
  */
+#ifdef LIBRDKCERTSELECTOR
+
 MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel)
 {
-#ifdef LIBRDKCERTSELECTOR
     char *certUri = NULL;
     char *certPass = NULL;
     char *engine = NULL;
@@ -56,19 +57,19 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
     rdkcertselectorStatus_t certStat = rdkcertselector_getCert(*pthisCertSel, &certUri, &certPass);
 
     if (certStat != certselectorOk || certUri == NULL || certPass == NULL) {
-        COMMONUTILITIES_ERROR("[%s:%d] Failed to retrieve certificate for MTLS\n", 
+        COMMONUTILITIES_ERROR("[%s:%d] Failed to retrieve certificate for MTLS\n",
                    __FUNCTION__, __LINE__);
-        
+
         rdkcertselector_free(pthisCertSel);
-        
+
         if (*pthisCertSel == NULL) {
-            COMMONUTILITIES_INFO("[%s:%d] Cert selector memory freed\n", 
+            COMMONUTILITIES_INFO("[%s:%d] Cert selector memory freed\n",
                        __FUNCTION__, __LINE__);
         } else {
-            COMMONUTILITIES_ERROR("[%s:%d] Cert selector memory free failed\n", 
+            COMMONUTILITIES_ERROR("[%s:%d] Cert selector memory free failed\n",
                        __FUNCTION__, __LINE__);
         }
-        
+
         return MTLS_CERT_FETCH_FAILURE;
     }
 
@@ -101,22 +102,21 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 
     COMMONUTILITIES_INFO("[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
-    
+
     return MTLS_CERT_FETCH_SUCCESS;
-#else
-    COMMONUTILITIES_ERROR("[%s:%d] Certificate selector not available\n", __FUNCTION__, __LINE__);
-    return MTLS_CERT_FETCH_FAILURE;
-#endif
+
 }
 
+#endif
 /**
  * @brief Two-stage upload with certificate rotation
  */
+#ifdef LIBRDKCERTSELECTOR
 static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_upload,
                                                  const char *src_file, rdkcertselector_h *pthisCertSel,
                                                  const char *upload_url)
 {
-#ifdef LIBRDKCERTSELECTOR
+
     MtlsAuthStatus mtls_status = MTLS_CERT_FETCH_SUCCESS;
     MtlsAuth_t sec;
     int curl_ret_code = -1;
@@ -131,7 +131,7 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
     do {
         memset(&sec, 0, sizeof(MtlsAuth_t));
         http_code = 0;
-        
+
         /* Fetch certificate */
         mtls_status = getCertificateForUpload(&sec, pthisCertSel);
         if (mtls_status == MTLS_CERT_FETCH_FAILURE) {
@@ -142,17 +142,17 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
 
         /* Stage 1: Metadata POST with mTLS */
         curl_ret_code = performHttpMetadataPost(curl, file_upload, &sec, &http_code);
-        
+
         if (curl_ret_code != 0 || http_code < 200 || http_code >= 300) {
             COMMONUTILITIES_ERROR("%s: Metadata POST failed curl=%d http=%ld\n",
                        __FUNCTION__, curl_ret_code, http_code);
             result = -1;
             continue;
         }
-        
+
         COMMONUTILITIES_INFO("%s: Metadata POST success (HTTP %ld)\n",
                    __FUNCTION__, http_code);
-        
+
         /* Stage 2: Extract S3 URL and perform S3 PUT with same mTLS cert */
         char s3_url[S3_URL_BUF];
         if (extractS3PresignedUrl("/tmp/httpresult.txt", s3_url, sizeof(s3_url)) != 0) {
@@ -160,13 +160,13 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
             result = -1;
             continue;
         }
-        
+
         if (performS3PutUpload(s3_url, src_file, &sec) != 0) {
             COMMONUTILITIES_ERROR("%s: S3 PUT failed\n", __FUNCTION__);
             result = -1;
             continue;
         }
-        
+
         COMMONUTILITIES_INFO("%s: Complete two-stage upload success\n", __FUNCTION__);
         result = 0;
         break;
@@ -174,11 +174,9 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
     } while (rdkcertselector_setCurlStatus(*pthisCertSel, curl_ret_code, upload_url) == TRY_ANOTHER);
 
     return result;
-#else
-    COMMONUTILITIES_ERROR("%s: Certificate rotation not available\n", __FUNCTION__);
-    return -1;
-#endif
+
 }
+#endif
 
 /**
  * @brief Upload file using two-stage workflow with certificate rotation
@@ -228,7 +226,7 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
     }
 
     /* Perform two-stage upload with certificate rotation */
-    status = performTwoStageUploadWithCertRotation(curl, &file_upload, src_file, 
+    status = performTwoStageUploadWithCertRotation(curl, &file_upload, src_file,
                                                    &thisCertSel, upload_url);
 
     if (curl) {
