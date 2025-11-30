@@ -29,6 +29,9 @@
 
 #include "rdkv_cdl_log_wrapper.h"
 
+/* External status tracking for enhanced wrapper functions */
+extern void __uploadutil_set_status(long http_code, int curl_code);
+
 void doStopUpload(void *curl)
 {
     CURL *curl_dest;
@@ -125,6 +128,9 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
 
     fclose(fp);
     doStopUpload(curl);
+
+    /* Report status for enhanced wrapper functions */
+    __uploadutil_set_status(http_code, (int)ret_code);
 
     if (ret_code == CURLE_OK && http_code >= 200 && http_code < 300) {
         COMMONUTILITIES_INFO("%s: S3 PUT success (HTTP %ld)\n", __FUNCTION__, http_code);
@@ -228,6 +234,9 @@ int performHttpMetadataPost(void *in_curl,
     /* Extract HTTP code */
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, out_httpCode);
     COMMONUTILITIES_INFO("%s: HTTP response code=%ld\n", __FUNCTION__, *out_httpCode);
+
+    /* Report status for enhanced wrapper functions */
+    __uploadutil_set_status(*out_httpCode, (int)ret_code);
 
     /* Cleanup */
     fclose(resp_fp);

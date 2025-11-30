@@ -25,6 +25,7 @@
 #define _RDK_UPLOAD_STATUS_H_
 
 #include <stdbool.h>
+#include "urlHelper.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +41,7 @@ typedef struct {
     bool upload_completed;  /**< Whether upload stage completed */
     bool auth_success;      /**< Whether authentication succeeded */
     char error_message[256]; /**< Human-readable error description */
+    char fqdn[256];         /**< Fully Qualified Domain Name (hostname) from upload URL */
 } UploadStatusDetail;
 
 /**
@@ -50,36 +52,93 @@ typedef struct {
 void init_upload_status(UploadStatusDetail* status);
 
 /**
+ * @brief Internal: Set status codes for capture by wrapper functions
+ * @note This is used internally by upload functions - do not call directly
+ */
+void __uploadutil_set_status(long http_code, int curl_code);
+
+/**
+ * @brief Internal: Get and reset status codes
+ * @note This is used internally by wrapper functions - do not call directly
+ */
+void __uploadutil_get_status(long *http_code, int *curl_code);
+
+/**
+ * @brief Internal: Set FQDN for capture by wrapper functions
+ * @note This is used internally by upload functions - do not call directly
+ */
+void __uploadutil_set_fqdn(const char *fqdn);
+
+/**
+ * @brief Internal: Get and reset FQDN
+ * @note This is used internally by wrapper functions - do not call directly
+ */
+void __uploadutil_get_fqdn(char *fqdn, size_t size);
+
+/**
+ * @brief Internal: Set OCSP enabled flag
+ * @note This is used internally by wrapper functions - do not call directly
+ */
+void __uploadutil_set_ocsp(bool enabled);
+
+/**
+ * @brief Internal: Get OCSP enabled flag
+ * @note This is used by upload functions to determine OCSP behavior
+ */
+bool __uploadutil_get_ocsp(void);
+
+/**
+ * @brief Internal: Set MD5 hash for upload
+ * @note This is used internally by wrapper functions - do not call directly
+ */
+void __uploadutil_set_md5(const char *md5);
+
+/**
+ * @brief Internal: Get MD5 hash for upload
+ * @note This is used by upload functions to include MD5 in POST data
+ * @return MD5 string or NULL if not set
+ */
+const char* __uploadutil_get_md5(void);
+
+/**
  * @brief Enhanced mTLS upload with detailed status return
  * 
  * @param upload_url Upload endpoint URL
  * @param src_file Local file path to upload
+ * @param md5_base64 Optional MD5 hash (base64 encoded) for integrity check (can be NULL)
+ * @param ocsp_enabled Enable OCSP certificate validation
  * @param status Pointer to structure to receive detailed status
  * @return int Overall result code (0=success, negative=failure)
  */
-int uploadFileWithTwoStageFlowEx(const char *upload_url, const char *src_file, UploadStatusDetail* status);
+int uploadFileWithTwoStageFlowEx(const char *upload_url, const char *src_file, 
+                                 const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
 
 /**
  * @brief Enhanced CodeBig upload with detailed status return
  * 
  * @param src_file Local file path to upload  
  * @param server_type CodeBig server type
+ * @param md5_base64 Optional MD5 hash (base64 encoded) for integrity check (can be NULL)
+ * @param ocsp_enabled Enable OCSP certificate validation
  * @param status Pointer to structure to receive detailed status
  * @return int Overall result code (0=success, negative=failure)
  */
-int uploadFileWithCodeBigFlowEx(const char *src_file, int server_type, UploadStatusDetail* status);
+int uploadFileWithCodeBigFlowEx(const char *src_file, int server_type, 
+                                const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
 
 /**
  * @brief Enhanced S3 PUT upload with detailed status return
  * 
  * @param upload_url S3 presigned URL
  * @param src_file Local file path to upload
- * @param hash_headers Optional hash headers (can be NULL)
+ * @param auth Optional mTLS authentication (can be NULL)
+ * @param md5_base64 Optional MD5 hash (base64 encoded) for integrity check (can be NULL)
+ * @param ocsp_enabled Enable OCSP certificate validation
  * @param status Pointer to structure to receive detailed status
  * @return int Overall result code (0=success, negative=failure)
  */
 int performS3PutUploadEx(const char *upload_url, const char *src_file, 
-                        const HashHeaders *hash_headers, UploadStatusDetail* status);
+                        MtlsAuth_t *auth, const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
 
 #ifdef __cplusplus
 }
