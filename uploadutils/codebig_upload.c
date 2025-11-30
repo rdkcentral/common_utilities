@@ -156,7 +156,7 @@ static int performCodeBigUpload(void *curl, FileUpload_t *file_upload,
         return -1;
     }
     
- 4t   COMMONUTILITIES_INFO("%s: Complete CodeBig upload success\n", __FUNCTION__);
+    COMMONUTILITIES_INFO("%s: Complete CodeBig upload success\n", __FUNCTION__);
     /* Report final success status with metadata POST http_code */
     __uploadutil_set_status(http_code, curl_ret_code);
     return 0;
@@ -218,4 +218,5 @@ int uploadFileWithCodeBigFlow(const char *src_file, int server_type)
 
     doStopUpload(curl);
     return status;
+
 }
