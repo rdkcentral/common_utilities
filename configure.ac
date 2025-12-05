@@ -85,6 +85,7 @@ AC_SUBST(TRACE_CFLAGS)
 AC_SUBST(TRACE_LIBS)
 AC_CONFIG_FILES([Makefile
     dwnlutils/Makefile
+    uploadutil/Makefile
     utils/Makefile
     parsejson/Makefile
     ])

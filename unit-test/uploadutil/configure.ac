@@ -16,7 +16,7 @@
 #
 
 # Initialize Autoconf
-AC_INIT([system_utils_gtest],[1.0])
+AC_INIT([uploadutil_gtest],[1.0])
 # Initialize Automake
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 # Check for necessary headers
@@ -25,6 +25,9 @@ AC_CHECK_HEADERS([jsoncpp/json/json.h gtest/gtest.h gmock/gmock.h])
 AC_CHECK_LIB([jsoncpp], [main])
 AC_CHECK_LIB([gtest], [main])
 AC_CHECK_LIB([gmock], [main])
+AC_CHECK_LIB([curl], [main])
+AC_CHECK_LIB([ssl], [main])
+AC_CHECK_LIB([crypto], [main])
 # Checks for programs.
 AC_PROG_CXX
 # Checks for libraries.
@@ -45,6 +48,6 @@ AC_C_CONST
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 # Generate the Makefile
-AC_CONFIG_FILES([Makefile uploadutil/Makefile])
+AC_CONFIG_FILES([Makefile])
 # Generate the configure script
 AC_OUTPUT
