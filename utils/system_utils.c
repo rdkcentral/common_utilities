@@ -1146,22 +1146,3 @@ void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* o
             COMMONUTILITIES_ERROR("file open failed %s\n",path);
         }
 }
-
-long get_system_uptime(void)
-{
-    FILE *fp = fopen("/proc/uptime", "r");
-    if (!fp) {
-        COMMONUTILITIES_ERROR("Failed to open /proc/uptime\n");
-        return -1;
-    }
-
-    double uptime_seconds;
-    if (fscanf(fp, "%lf", &uptime_seconds) != 1) {
-        COMMONUTILITIES_ERROR("Failed to read uptime from /proc/uptime\n");
-        fclose(fp);
-        return -1;
-    }
-
-    fclose(fp);
-    return (long)uptime_seconds;
-}
