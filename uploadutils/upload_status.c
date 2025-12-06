@@ -150,7 +150,7 @@ void init_upload_status(UploadStatusDetail* status)
     // error_message, http_code, upload_completed, auth_success, fqdn already zero'd by memset
 }
 
-int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char *filepath,
+int performHttpMetadataPostEx(const char *upload_url, const char *filepath,
                                const char *extra_fields, MtlsAuth_t *auth, 
                                bool ocsp_enabled, UploadStatusDetail* status)
 {
@@ -160,9 +160,18 @@ int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char 
     
     init_upload_status(status);
     
-    if (!in_curl || !upload_url || !filepath) {
+    if (!upload_url || !filepath) {
         snprintf(status->error_message, sizeof(status->error_message), 
-                "Invalid parameters: curl=%p, url=%p, file=%p", in_curl, upload_url, filepath);
+                "Invalid parameters: url=%p, file=%p", upload_url, filepath);
+        return -1;
+    }
+    
+    /* Initialize curl */
+    void *curl = doCurlInit();
+    if (!curl) {
+        snprintf(status->error_message, sizeof(status->error_message), 
+                "Failed to initialize curl");
+        status->curl_code = CURLE_FAILED_INIT;
         return -1;
     }
     
@@ -187,7 +196,7 @@ int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char 
     
     /* Apply OCSP if enabled */
     if (ocsp_enabled) {
-        CURLcode ret = curl_easy_setopt(in_curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
+        CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
         if (ret != CURLE_OK) {
             snprintf(status->error_message, sizeof(status->error_message), 
                     "CURLOPT_SSL_VERIFYSTATUS failed: %s", curl_easy_strerror(ret));
@@ -196,11 +205,14 @@ int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char 
     
     /* Perform metadata POST */
     long http_code = 0;
-    int curl_ret = performHttpMetadataPost(in_curl, &file_upload, auth, &http_code);
+    int curl_ret = performHttpMetadataPost(curl, &file_upload, auth, &http_code);
     
     status->result_code = curl_ret;
     status->http_code = http_code;
     status->curl_code = curl_ret;
+    
+    /* Cleanup curl */
+    doStopUpload(curl);
     
     if (curl_ret == 0 && http_code == 200) {
         status->upload_completed = true;
