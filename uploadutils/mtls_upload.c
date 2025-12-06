@@ -25,6 +25,7 @@
 #include "downloadUtil.h"
 #include <string.h>
 #include <stdio.h>
+#include "upload_status.h"
 
 #include "rdkv_cdl_log_wrapper.h"
 
