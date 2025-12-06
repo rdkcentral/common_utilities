@@ -213,6 +213,69 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
 }
 
 /**
+ * @brief Wrapper for metadata POST with certificate rotation - manages cert selector
+ * @param upload_url Target URL for metadata POST
+ * @param filepath Local file path
+ * @param extra_fields Extra POST fields (e.g., MD5), can be NULL
+ * @param sec_out Output: successful certificate for Stage 2
+ * @param http_code_out Output: HTTP response code
+ * @return 0 on success, -1 on failure
+ */
+int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath,
+                                          const char *extra_fields, MtlsAuth_t *sec_out,
+                                          long *http_code_out)
+{
+#ifdef LIBRDKCERTSELECTOR
+    void *curl = NULL;
+    static rdkcertselector_h certSelector = NULL;
+    int result = -1;
+
+    if (!upload_url || !filepath || !sec_out || !http_code_out) {
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
+        return -1;
+    }
+
+    /* Initialize certificate selector if not already done */
+    if (!certSelector) {
+        certSelector = rdkcertselector_new(NULL, NULL, "MTLS");
+        if (!certSelector) {
+            COMMONUTILITIES_ERROR("%s: Failed to initialize certificate selector\n", __FUNCTION__);
+            return -1;
+        }
+    }
+
+    /* Initialize curl */
+    curl = doCurlInit();
+    if (!curl) {
+        COMMONUTILITIES_ERROR("%s: Failed to initialize curl\n", __FUNCTION__);
+        return -1;
+    }
+
+    /* Apply OCSP setting if enabled */
+    if (__uploadutil_get_ocsp()) {
+        CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
+        if (ret != CURLE_OK) {
+            COMMONUTILITIES_ERROR("%s: CURLOPT_SSL_VERIFYSTATUS failed: %s\n",
+                                __FUNCTION__, curl_easy_strerror(ret));
+        }
+    }
+
+    /* Call the actual rotation function */
+    result = performMetadataPostWithCertRotation(curl, upload_url, filepath,
+                                                 extra_fields, &certSelector,
+                                                 sec_out, http_code_out);
+
+    /* Cleanup curl */
+    doStopUpload(curl);
+
+    return result;
+#else
+    COMMONUTILITIES_ERROR("%s: Not supported without LIBRDKCERTSELECTOR\n", __FUNCTION__);
+    return -1;
+#endif
+}
+
+/**
  * @brief Two-stage upload with certificate rotation (Internal helper)
  */
 static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_upload,
