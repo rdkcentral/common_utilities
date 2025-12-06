@@ -31,8 +31,47 @@
 extern "C" {
 #endif
 
+/* ========================================================================
+ * Data Structures - Result Status (Modular Components)
+ * ======================================================================== */
+
 /**
- * @brief Detailed upload operation result
+ * @brief HTTP/CURL result codes
+ */
+typedef struct {
+    long http_code;         /**< HTTP response code (200, 404, 500, etc.) */
+    int curl_code;          /**< Curl result code (CURLE_OK=0, errors>0) */
+} UploadCodes_t;
+
+/**
+ * @brief Upload operation status flags
+ */
+typedef struct {
+    bool upload_completed;  /**< Whether upload stage completed */
+    bool auth_success;      /**< Whether authentication succeeded */
+} UploadFlags_t;
+
+/**
+ * @brief Upload diagnostic information
+ */
+typedef struct {
+    char error_message[256]; /**< Human-readable error description */
+    char fqdn[256];         /**< Fully Qualified Domain Name (hostname) from upload URL */
+} UploadDiagnostics_t;
+
+/**
+ * @brief Complete upload result (composed of modular sub-structures)
+ */
+typedef struct {
+    int result_code;        /**< Overall result: 0=success, negative=failure */
+    UploadCodes_t codes;    /**< HTTP and CURL codes */
+    UploadFlags_t flags;    /**< Status flags */
+    UploadDiagnostics_t diag; /**< Error details and diagnostics */
+} UploadResult_t;
+
+/**
+ * @brief Detailed upload operation result (legacy structure for backward compatibility)
+ * @deprecated Use UploadResult_t for new code
  */
 typedef struct {
     int result_code;        /**< Overall result: 0=success, negative=failure */
@@ -44,12 +83,28 @@ typedef struct {
     char fqdn[256];         /**< Fully Qualified Domain Name (hostname) from upload URL */
 } UploadStatusDetail;
 
+/* ========================================================================
+ * Status Management Functions
+ * ======================================================================== */
+
 /**
- * @brief Initialize upload status structure
+ * @brief Initialize upload result structure (modular version)
+ * 
+ * @param result Pointer to UploadResult_t structure
+ */
+void init_upload_result(UploadResult_t* result);
+
+/**
+ * @brief Initialize upload status structure (legacy version)
  * 
  * @param status Pointer to UploadStatusDetail structure
+ * @deprecated Use init_upload_result for new code
  */
 void init_upload_status(UploadStatusDetail* status);
+
+/* ========================================================================
+ * Internal Thread-Local Status Tracking (Private API)
+ * ======================================================================== */
 
 /**
  * @brief Internal: Set status codes for capture by wrapper functions
@@ -100,18 +155,50 @@ void __uploadutil_set_md5(const char *md5);
  */
 const char* __uploadutil_get_md5(void);
 
+/* ========================================================================
+ * Enhanced Upload Functions (with detailed status)
+ * Note: Two-stage uploads should be handled separately by caller:
+ *   - Stage 1: performHttpMetadataPostEx (retried by caller)
+ *   - Stage 2: performS3PutUploadEx (single attempt with fallback)
+ * ======================================================================== */
+
 /**
- * @brief Enhanced mTLS upload with detailed status return
+ * @brief Enhanced HTTP metadata POST with detailed status (Stage 1)
  * 
+ * @param in_curl Initialized CURL handle
  * @param upload_url Upload endpoint URL
+ * @param filepath Local file path (used for filename parameter)
+ * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
+ * @param auth Optional mTLS authentication (can be NULL)
+ * @param ocsp_enabled Enable OCSP certificate validation
+ * @param status Pointer to structure to receive detailed status
+ * @return int Overall result code (0=success, negative=failure)
+ * 
+ * This function performs the metadata POST stage of a two-stage upload.
+ * Caller should retry this operation on failure (non-terminal errors).
+ * Result is saved to /tmp/httpresult.txt for subsequent S3 PUT stage.
+ */
+int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char *filepath,
+                               const char *extra_fields, MtlsAuth_t *auth, 
+                               bool ocsp_enabled, UploadStatusDetail* status);
+
+/**
+ * @brief Enhanced S3 PUT upload with detailed status (Stage 2)
+ * 
+ * @param upload_url S3 presigned URL
  * @param src_file Local file path to upload
+ * @param auth Optional mTLS authentication (can be NULL)
  * @param md5_base64 Optional MD5 hash (base64 encoded) for integrity check (can be NULL)
  * @param ocsp_enabled Enable OCSP certificate validation
  * @param status Pointer to structure to receive detailed status
  * @return int Overall result code (0=success, negative=failure)
+ * 
+ * This function performs the S3 PUT stage of a two-stage upload.
+ * Should be called once after successful metadata POST (no retry).
+ * Caller should handle proxy fallback separately if this fails.
  */
-int uploadFileWithTwoStageFlowEx(const char *upload_url, const char *src_file, 
-                                 const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
+int performS3PutUploadEx(const char *upload_url, const char *src_file, 
+                        MtlsAuth_t *auth, const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
 
 /**
  * @brief Enhanced CodeBig upload with detailed status return
@@ -125,20 +212,6 @@ int uploadFileWithTwoStageFlowEx(const char *upload_url, const char *src_file,
  */
 int uploadFileWithCodeBigFlowEx(const char *src_file, int server_type, 
                                 const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
-
-/**
- * @brief Enhanced S3 PUT upload with detailed status return
- * 
- * @param upload_url S3 presigned URL
- * @param src_file Local file path to upload
- * @param auth Optional mTLS authentication (can be NULL)
- * @param md5_base64 Optional MD5 hash (base64 encoded) for integrity check (can be NULL)
- * @param ocsp_enabled Enable OCSP certificate validation
- * @param status Pointer to structure to receive detailed status
- * @return int Overall result code (0=success, negative=failure)
- */
-int performS3PutUploadEx(const char *upload_url, const char *src_file, 
-                        MtlsAuth_t *auth, const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status);
 
 #ifdef __cplusplus
 }

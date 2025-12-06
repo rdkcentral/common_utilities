@@ -37,6 +37,10 @@
 extern "C" {
 #endif
 
+/* ========================================================================
+ * Status Codes and Enums
+ * ======================================================================== */
+
 /**
  * @brief Upload operation status codes
  */
@@ -44,6 +48,10 @@ typedef enum {
     UPLOAD_SUCCESS = 0,      /**< Upload completed successfully */
     UPLOAD_FAIL    = -1      /**< Upload failed */
 } UploadStatus;
+
+/* ========================================================================
+ * Data Structures - Content Metadata
+ * ======================================================================== */
 
 /**
  * @brief Optional hash headers for upload metadata
@@ -53,16 +61,24 @@ typedef struct {
     const char *hashtime;    /**< Timestamp header (e.g., "x-upload-time: <iso8601>") */
 } UploadHashData_t;
 
+/* ========================================================================
+ * Data Structures - Request Descriptors
+ * ======================================================================== */
+
 /**
  * @brief Upload request descriptor for metadata POST stage
  */
 typedef struct {
-    char *url;                /**< Target endpoint URL */
+    char *url;                      /**< Target endpoint URL */
     char *pathname;                 /**< Local file path (used for filename parameter) */
     char *pPostFields;              /**< Additional POST fields (optional) */
     int sslverify;                  /**< SSL peer verification (0=disabled, 1=enabled) */
     UploadHashData_t *hashData;     /**< Optional hash/timestamp headers */
 } FileUpload_t;
+
+/* ========================================================================
+ * Core Upload Functions
+ * ======================================================================== */
 
 /**
  * @brief Stop upload and free CURL resources

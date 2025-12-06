@@ -61,6 +61,43 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 #endif /* LIBRDKCERTSELECTOR */
 
 /**
+ * @brief Perform metadata POST with certificate rotation (Stage 1)
+ * @param curl Initialized CURL handle
+ * @param upload_url Target URL for metadata POST
+ * @param filepath Local file path (used for filename parameter)
+ * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
+ * @param pthisCertSel Certificate selector handle pointer
+ * @param sec_out Output parameter for successful mTLS credentials (use for Stage 2)
+ * @param http_code_out Output parameter for HTTP response code
+ * @return 0 on success (HTTP 200), -1 on failure
+ *
+ * Performs metadata POST with automatic certificate rotation:
+ * 1. Fetches certificate via getCertificateForUpload()
+ * 2. Performs metadata POST to obtain S3 presigned URL
+ * 3. On auth failure, rotates certificate and retries
+ * 4. Saves result to /tmp/httpresult.txt
+ * 5. On success, outputs the cert used (for Stage 2 PUT)
+ *
+ * This function should be called with retry logic by the caller.
+ */
+int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath,
+                                        const char *extra_fields, rdkcertselector_h *pthisCertSel,
+                                        MtlsAuth_t *sec_out, long *http_code_out);
+
+/**
+ * @brief Perform S3 PUT with same certificate (Stage 2)
+ * @param s3_url S3 presigned URL
+ * @param src_file Local file path to upload
+ * @param sec mTLS credentials from successful Stage 1
+ * @return 0 on success, -1 on failure
+ *
+ * Performs S3 PUT using the same certificate that succeeded in Stage 1.
+ * No certificate rotation - uses the cert from metadata POST.
+ * Caller should handle proxy fallback if this fails.
+ */
+int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *sec);
+
+/**
  * @brief Upload file using two-stage workflow with certificate rotation
  * @param upload_url Target URL for metadata POST
  * @param src_file Local file path to upload
@@ -75,6 +112,11 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
  *
  * Both POST and PUT stages use the same certificate per attempt.
  * Certificate rotation occurs only when an upload stage fails.
+ *
+ * @deprecated This function performs both stages in a single call, which does not
+ *             support retry logic on metadata POST only. Use performMetadataPostWithCertRotation
+ *             for Stage 1 (with retry) and performS3PutWithCert for Stage 2 (no retry).
+ *             This function is kept for backward compatibility only.
  */
 int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file);
 

@@ -130,6 +130,16 @@ static void extract_fqdn(const char *url, char *fqdn_out, size_t fqdn_size)
     }
 }
 
+void init_upload_result(UploadResult_t* result)
+{
+    if (!result) return;
+    
+    memset(result, 0, sizeof(UploadResult_t));
+    result->result_code = -1;
+    result->codes.curl_code = CURLE_FAILED_INIT;
+    // Other fields already zero'd by memset
+}
+
 void init_upload_status(UploadStatusDetail* status)
 {
     if (!status) return;
@@ -140,76 +150,86 @@ void init_upload_status(UploadStatusDetail* status)
     // error_message, http_code, upload_completed, auth_success, fqdn already zero'd by memset
 }
 
-int uploadFileWithTwoStageFlowEx(const char *upload_url, const char *src_file, 
-                                 const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status)
+int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char *filepath,
+                               const char *extra_fields, MtlsAuth_t *auth, 
+                               bool ocsp_enabled, UploadStatusDetail* status)
 {
     if (!status) {
-        return -1; // Can't report status
+        return -1;
     }
     
     init_upload_status(status);
     
-    if (!upload_url || !src_file) {
+    if (!in_curl || !upload_url || !filepath) {
         snprintf(status->error_message, sizeof(status->error_message), 
-                "Invalid parameters: upload_url=%p, src_file=%p", upload_url, src_file);
+                "Invalid parameters: curl=%p, url=%p, file=%p", in_curl, upload_url, filepath);
         return -1;
     }
     
     /* Extract FQDN from upload URL */
     extract_fqdn(upload_url, status->fqdn, sizeof(status->fqdn));
     
-    /* Set MD5 and OCSP flags for underlying functions */
-    __uploadutil_set_md5(md5_base64);
-    __uploadutil_set_ocsp(ocsp_enabled);
+    /* Prepare FileUpload_t structure */
+    FileUpload_t file_upload;
+    memset(&file_upload, 0, sizeof(FileUpload_t));
     
-    /* Call underlying function - it will set thread-local status */
-    int result = uploadFileWithTwoStageFlow(upload_url, src_file);
+    char url_buf[512];
+    char path_buf[256];
     
-    /* Capture real status codes from thread-local storage */
-    long http_code = 0;
-    int curl_code = CURLE_OK;
-    __uploadutil_get_status(&http_code, &curl_code);
+    strncpy(url_buf, upload_url, sizeof(url_buf) - 1);
+    strncpy(path_buf, filepath, sizeof(path_buf) - 1);
     
-    /* Capture FQDN if underlying function set it (may override URL-based extraction) */
-    char thread_fqdn[256];
-    __uploadutil_get_fqdn(thread_fqdn, sizeof(thread_fqdn));
-    if (thread_fqdn[0] != '\0') {
-        strncpy(status->fqdn, thread_fqdn, sizeof(status->fqdn) - 1);
-        status->fqdn[sizeof(status->fqdn) - 1] = '\0';
+    file_upload.url = url_buf;
+    file_upload.pathname = path_buf;
+    file_upload.sslverify = 1;
+    file_upload.hashData = NULL;
+    file_upload.pPostFields = (char*)extra_fields;  // Cast away const (API limitation)
+    
+    /* Apply OCSP if enabled */
+    if (ocsp_enabled) {
+        CURLcode ret = curl_easy_setopt(in_curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
+        if (ret != CURLE_OK) {
+            snprintf(status->error_message, sizeof(status->error_message), 
+                    "CURLOPT_SSL_VERIFYSTATUS failed: %s", curl_easy_strerror(ret));
+        }
     }
     
-    status->result_code = result;
-    status->http_code = http_code;
-    status->curl_code = curl_code;
+    /* Perform metadata POST */
+    long http_code = 0;
+    int curl_ret = performHttpMetadataPost(in_curl, &file_upload, auth, &http_code);
     
-    if (result == 0) {
+    status->result_code = curl_ret;
+    status->http_code = http_code;
+    status->curl_code = curl_ret;
+    
+    if (curl_ret == 0 && http_code == 200) {
         status->upload_completed = true;
         status->auth_success = true;
         snprintf(status->error_message, sizeof(status->error_message), 
-                "Upload successful (HTTP %ld)", http_code);
+                "Metadata POST successful (HTTP %ld)", http_code);
+        return 0;
     } else {
         status->upload_completed = false;
         
-        /* Determine failure type from HTTP/CURL codes */
-        if (curl_code != CURLE_OK) {
+        /* Determine failure type */
+        if (curl_ret != 0) {
             status->auth_success = false;
             snprintf(status->error_message, sizeof(status->error_message), 
-                    "CURL error: %d", curl_code);
+                    "CURL error: %d", curl_ret);
         } else if (http_code == 401 || http_code == 403) {
             status->auth_success = false;
             snprintf(status->error_message, sizeof(status->error_message), 
                     "Authentication failed (HTTP %ld)", http_code);
         } else if (http_code >= 400) {
-            status->auth_success = true; // Auth OK, but other error
+            status->auth_success = true;
             snprintf(status->error_message, sizeof(status->error_message), 
                     "HTTP error %ld", http_code);
         } else {
             snprintf(status->error_message, sizeof(status->error_message), 
-                    "Upload failed");
+                    "Metadata POST failed");
         }
+        return -1;
     }
-    
-    return result;
 }
 
 int uploadFileWithCodeBigFlowEx(const char *src_file, int server_type, 

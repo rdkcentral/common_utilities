@@ -72,11 +72,49 @@ extern int doCodeBigSigning(int server_type, const char* SignInput,
                             char *outhheader, size_t outHeaderSize);
 
 /**
+ * @brief Perform CodeBig metadata POST (Stage 1)
+ * 
+ * @param curl Initialized CURL handle
+ * @param filepath Local file path (used for filename parameter)
+ * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
+ * @param server_type CodeBig server type (HTTP_SSR_CODEBIG or HTTP_XCONF_CODEBIG)
+ * @param http_code_out Output parameter for HTTP response code
+ * @return 0 on success, -1 on failure
+ *
+ * Performs CodeBig-authorized metadata POST:
+ * 1. Gets signed URL and auth header from CodeBig service
+ * 2. Performs metadata POST to obtain S3 presigned URL
+ * 3. Saves result to /tmp/httpresult.txt
+ *
+ * This function should be called with retry logic by the caller.
+ */
+int performCodeBigMetadataPost(void *curl, const char *filepath, const char *extra_fields,
+                                int server_type, long *http_code_out);
+
+/**
+ * @brief Perform S3 PUT for CodeBig (Stage 2)
+ * 
+ * @param s3_url S3 presigned URL from Stage 1
+ * @param src_file Local file path to upload
+ * @return 0 on success, -1 on failure
+ *
+ * Performs S3 PUT using URL obtained from CodeBig metadata POST.
+ * No authorization needed - uses presigned URL.
+ * Caller should handle fallback if this fails.
+ */
+int performCodeBigS3Put(const char *s3_url, const char *src_file);
+
+/**
  * @brief Upload file using CodeBig workflow with authorization
  * 
  * @param src_file Local file path to upload
  * @param server_type CodeBig server type
  * @return 0 on success, negative value on failure
+ *
+ * @deprecated This function performs both stages in a single call, which does not
+ *             support retry logic on metadata POST only. Use performCodeBigMetadataPost
+ *             for Stage 1 (with retry) and performCodeBigS3Put for Stage 2 (no retry).
+ *             This function is kept for backward compatibility only.
  */
 int uploadFileWithCodeBigFlow(const char *src_file, int server_type);
 

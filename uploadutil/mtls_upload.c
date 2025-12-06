@@ -111,10 +111,110 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 }
 
 #endif
-/**
- * @brief Two-stage upload with certificate rotation
- */
+
 #ifdef LIBRDKCERTSELECTOR
+/**
+ * @brief Perform metadata POST with certificate rotation (Stage 1 - Public API)
+ */
+int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath,
+                                        const char *extra_fields, rdkcertselector_h *pthisCertSel,
+                                        MtlsAuth_t *sec_out, long *http_code_out)
+{
+    MtlsAuthStatus mtls_status;
+    MtlsAuth_t sec;
+    int curl_ret_code = -1;
+    long http_code = 0;
+
+    if (!curl || !upload_url || !filepath || !pthisCertSel || !sec_out || !http_code_out) {
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
+        return -1;
+    }
+
+    *http_code_out = 0;
+
+    /* Apply OCSP setting if enabled */
+    extern bool __uploadutil_get_ocsp(void);
+    if (__uploadutil_get_ocsp()) {
+        CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
+        if (ret != CURLE_OK) {
+            COMMONUTILITIES_ERROR("%s: CURLOPT_SSL_VERIFYSTATUS failed: %s\n",
+                                __FUNCTION__, curl_easy_strerror(ret));
+        }
+    }
+
+    /* Prepare FileUpload_t structure */
+    FileUpload_t file_upload;
+    memset(&file_upload, 0, sizeof(FileUpload_t));
+    
+    char urlbuf[URL_MAX];
+    char pathbuf[PATHNAME_MAX];
+    strncpy(urlbuf, upload_url, URL_MAX - 1);
+    urlbuf[URL_MAX - 1] = '\0';
+    strncpy(pathbuf, filepath, PATHNAME_MAX - 1);
+    pathbuf[PATHNAME_MAX - 1] = '\0';
+    
+    file_upload.url = urlbuf;
+    file_upload.pathname = pathbuf;
+    file_upload.sslverify = 1;
+    file_upload.hashData = NULL;
+    file_upload.pPostFields = (char*)extra_fields;
+
+    do {
+        memset(&sec, 0, sizeof(MtlsAuth_t));
+        http_code = 0;
+
+        /* Fetch certificate */
+        mtls_status = getCertificateForUpload(&sec, pthisCertSel);
+        if (mtls_status == MTLS_CERT_FETCH_FAILURE) {
+            COMMONUTILITIES_ERROR("%s: Certificate fetch failed\n", __FUNCTION__);
+            return -1;
+        }
+
+        /* Perform metadata POST with mTLS */
+        curl_ret_code = performHttpMetadataPost(curl, &file_upload, &sec, &http_code);
+        *http_code_out = http_code;
+
+        if (curl_ret_code == 0 && http_code >= 200 && http_code < 300) {
+            COMMONUTILITIES_INFO("%s: Metadata POST success (HTTP %ld)\n", __FUNCTION__, http_code);
+            /* Save the successful certificate for Stage 2 */
+            memcpy(sec_out, &sec, sizeof(MtlsAuth_t));
+            __uploadutil_set_status(http_code, curl_ret_code);
+            return 0;
+        }
+
+        COMMONUTILITIES_ERROR("%s: Metadata POST failed curl=%d http=%ld\n",
+                   __FUNCTION__, curl_ret_code, http_code);
+
+    } while (rdkcertselector_setCurlStatus(*pthisCertSel, curl_ret_code, upload_url) == TRY_ANOTHER);
+
+    __uploadutil_set_status(http_code, curl_ret_code);
+    return -1;
+}
+
+/**
+ * @brief Perform S3 PUT with provided certificate (Stage 2 - Public API)
+ */
+int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *sec)
+{
+    if (!s3_url || !src_file) {
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
+        return -1;
+    }
+
+    int result = performS3PutUpload(s3_url, src_file, sec);
+    
+    if (result == 0) {
+        COMMONUTILITIES_INFO("%s: S3 PUT success\n", __FUNCTION__);
+    } else {
+        COMMONUTILITIES_ERROR("%s: S3 PUT failed\n", __FUNCTION__);
+    }
+    
+    return result;
+}
+
+/**
+ * @brief Two-stage upload with certificate rotation (Internal helper)
+ */
 static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_upload,
                                                  const char *src_file, rdkcertselector_h *pthisCertSel,
                                                  const char *upload_url)
@@ -186,6 +286,9 @@ static int performTwoStageUploadWithCertRotation(void *curl, FileUpload_t *file_
 
 /**
  * @brief Upload file using two-stage workflow with certificate rotation
+ * @deprecated Use performHttpMetadataPostEx + performS3PutUploadEx for separate stage control.
+ *             This monolithic function does not support retry on metadata POST only.
+ *             Kept for backward compatibility with existing code.
  */
 int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
 {
