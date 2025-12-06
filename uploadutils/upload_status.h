@@ -165,7 +165,6 @@ const char* __uploadutil_get_md5(void);
 /**
  * @brief Enhanced HTTP metadata POST with detailed status (Stage 1)
  * 
- * @param in_curl Initialized CURL handle
  * @param upload_url Upload endpoint URL
  * @param filepath Local file path (used for filename parameter)
  * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
@@ -177,8 +176,9 @@ const char* __uploadutil_get_md5(void);
  * This function performs the metadata POST stage of a two-stage upload.
  * Caller should retry this operation on failure (non-terminal errors).
  * Result is saved to /tmp/httpresult.txt for subsequent S3 PUT stage.
+ * CURL handle is managed internally by this function.
  */
-int performHttpMetadataPostEx(void *in_curl, const char *upload_url, const char *filepath,
+int performHttpMetadataPostEx(const char *upload_url, const char *filepath,
                                const char *extra_fields, MtlsAuth_t *auth, 
                                bool ocsp_enabled, UploadStatusDetail* status);
 
