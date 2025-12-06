@@ -1,5 +1,5 @@
 # Copyright 2025 RDK Management
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -18,37 +18,63 @@
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS)
+AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS) -DLIBRDKCERTSELECTOR
 
 lib_LTLIBRARIES = libuploadutil.la
 libuploadutil_la_SOURCES = uploadUtil.c \
                            mtls_upload.c \
                            codebig_upload.c \
                            upload_status.c
+if USE_CPC_CODE
+libuploadutil_la_SOURCES += \
+    ${top_srcdir}/src/upload_util-cpc/upload_util/codebigUtils.c
+endif
 
-libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS)
+libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la 
 
 libuploadutil_la_include_HEADERS = uploadUtil.h \
                                    mtls_upload.h \
                                    codebig_upload.h \
                                    upload_status.h
 
-libuploadutil_la_CPPFLAGS = -I${top_srcdir}/dwnlutils
+libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
 libuploadutil_la_includedir = ${includedir}
 
-# Debug binary for testing
-bin_PROGRAMS = uploadutil_test
-
-uploadutil_test_SOURCES = main_upload_test.c \
-                          uploadUtil.c \
-                          mtls_upload.c \
-                          codebig_upload.c
-
-uploadutil_test_CPPFLAGS = -I${top_srcdir}/dwnlutils -I${top_srcdir}/utils
-uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)
-uploadutil_test_LDFLAGS = -L${top_builddir}/dwnlutils -L${top_builddir}/utils -lurlHelper -lrdk_fwdl_utils
+if USE_CPC_CODE
+libuploadutil_la_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
+endif
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
 AM_LDFLAGS = -lRdkCertSelector
 endif
+
+#bin_PROGRAMS = uploadutil_test
+
+#uploadutil_test_SOURCES = main_upload_test.c
+                        
+#uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils -DLIBRDKCERTSELECTOR
+#uploadutil_test_LDADD = -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+#uploadutil_test_LDADD += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la ${top_builddir}/uploadutils/libuploadutil.la
+
+
+
+# Debug binary for testing
+#bin_PROGRAMS = uploadutil_test
+
+#uploadutil_test_SOURCES = uploadUtil.c \
+#                          mtls_upload.c \
+#                          main_upload_test.c \
+#                          codebig_upload.c
+#if USE_CPC_CODE
+#uploadutil_test_SOURCES += \
+#    ${top_srcdir}/src/upload_util-cpc/upload_util/codebigUtils.c
+#endif
+
+#uploadutil_test_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/uploadutils  -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
+#if USE_CPC_CODE
+#uploadutil_test_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
+#endif
+#uploadutil_test_LDADD = -lrfcapi -lrdkloggers -lpthread $(curl_LIBS)  -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+#uploadutil_test_LDADD += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la
