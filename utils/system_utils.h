@@ -89,11 +89,4 @@ void  qsString(char *arr[], unsigned int length);
 int strRmDuplicate(char **in, int len);
 int isDataInList(char **pList,char *pData,int count);
 void getStringValueFromFile(char* path, char* strtokvalue, char* string, char* outValue);
-
-/**
- * @brief Get system uptime in seconds
- * @return Uptime in seconds, or -1 on error
- */
-long get_system_uptime(void);
-
 #endif /* VIDEO_UTILS_SYSTEM_UTILS_H_ */
