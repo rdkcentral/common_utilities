@@ -25,6 +25,7 @@
 #include "mtls_upload.h"
 #include "codebig_upload.h"
 #include "uploadUtil.h"
+#include "downloadUtil.h"
 #include <string.h>
 #include <stdio.h>
 #include <curl/curl.h>

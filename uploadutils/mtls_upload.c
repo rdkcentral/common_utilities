@@ -28,8 +28,10 @@
 
 #include "rdkv_cdl_log_wrapper.h"
 
-/* External status tracking for enhanced wrapper functions */
+/* External declarations for utility functions */
 extern void __uploadutil_set_status(long http_code, int curl_code);
+extern bool __uploadutil_get_ocsp(void);
+extern const char* __uploadutil_get_md5(void);
 
 #ifdef LIBRDKCERTSELECTOR
 #include "rdkcertselector.h"
@@ -133,7 +135,6 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     *http_code_out = 0;
 
     /* Apply OCSP setting if enabled */
-    extern bool __uploadutil_get_ocsp(void);
     if (__uploadutil_get_ocsp()) {
         CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
         if (ret != CURLE_OK) {
@@ -381,7 +382,6 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
     file_upload.hashData   = NULL;
     
     /* Set MD5 in POST fields if provided (matches script line 318) */
-    extern const char* __uploadutil_get_md5(void);
     const char *md5 = __uploadutil_get_md5();
     char postfields[256] = {0};
     if (md5) {
@@ -398,7 +398,6 @@ int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file)
     }
 
     /* Apply OCSP setting if enabled (matches script line 357) */
-    extern bool __uploadutil_get_ocsp(void);
     if (__uploadutil_get_ocsp()) {
         CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
         if (ret != CURLE_OK) {
