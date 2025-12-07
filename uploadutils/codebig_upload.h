@@ -104,20 +104,6 @@ int performCodeBigMetadataPost(void *curl, const char *filepath, const char *ext
  */
 int performCodeBigS3Put(const char *s3_url, const char *src_file);
 
-/**
- * @brief Upload file using CodeBig workflow with authorization
- * 
- * @param src_file Local file path to upload
- * @param server_type CodeBig server type
- * @return 0 on success, negative value on failure
- *
- * @deprecated This function performs both stages in a single call, which does not
- *             support retry logic on metadata POST only. Use performCodeBigMetadataPost
- *             for Stage 1 (with retry) and performCodeBigS3Put for Stage 2 (no retry).
- *             This function is kept for backward compatibility only.
- */
-int uploadFileWithCodeBigFlow(const char *src_file, int server_type);
-
 #ifdef __cplusplus
 }
 #endif

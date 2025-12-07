@@ -115,30 +115,6 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
                                           const char *extra_fields, MtlsAuth_t *sec_out,
                                           long *http_code_out);
 
-/**
- * @brief Upload file using two-stage workflow with certificate rotation
- * @param upload_url Target URL for metadata POST
- * @param src_file Local file path to upload
- * @return 0 on success, -1 on failure
- *
- * Implements two-stage upload with automatic certificate rotation:
- * 1. Fetches certificate via getCertificateForUpload()
- * 2. Performs metadata POST to obtain S3 presigned URL
- * 3. Performs S3 PUT to upload file content
- * 4. On failure, requests TRY_ANOTHER certificate and retries
- * 5. Continues until success or certificate exhaustion
- *
- * Both POST and PUT stages use the same certificate per attempt.
- * Certificate rotation occurs only when an upload stage fails.
- *
- * @deprecated This function performs both stages in a single call, which does not
- *             support retry logic on metadata POST only. Use performMetadataPostWithCertRotation
- *             for Stage 1 (with retry) and performS3PutWithCert for Stage 2 (no retry).
- *             This function is kept for backward compatibility only.
- */
-int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file);
-
-
 #ifdef __cplusplus
 }
 #endif
