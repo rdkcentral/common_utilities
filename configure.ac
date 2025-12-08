@@ -15,36 +15,93 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Initialize Autoconf
-AC_INIT([system_utils_gtest],[1.0])
-# Initialize Automake
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
-# Check for necessary headers
-AC_CHECK_HEADERS([jsoncpp/json/json.h gtest/gtest.h gmock/gmock.h])
-# Check for necessary libraries
-AC_CHECK_LIB([jsoncpp], [main])
-AC_CHECK_LIB([gtest], [main])
-AC_CHECK_LIB([gmock], [main])
+AC_PREREQ([2.65])
+AC_INIT([common_utilities], [1.0], [BUG-REPORT-ADDRESS])
+AM_INIT_AUTOMAKE([subdir-objects])
+#AM_INIT_AUTOMAKE([foreign])
+LT_INIT
+
+AC_PREFIX_DEFAULT(`pwd`)
+AC_ENABLE_SHARED
+AC_DISABLE_STATIC
+AC_PROG_AWK
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+
 # Checks for programs.
 AC_PROG_CXX
-# Checks for libraries.
-AC_CHECK_LIB([stdc++], [main])
+AC_PROG_CC
+AC_PROG_INSTALL
+AM_PROG_CC_C_O
+AM_PROG_LIBTOOL(libtool)
+
+TRACE_CFLAGS=" "
+TRACE_LIBS==" "
+
 # Checks for header files.
-m4_warn([obsolete],
-[The preprocessor macro 'STDC_HEADERS' is obsolete.
-  Except in unusual embedded environments, you can safely include all
-  ISO C90 headers unconditionally.])dnl
-# Autoupdate added the next two lines to ensure that your configure
-# script's behavior did not change.  They are probably safe to remove.
-AC_CHECK_INCLUDES_DEFAULT
-AC_PROG_EGREP
+AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
+AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([socket])
+AC_CHECK_HEADERS([arpa/inet.h])
+AC_CHECK_HEADERS([netinet/in.h])
+AC_CHECK_HEADERS([sys/ioctl.h])
+AC_CHECK_HEADERS([sys/socket.h])
+AC_CHECK_HEADERS([termio.h])
+AC_FUNC_MKTIME
+AC_PROG_RANLIB
+AC_TYPE_SIZE_T
+AC_TYPE_UINT32_T
+
+
+PKG_CHECK_MODULES([cjson], [libcjson >= 1.7.12])
+PKG_CHECK_MODULES([curl], [libcurl >= 7.60.0])
+IS_LIBRDKCERTSEL_ENABLED=" "
+
+AC_ARG_ENABLE([cpc-code],
+    [AS_HELP_STRING([--enable-cpc-code], [Enable CPC code support])],
+    [USE_CPC_CODE="$enableval"],
+    [USE_CPC_CODE=no])
+
+AM_CONDITIONAL([USE_CPC_CODE], [test "$USE_CPC_CODE" = "yes"])
+
+if test "$USE_CPC_CODE" = "yes"; then
+    AC_DEFINE([USE_CPC_CODE], [1], [Define to enable CPC CODE support])
+fi
+
+AC_ARG_ENABLE([rdkcertselector],
+        AS_HELP_STRING([--enable-rdkcertselector],[enables rdkcertselector replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCERTSEL_ENABLED=true
+                LIBRDKCERTSEL_FLAG=" -DLIBRDKCERTSELECTOR ";;
+           no)  IS_LIBRDKCERTSEL_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-rdkcertselector]) ;;
+           esac
+           ],
+        [echo "rdkcertselector is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCERTSEL_ENABLED], [test x$IS_LIBRDKCERTSEL_ENABLED = xtrue])
+AC_SUBST(LIBRDKCERTSEL_FLAG)
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
+AC_HEADER_STDBOOL
+AC_C_INLINE
+
 # Checks for library functions.
 AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-# Generate the Makefile
-AC_CONFIG_FILES([Makefile uploadutil/Makefile])
-# Generate the configure script
+
+AC_SUBST(TRACE_CFLAGS)
+AC_SUBST(TRACE_LIBS)
+AC_CONFIG_FILES([Makefile
+    dwnlutils/Makefile
+    utils/Makefile
+    parsejson/Makefile
+    uploadutils/Makefile
+    ])
+
+BUILD_BINS="false"
+AM_CONDITIONAL([build_parsejson_bins], [test "x$BUILD_BINS" = xtrue])
+
 AC_OUTPUT
