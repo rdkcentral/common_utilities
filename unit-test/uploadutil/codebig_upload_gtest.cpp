@@ -23,336 +23,833 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 extern "C" {
 #include "codebig_upload.h"
 #include "uploadUtil.h"
-#include <string.h>
-#include <stdio.h>
-
-// Function declarations for testing
-extern int doCodeBigSigningForUpload(int server_type, const char* src_file, 
-                                     char *signurl, size_t signurlsize, 
-                                     char *outhheader, size_t outHeaderSize);
-extern int doCodeBigSigning(int server_type, const char* SignInput, 
-                           char *signurl, size_t signurlsize, 
-                           char *outhheader, size_t outHeaderSize);
-extern int uploadWithCodeBig(const char* src_file, int server_type);
-
-// Mock functions for dependencies
-extern bool __uploadutil_get_ocsp(void);
-extern void __uploadutil_set_status(long http_code, int curl_code);
+#include "upload_status.h"
+#include <curl/curl.h>
 }
+
+// Undefine curl macros to allow mocking
+#undef curl_easy_setopt
 
 using ::testing::_;
 using ::testing::Return;
 using ::testing::DoAll;
 using ::testing::SetArgPointee;
+using ::testing::SetArrayArgument;
 using ::testing::StrEq;
-using ::testing::InSequence;
+using ::testing::NotNull;
+using ::testing::Invoke;
 using ::testing::StrictMock;
 
-// Mock class for CodeBig operations
+// ==================== Mock Classes ====================
+
+/**
+ * @brief Mock class for CodeBig signing operations
+ */
 class MockCodeBigOperations {
 public:
-    MOCK_METHOD(int, doCodeBigSigning, (int server_type, const char* SignInput, 
-                                       char *signurl, size_t signurlsize, 
-                                       char *outhheader, size_t outHeaderSize));
-    MOCK_METHOD(bool, __uploadutil_get_ocsp, ());
-    MOCK_METHOD(void, __uploadutil_set_status, (long http_code, int curl_code));
+    MOCK_METHOD(int, doCodeBigSigning, 
+                (int server_type, const char* SignInput, 
+                 char *signurl, size_t signurlsize, 
+                 char *outhheader, size_t outHeaderSize));
 };
 
-static MockCodeBigOperations* g_mock_codebig = nullptr;
+/**
+ * @brief Mock class for upload utility operations
+ */
+class MockUploadUtil {
+public:
+    MOCK_METHOD(int, performHttpMetadataPost,
+                (void *in_curl, FileUpload_t *pfile_upload,
+                 MtlsAuth_t *auth, long *out_httpCode));
+    MOCK_METHOD(int, performS3PutUpload,
+                (const char *s3url, const char *localfile, MtlsAuth_t *auth));
+};
 
-// Mock implementations
+/**
+ * @brief Mock class for CURL operations
+ */
+class MockCurlOperations {
+public:
+    MOCK_METHOD(CURLcode, curl_easy_setopt, (CURL *curl, CURLoption option, void* param));
+    MOCK_METHOD(const char*, curl_easy_strerror, (CURLcode errornum));
+};
+
+// Global mock pointers
+static MockCodeBigOperations* g_mock_codebig = nullptr;
+static MockUploadUtil* g_mock_upload_util = nullptr;
+static MockCurlOperations* g_mock_curl = nullptr;
+static bool g_ocsp_enabled = false;
+static char g_stored_fqdn[256] = {0};
+
+// ==================== Mock Implementations ====================
+
 extern "C" {
+    /**
+     * @brief Mock implementation of doCodeBigSigning
+     */
     int doCodeBigSigning(int server_type, const char* SignInput, 
                         char *signurl, size_t signurlsize, 
                         char *outhheader, size_t outHeaderSize) {
-        return g_mock_codebig ? g_mock_codebig->doCodeBigSigning(server_type, SignInput, signurl, signurlsize, outhheader, outHeaderSize) : -1;
+        if (g_mock_codebig) {
+            return g_mock_codebig->doCodeBigSigning(server_type, SignInput,
+                                                    signurl, signurlsize,
+                                                    outhheader, outHeaderSize);
+        }
+        return -1;
     }
-    
+
+    /**
+     * @brief Mock implementation of performHttpMetadataPost
+     */
+    int performHttpMetadataPost(void *in_curl,
+                                FileUpload_t *pfile_upload,
+                                MtlsAuth_t *auth,
+                                long *out_httpCode) {
+        if (g_mock_upload_util) {
+            return g_mock_upload_util->performHttpMetadataPost(in_curl, pfile_upload,
+                                                               auth, out_httpCode);
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Mock implementation of performS3PutUpload
+     */
+    int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *auth) {
+        if (g_mock_upload_util) {
+            return g_mock_upload_util->performS3PutUpload(s3url, localfile, auth);
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Mock implementation of __uploadutil_get_ocsp
+     */
     bool __uploadutil_get_ocsp(void) {
-        return g_mock_codebig ? g_mock_codebig->__uploadutil_get_ocsp() : false;
+        return g_ocsp_enabled;
     }
-    
+
+    /**
+     * @brief Mock implementation of __uploadutil_set_status
+     */
     void __uploadutil_set_status(long http_code, int curl_code) {
-        if (g_mock_codebig) g_mock_codebig->__uploadutil_set_status(http_code, curl_code);
+        // Track status for verification if needed
+    }
+
+    /**
+     * @brief Mock implementation of __uploadutil_set_fqdn
+     */
+    void __uploadutil_set_fqdn(const char *fqdn) {
+        if (fqdn) {
+            strncpy(g_stored_fqdn, fqdn, sizeof(g_stored_fqdn) - 1);
+            g_stored_fqdn[sizeof(g_stored_fqdn) - 1] = '\0';
+        }
+    }
+
+    /**
+     * @brief Mock implementation of curl_easy_setopt (for OCSP testing)
+     */
+    CURLcode curl_easy_setopt(CURL *curl, CURLoption option, ...) {
+        if (g_mock_curl) {
+            va_list args;
+            va_start(args, option);
+            void* param = va_arg(args, void*);
+            va_end(args);
+            return g_mock_curl->curl_easy_setopt(curl, option, param);
+        }
+        return CURLE_OK;
+    }
+
+    /**
+     * @brief Mock implementation of curl_easy_strerror
+     */
+    const char* curl_easy_strerror(CURLcode errornum) {
+        if (g_mock_curl) {
+            return g_mock_curl->curl_easy_strerror(errornum);
+        }
+        return "Mock error";
     }
 }
+
+// ==================== Test Fixture ====================
 
 class CodeBigUploadTest : public ::testing::Test {
 protected:
     void SetUp() override {
         g_mock_codebig = &mock_codebig;
-        
-        // Setup test data
-        test_src_file = "/tmp/test.log";
+        g_mock_upload_util = &mock_upload_util;
+        g_mock_curl = &mock_curl;
+        g_ocsp_enabled = false;
+        memset(g_stored_fqdn, 0, sizeof(g_stored_fqdn));
+
+        // Common test data
         test_server_type_ssr = HTTP_SSR_CODEBIG;
         test_server_type_xconf = HTTP_XCONF_CODEBIG;
-        test_invalid_server_type = HTTP_UNKNOWN;
+        test_src_file = "/tmp/test_upload.log";
+        test_codebig_url = "https://codebig.comcast.com/upload?token=xyz123";
+        test_auth_header = "Authorization: Bearer abc123";
+        test_s3_url = "https://s3.amazonaws.com/bucket/key?signature=xyz";
         
-        memset(signurl_buffer, 0, sizeof(signurl_buffer));
-        memset(header_buffer, 0, sizeof(header_buffer));
+        mock_curl_handle = (CURL*)0x12345;
     }
-    
+
     void TearDown() override {
         g_mock_codebig = nullptr;
+        g_mock_upload_util = nullptr;
+        g_mock_curl = nullptr;
+        g_ocsp_enabled = false;
     }
-    
+
     StrictMock<MockCodeBigOperations> mock_codebig;
-    
-    const char* test_src_file;
+    StrictMock<MockUploadUtil> mock_upload_util;
+    StrictMock<MockCurlOperations> mock_curl;
+
+    // Test data
     int test_server_type_ssr;
     int test_server_type_xconf;
-    int test_invalid_server_type;
-    char signurl_buffer[MAX_CODEBIG_URL];
-    char header_buffer[MAX_HEADER_LEN];
+    const char* test_src_file;
+    const char* test_codebig_url;
+    const char* test_auth_header;
+    const char* test_s3_url;
+    CURL* mock_curl_handle;
 };
 
-// ==================== doCodeBigSigningForUpload TESTS ====================
+// ==================== doCodeBigSigningForUpload Tests ====================
 
 TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_Success_SSRCodeBig) {
-    const char* expected_url = "https://codebig.example.com/upload?signature=abc123";
-    const char* expected_header = "Authorization: Bearer token123";
-    
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
+
     EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(test_src_file), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
         .WillOnce(DoAll(
-            [expected_url, expected_header](int server_type, const char* SignInput,
-                                          char *signurl, size_t signurlsize,
-                                          char *outhheader, size_t outHeaderSize) {
-                strncpy(signurl, expected_url, signurlsize - 1);
-                strncpy(outhheader, expected_header, outHeaderSize - 1);
-                return 0;
-            }));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+                signurl[signurlsize - 1] = '\0';
+                strncpy(outhheader, test_auth_header, outHeaderSize - 1);
+                outhheader[outHeaderSize - 1] = '\0';
+            }),
+            Return(0)
+        ));
+
+    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
     EXPECT_EQ(0, result);
 }
 
 TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_Success_XconfCodeBig) {
-    const char* expected_url = "https://xconf-codebig.example.com/upload";
-    const char* expected_header = "X-Auth: secret456";
-    
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
+
     EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_xconf, StrEq(test_src_file), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
         .WillOnce(DoAll(
-            [expected_url, expected_header](int server_type, const char* SignInput,
-                                          char *signurl, size_t signurlsize,
-                                          char *outhheader, size_t outHeaderSize) {
-                strncpy(signurl, expected_url, signurlsize - 1);
-                strncpy(outhheader, expected_header, outHeaderSize - 1);
-                return 0;
-            }));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_xconf, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+                signurl[signurlsize - 1] = '\0';
+                strncpy(outhheader, test_auth_header, outHeaderSize - 1);
+                outhheader[outHeaderSize - 1] = '\0';
+            }),
+            Return(0)
+        ));
+
+    int result = doCodeBigSigningForUpload(test_server_type_xconf, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
     EXPECT_EQ(0, result);
 }
 
-TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidParameters) {
-    // Test null src_file
-    EXPECT_EQ(-1, doCodeBigSigningForUpload(test_server_type_ssr, nullptr, 
-                                           signurl_buffer, sizeof(signurl_buffer),
-                                           header_buffer, sizeof(header_buffer)));
-    
-    // Test null signurl
-    EXPECT_EQ(-1, doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                           nullptr, sizeof(signurl_buffer),
-                                           header_buffer, sizeof(header_buffer)));
-    
-    // Test null outhheader
-    EXPECT_EQ(-1, doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                           signurl_buffer, sizeof(signurl_buffer),
-                                           nullptr, sizeof(header_buffer)));
-}
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidParameters_NullSrcFile) {
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
 
-TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidServerType) {
-    // Test with HTTP_UNKNOWN server type
-    int result = doCodeBigSigningForUpload(test_invalid_server_type, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+    int result = doCodeBigSigningForUpload(test_server_type_ssr, nullptr, 
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
     EXPECT_EQ(-1, result);
 }
 
-TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_DirectServerTypes_Invalid) {
-    // Test with HTTP_SSR_DIRECT (should be invalid for CodeBig)
-    int result = doCodeBigSigningForUpload(HTTP_SSR_DIRECT, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidParameters_NullSignUrl) {
+    char auth_header[MAX_HEADER_LEN];
+
+    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
+                                           nullptr, MAX_CODEBIG_URL,
+                                           auth_header, sizeof(auth_header));
+
     EXPECT_EQ(-1, result);
-    
-    // Test with HTTP_XCONF_DIRECT (should be invalid for CodeBig)
-    result = doCodeBigSigningForUpload(HTTP_XCONF_DIRECT, test_src_file, 
-                                      signurl_buffer, sizeof(signurl_buffer),
-                                      header_buffer, sizeof(header_buffer));
-    
+}
+
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidParameters_NullAuthHeader) {
+    char signurl[MAX_CODEBIG_URL];
+
+    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
+                                           signurl, sizeof(signurl),
+                                           nullptr, MAX_HEADER_LEN);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidServerType_Direct) {
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
+
+    // HTTP_SSR_DIRECT is not a valid CodeBig server type
+    int result = doCodeBigSigningForUpload(HTTP_SSR_DIRECT, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidServerType_XconfDirect) {
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
+
+    // HTTP_XCONF_DIRECT is not a valid CodeBig server type
+    int result = doCodeBigSigningForUpload(HTTP_XCONF_DIRECT, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_InvalidServerType_Unknown) {
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
+
+    int result = doCodeBigSigningForUpload(HTTP_UNKNOWN, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
     EXPECT_EQ(-1, result);
 }
 
 TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_SigningFailure) {
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
+
     EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(test_src_file), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
-        .WillOnce(Return(-1));  // Simulate signing failure
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(Return(-1));
+
+    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
     EXPECT_EQ(-1, result);
 }
 
-// ==================== UPLOAD WORKFLOW TESTS ====================
+TEST_F(CodeBigUploadTest, doCodeBigSigningForUpload_SigningNonZeroError) {
+    char signurl[MAX_CODEBIG_URL];
+    char auth_header[MAX_HEADER_LEN];
 
-TEST_F(CodeBigUploadTest, CodeBigSigningWorkflow_BufferSizes) {
-    const char* long_url = "https://very-long-codebig-url.example.com/upload/with/very/long/path/and/many/query/parameters?signature=verylongsignaturevaluethatmightexceedbuffers&timestamp=123456789&additional=data";
-    const char* long_header = "Authorization: Bearer verylongbearertokenvaluethatmightexceedbufferverylongbearertokenvaluethatmightexceedbufferverylongbearertokenvaluethatmightexceedbufferverylongbearertokenvaluethatmightexceedbuffer";
-    
     EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(test_src_file), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(Return(5)); // Non-zero error code
+
+    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file,
+                                           signurl, sizeof(signurl),
+                                           auth_header, sizeof(auth_header));
+
+    EXPECT_EQ(-1, result);
+}
+
+// ==================== performCodeBigMetadataPost Tests ====================
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_Success_NoExtraFields) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    // Setup CodeBig signing mock
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
         .WillOnce(DoAll(
-            [long_url, long_header](int server_type, const char* SignInput,
-                                   char *signurl, size_t signurlsize,
-                                   char *outhheader, size_t outHeaderSize) {
-                // Test that buffers can handle long values
-                strncpy(signurl, long_url, signurlsize - 1);
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
                 signurl[signurlsize - 1] = '\0';
-                strncpy(outhheader, long_header, outHeaderSize - 1);
+                strncpy(outhheader, test_auth_header, outHeaderSize - 1);
                 outhheader[outHeaderSize - 1] = '\0';
-                return 0;
-            }));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
-    EXPECT_EQ(0, result);
-    // Verify strings are properly terminated
-    EXPECT_EQ('\0', signurl_buffer[sizeof(signurl_buffer) - 1]);
-    EXPECT_EQ('\0', header_buffer[sizeof(header_buffer) - 1]);
-}
+            }),
+            Return(0)
+        ));
 
-TEST_F(CodeBigUploadTest, CodeBigSigningWorkflow_EmptyResponses) {
-    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(test_src_file), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
+    // Setup performHttpMetadataPost mock
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
         .WillOnce(DoAll(
-            [](int server_type, const char* SignInput,
-               char *signurl, size_t signurlsize,
-               char *outhheader, size_t outHeaderSize) {
-                // Return empty strings
-                signurl[0] = '\0';
-                outhheader[0] = '\0';
-                return 0;
-            }));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
     EXPECT_EQ(0, result);
-    EXPECT_STREQ("", signurl_buffer);
-    EXPECT_STREQ("", header_buffer);
+    EXPECT_EQ(200L, http_code_out);
 }
 
-// ==================== SERVER TYPE VALIDATION TESTS ====================
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_Success_WithExtraFields) {
+    const char* filepath = "/tmp/test.log";
+    const char* extra_fields = "md5=abc123&size=1024";
+    long http_code_out = 0;
 
-TEST_F(CodeBigUploadTest, ValidateServerTypes_CodeBigConstants) {
-    // Verify CodeBig server type constants are properly defined
-    EXPECT_EQ(1, HTTP_SSR_CODEBIG);
-    EXPECT_EQ(3, HTTP_XCONF_CODEBIG);
-    EXPECT_EQ(0, HTTP_SSR_DIRECT);
-    EXPECT_EQ(2, HTTP_XCONF_DIRECT);
-    EXPECT_EQ(5, HTTP_UNKNOWN);
-}
-
-TEST_F(CodeBigUploadTest, ValidateBufferSizes_Constants) {
-    // Verify buffer size constants are appropriate
-    EXPECT_EQ(512, MAX_HEADER_LEN);
-    EXPECT_EQ(1024, MAX_CODEBIG_URL);
-    
-    // Verify our test buffers match the constants
-    EXPECT_EQ(MAX_CODEBIG_URL, sizeof(signurl_buffer));
-    EXPECT_EQ(MAX_HEADER_LEN, sizeof(header_buffer));
-}
-
-// ==================== ERROR HANDLING TESTS ====================
-
-TEST_F(CodeBigUploadTest, ErrorHandling_ZeroBufferSizes) {
-    // Test with zero buffer sizes
-    char small_buffer[1];
-    
-    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(test_src_file), 
-                                              _, 1, _, 1))
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_xconf, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
         .WillOnce(DoAll(
-            [](int server_type, const char* SignInput,
-               char *signurl, size_t signurlsize,
-               char *outhheader, size_t outHeaderSize) {
-                // Even with size 1, should null-terminate
-                if (signurlsize > 0) signurl[0] = '\0';
-                if (outHeaderSize > 0) outhheader[0] = '\0';
-                return 0;
-            }));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                          small_buffer, 1,
-                                          small_buffer, 1);
-    
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+                signurl[signurlsize - 1] = '\0';
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(201L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, extra_fields,
+                                            test_server_type_xconf, &http_code_out);
+
     EXPECT_EQ(0, result);
+    EXPECT_EQ(201L, http_code_out);
 }
 
-TEST_F(CodeBigUploadTest, ErrorHandling_SpecialCharactersInFilename) {
-    const char* special_filename = "/tmp/test file with spaces & symbols!@#$.log";
-    
-    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(special_filename), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_InvalidParameters_NullCurl) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    int result = performCodeBigMetadataPost(nullptr, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_InvalidParameters_NullFilepath) {
+    long http_code_out = 0;
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, nullptr, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_InvalidParameters_NullHttpCodeOut) {
+    const char* filepath = "/tmp/test.log";
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, nullptr);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_InvalidServerType) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    // Invalid server type - should fail before calling any mocks
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            HTTP_SSR_DIRECT, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_SigningFailure) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(Return(-1));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_HttpPostFailure_CurlError) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(0L),
+            Return(CURLE_COULDNT_CONNECT)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+    EXPECT_EQ(0L, http_code_out);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_HttpPostFailure_HttpError) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(404L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+    EXPECT_EQ(404L, http_code_out);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_HttpPostFailure_ServerError) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(500L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(-1, result);
+    EXPECT_EQ(500L, http_code_out);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_SuccessWithOCSP) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+    g_ocsp_enabled = true;
+
+    // Expect OCSP setopt call
+    EXPECT_CALL(mock_curl, curl_easy_setopt(mock_curl_handle, CURLOPT_SSL_VERIFYSTATUS, _))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(0, result);
+    EXPECT_EQ(200L, http_code_out);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_OCSPSetoptFailure) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+    g_ocsp_enabled = true;
+
+    // Expect OCSP setopt call to fail (should still continue)
+    EXPECT_CALL(mock_curl, curl_easy_setopt(mock_curl_handle, CURLOPT_SSL_VERIFYSTATUS, _))
+        .WillOnce(Return(CURLE_UNSUPPORTED_PROTOCOL));
+    EXPECT_CALL(mock_curl, curl_easy_strerror(CURLE_UNSUPPORTED_PROTOCOL))
+        .WillOnce(Return("Unsupported protocol"));
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    // Should still succeed despite OCSP failure
+    EXPECT_EQ(0, result);
+    EXPECT_EQ(200L, http_code_out);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_FQDNExtraction_HTTPS) {
+    const char* filepath = "/tmp/test.log";
+    const char* codebig_url_https = "https://codebig.xfinity.com:443/upload?token=xyz";
+    long http_code_out = 0;
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([codebig_url_https](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, codebig_url_https, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(0, result);
+    EXPECT_STREQ("codebig.xfinity.com", g_stored_fqdn);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigMetadataPost_FQDNExtraction_HTTP) {
+    const char* filepath = "/tmp/test.log";
+    const char* codebig_url_http = "http://test.example.com/path";
+    long http_code_out = 0;
+
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([codebig_url_http](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, codebig_url_http, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                            test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(0, result);
+    EXPECT_STREQ("test.example.com", g_stored_fqdn);
+}
+
+// ==================== performCodeBigS3Put Tests ====================
+
+TEST_F(CodeBigUploadTest, performCodeBigS3Put_Success) {
+    EXPECT_CALL(mock_upload_util, performS3PutUpload(StrEq(test_s3_url),
+                                                      StrEq(test_src_file),
+                                                      nullptr))
         .WillOnce(Return(0));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, special_filename, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
+
+    int result = performCodeBigS3Put(test_s3_url, test_src_file);
+
     EXPECT_EQ(0, result);
 }
 
-// ==================== INTEGRATION TESTS ====================
+TEST_F(CodeBigUploadTest, performCodeBigS3Put_Failure) {
+    EXPECT_CALL(mock_upload_util, performS3PutUpload(StrEq(test_s3_url),
+                                                      StrEq(test_src_file),
+                                                      nullptr))
+        .WillOnce(Return(-1));
 
-TEST_F(CodeBigUploadTest, Integration_FullCodeBigWorkflow) {
-    // This test simulates a complete CodeBig upload workflow
-    const char* codebig_url = "https://codebig-upload.example.com/api/v1/upload?token=abc123";
-    const char* auth_header = "Authorization: CodeBig signature=def456";
-    
-    InSequence workflow;
-    
-    // 1. CodeBig signing
-    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(test_src_file), 
-                                              _, MAX_CODEBIG_URL, _, MAX_HEADER_LEN))
+    int result = performCodeBigS3Put(test_s3_url, test_src_file);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigS3Put_InvalidParameters_NullS3Url) {
+    int result = performCodeBigS3Put(nullptr, test_src_file);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigS3Put_InvalidParameters_NullSrcFile) {
+    int result = performCodeBigS3Put(test_s3_url, nullptr);
+
+    EXPECT_EQ(-1, result);
+}
+
+TEST_F(CodeBigUploadTest, performCodeBigS3Put_InvalidParameters_BothNull) {
+    int result = performCodeBigS3Put(nullptr, nullptr);
+
+    EXPECT_EQ(-1, result);
+}
+
+// ==================== Integration/Workflow Tests ====================
+
+TEST_F(CodeBigUploadTest, TwoStageUpload_CompleteWorkflow) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    // Stage 1: Metadata POST
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
         .WillOnce(DoAll(
-            [codebig_url, auth_header](int server_type, const char* SignInput,
-                                      char *signurl, size_t signurlsize,
-                                      char *outhheader, size_t outHeaderSize) {
-                strncpy(signurl, codebig_url, signurlsize - 1);
-                strncpy(outhheader, auth_header, outHeaderSize - 1);
-                return 0;
-            }));
-    
-    int result = doCodeBigSigningForUpload(test_server_type_ssr, test_src_file, 
-                                          signurl_buffer, sizeof(signurl_buffer),
-                                          header_buffer, sizeof(header_buffer));
-    
-    EXPECT_EQ(0, result);
-    EXPECT_STREQ(codebig_url, signurl_buffer);
-    EXPECT_STREQ(auth_header, header_buffer);
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result_stage1 = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                                    test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(0, result_stage1);
+    EXPECT_EQ(200L, http_code_out);
+
+    // Stage 2: S3 PUT
+    EXPECT_CALL(mock_upload_util, performS3PutUpload(StrEq(test_s3_url),
+                                                      StrEq(filepath),
+                                                      nullptr))
+        .WillOnce(Return(0));
+
+    int result_stage2 = performCodeBigS3Put(test_s3_url, filepath);
+
+    EXPECT_EQ(0, result_stage2);
 }
 
-int main(int argc, char** argv) {
+TEST_F(CodeBigUploadTest, TwoStageUpload_Stage1Success_Stage2Failure) {
+    const char* filepath = "/tmp/test.log";
+    long http_code_out = 0;
+
+    // Stage 1: Success
+    EXPECT_CALL(mock_codebig, doCodeBigSigning(test_server_type_ssr, StrEq(filepath),
+                                                NotNull(), MAX_CODEBIG_URL,
+                                                NotNull(), MAX_HEADER_LEN))
+        .WillOnce(DoAll(
+            Invoke([this](int server_type, const char* SignInput, 
+                         char *signurl, size_t signurlsize, 
+                         char *outhheader, size_t outHeaderSize) {
+                strncpy(signurl, test_codebig_url, signurlsize - 1);
+            }),
+            Return(0)
+        ));
+
+    EXPECT_CALL(mock_upload_util, performHttpMetadataPost(mock_curl_handle, NotNull(),
+                                                           nullptr, NotNull()))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(200L),
+            Return(0)
+        ));
+
+    int result_stage1 = performCodeBigMetadataPost(mock_curl_handle, filepath, nullptr,
+                                                    test_server_type_ssr, &http_code_out);
+
+    EXPECT_EQ(0, result_stage1);
+
+    // Stage 2: Failure
+    EXPECT_CALL(mock_upload_util, performS3PutUpload(StrEq(test_s3_url),
+                                                      StrEq(filepath),
+                                                      nullptr))
+        .WillOnce(Return(-1));
+
+    int result_stage2 = performCodeBigS3Put(test_s3_url, filepath);
+
+    EXPECT_EQ(-1, result_stage2);
+}
+
+// ==================== Main ====================
+
+int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+

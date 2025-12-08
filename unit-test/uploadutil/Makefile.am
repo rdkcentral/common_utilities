@@ -21,22 +21,22 @@ AUTOMAKE_OPTIONS = subdir-objects
 bin_PROGRAMS = uploadUtil_gtest upload_status_gtest codebig_upload_gtest mtls_upload_gtest
 
 # Define the include directories
-COMMON_CPPFLAGS = -std=c++11 -I/usr/include/cjson -I../../utils -I../../mocks -I../../uploadutil -I../../dwnlutils -I../../parsejson -DGTEST_ENABLE
+COMMON_CPPFLAGS = -std=c++11 -I/usr/include/cjson -I../../utils -I../../mocks -I../../uploadutils -I../../dwnlutils -I../../parsejson -DGTEST_ENABLE -DLIBRDKCERTSELECTOR
 
 # Define the libraries to link against
-COMMON_LDADD = -lcjson -lgcov -lcurl -lgtest -lgtest_main -lgmock_main -lgmock
+COMMON_LDADD = -lcjson -lgcov -lcurl -lgtest -lgtest_main -lgmock_main -lgmock -lfwutils -ldwnlutil
 
 # Define the compiler flags
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage -fpermissive
 
 # Define the source files
-uploadUtil_gtest_SOURCES = uploadUtil_gtest.cpp ../../uploadutil/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c
+uploadUtil_gtest_SOURCES = uploadUtil_gtest.cpp ../../uploadutils/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c
 
-upload_status_gtest_SOURCES = upload_status_gtest.cpp ../../uploadutil/upload_status.c ../../utils/rdkv_cdl_log_wrapper.c
+upload_status_gtest_SOURCES = upload_status_gtest.cpp ../../uploadutils/upload_status.c ../../utils/rdkv_cdl_log_wrapper.c
 
-codebig_upload_gtest_SOURCES = codebig_upload_gtest.cpp ../../uploadutil/codebig_upload.c ../../utils/rdkv_cdl_log_wrapper.c
+codebig_upload_gtest_SOURCES = codebig_upload_gtest.cpp ../../uploadutils/codebig_upload.c ../../utils/rdkv_cdl_log_wrapper.c
 
-mtls_upload_gtest_SOURCES = mtls_upload_gtest.cpp ../../uploadutil/mtls_upload.c ../../uploadutil/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c ../../dwnlutils/downloadUtil.c ../../dwnlutils/urlHelper.c
+mtls_upload_gtest_SOURCES = mtls_upload_gtest.cpp ../../uploadutils/mtls_upload.c  ../../utils/rdkv_cdl_log_wrapper.c 
 
 # Apply common properties to each program
 uploadUtil_gtest_CPPFLAGS = $(COMMON_CPPFLAGS)
