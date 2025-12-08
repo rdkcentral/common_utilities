@@ -61,23 +61,59 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 #endif /* LIBRDKCERTSELECTOR */
 
 /**
- * @brief Upload file using two-stage workflow with certificate rotation
+ * @brief Perform metadata POST with certificate rotation (Stage 1)
+ * @param curl Initialized CURL handle
  * @param upload_url Target URL for metadata POST
- * @param src_file Local file path to upload
- * @return 0 on success, -1 on failure
+ * @param filepath Local file path (used for filename parameter)
+ * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
+ * @param pthisCertSel Certificate selector handle pointer
+ * @param sec_out Output parameter for successful mTLS credentials (use for Stage 2)
+ * @param http_code_out Output parameter for HTTP response code
+ * @return 0 on success (HTTP 200), -1 on failure
  *
- * Implements two-stage upload with automatic certificate rotation:
+ * Performs metadata POST with automatic certificate rotation:
  * 1. Fetches certificate via getCertificateForUpload()
  * 2. Performs metadata POST to obtain S3 presigned URL
- * 3. Performs S3 PUT to upload file content
- * 4. On failure, requests TRY_ANOTHER certificate and retries
- * 5. Continues until success or certificate exhaustion
+ * 3. On auth failure, rotates certificate and retries
+ * 4. Saves result to /tmp/httpresult.txt
+ * 5. On success, outputs the cert used (for Stage 2 PUT)
  *
- * Both POST and PUT stages use the same certificate per attempt.
- * Certificate rotation occurs only when an upload stage fails.
+ * This function should be called with retry logic by the caller.
  */
-int uploadFileWithTwoStageFlow(const char *upload_url, const char *src_file);
+int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath,
+                                        const char *extra_fields, rdkcertselector_h *pthisCertSel,
+                                        MtlsAuth_t *sec_out, long *http_code_out);
 
+/**
+ * @brief Perform S3 PUT with same certificate (Stage 2)
+ * @param s3_url S3 presigned URL
+ * @param src_file Local file path to upload
+ * @param sec mTLS credentials from successful Stage 1
+ * @return 0 on success, -1 on failure
+ *
+ * Performs S3 PUT using the same certificate that succeeded in Stage 1.
+ * No certificate rotation - uses the cert from metadata POST.
+ * Caller should handle proxy fallback if this fails.
+ */
+int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *sec);
+
+/**
+ * @brief Perform metadata POST with certificate rotation - simplified API
+ * @param upload_url Target URL for metadata POST
+ * @param filepath Local file path (used for filename parameter)
+ * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
+ * @param sec_out Output parameter for successful mTLS credentials (use for Stage 2)
+ * @param http_code_out Output parameter for HTTP response code
+ * @return 0 on success (HTTP 200), -1 on failure
+ *
+ * Simplified wrapper that manages curl and certificate selector internally.
+ * Certificate selector persists across calls for rotation state management.
+ * Uses __uploadutil_get_ocsp() for OCSP settings.
+ * This function should be called with retry logic by the caller.
+ */
+int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath,
+                                          const char *extra_fields, MtlsAuth_t *sec_out,
+                                          long *http_code_out);
 
 #ifdef __cplusplus
 }

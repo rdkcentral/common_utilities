@@ -76,40 +76,48 @@ int doCodeBigSigningForUpload(int server_type, const char* src_file,
 }
 
 /**
- * @brief CodeBig upload with authorization
+ * @brief Perform CodeBig metadata POST (Stage 1 - Public API)
  */
-static int performCodeBigUpload(void *curl, FileUpload_t *file_upload,
-                                const char *src_file, int server_type)
+int performCodeBigMetadataPost(void *curl, const char *filepath, const char *extra_fields,
+                                int server_type, long *http_code_out)
 {
     int curl_ret_code = -1;
     long http_code = 0;
     char codebig_url[MAX_CODEBIG_URL] = {0};
     char auth_header[MAX_HEADER_LEN] = {0};
 
-    if (!curl || !file_upload || !src_file) {
+    if (!curl || !filepath || !http_code_out) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
-    
-    /* Apply OCSP setting if enabled (matches script line 322) */
+
+    *http_code_out = 0;
+
+    /* Validate server type */
+    if (server_type != HTTP_SSR_CODEBIG && server_type != HTTP_XCONF_CODEBIG) {
+        COMMONUTILITIES_ERROR("%s: Invalid CodeBig server type: %d\n", __FUNCTION__, server_type);
+        return -1;
+    }
+
+    /* Apply OCSP setting if enabled */
     extern bool __uploadutil_get_ocsp(void);
     if (__uploadutil_get_ocsp()) {
         CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
         if (ret != CURLE_OK) {
-            COMMONUTILITIES_ERROR("%s: CURLOPT_SSL_VERIFYSTATUS failed: %s\n", 
+            COMMONUTILITIES_ERROR("%s: CURLOPT_SSL_VERIFYSTATUS failed: %s\n",
                                 __FUNCTION__, curl_easy_strerror(ret));
         }
     }
-    
+
     /* Step 1: Get CodeBig signed URL and authorization header */
-    if (doCodeBigSigningForUpload(server_type, src_file, codebig_url, 
+    if (doCodeBigSigningForUpload(server_type, filepath, codebig_url,
                                   sizeof(codebig_url), auth_header, sizeof(auth_header)) != 0) {
         COMMONUTILITIES_ERROR("%s: CodeBig signing failed\n", __FUNCTION__);
         return -1;
     }
-    
+
     COMMONUTILITIES_INFO("%s: CodeBig URL: %s\n", __FUNCTION__, codebig_url);
-    
+
     /* Extract and store FQDN from CodeBig URL */
     char fqdn[256] = {0};
     const char *hostname_start = strstr(codebig_url, "://");
@@ -126,97 +134,58 @@ static int performCodeBigUpload(void *curl, FileUpload_t *file_upload,
             __uploadutil_set_fqdn(fqdn);
         }
     }
-    
-    /* Step 2: Update file_upload with CodeBig URL */
-    strncpy(file_upload->url, codebig_url, URL_MAX - 1);
-    file_upload->url[URL_MAX - 1] = '\0';
-    
+
+    /* Step 2: Prepare FileUpload_t structure */
+    FileUpload_t file_upload;
+    memset(&file_upload, 0, sizeof(FileUpload_t));
+
+    char urlbuf[URL_MAX];
+    char pathbuf[PATHNAME_MAX];
+    strncpy(urlbuf, codebig_url, URL_MAX - 1);
+    urlbuf[URL_MAX - 1] = '\0';
+    strncpy(pathbuf, filepath, PATHNAME_MAX - 1);
+    pathbuf[PATHNAME_MAX - 1] = '\0';
+
+    file_upload.url = urlbuf;
+    file_upload.pathname = pathbuf;
+    file_upload.sslverify = 1;
+    file_upload.hashData = NULL;
+    file_upload.pPostFields = (char*)extra_fields;
+
     /* Step 3: Perform metadata POST with CodeBig auth */
-    curl_ret_code = performHttpMetadataPost(curl, file_upload, NULL, &http_code);
-    
+    curl_ret_code = performHttpMetadataPost(curl, &file_upload, NULL, &http_code);
+    *http_code_out = http_code;
+
     if (curl_ret_code != 0 || http_code < 200 || http_code >= 300) {
         COMMONUTILITIES_ERROR("%s: CodeBig metadata POST failed curl=%d http=%ld\n",
                    __FUNCTION__, curl_ret_code, http_code);
+        __uploadutil_set_status(http_code, curl_ret_code);
         return -1;
     }
-    
+
     COMMONUTILITIES_INFO("%s: CodeBig metadata POST success (HTTP %ld)\n",
                __FUNCTION__, http_code);
-    
-    /* Step 4: Extract S3 URL and perform S3 PUT */
-    char s3_url[S3_URL_BUF];
-    if (extractS3PresignedUrl("/tmp/httpresult.txt", s3_url, sizeof(s3_url)) != 0) {
-        COMMONUTILITIES_ERROR("%s: Failed to extract S3 URL\n", __FUNCTION__);
-        return -1;
-    }
-    
-    if (performS3PutUpload(s3_url, src_file, NULL) != 0) {
-        COMMONUTILITIES_ERROR("%s: S3 PUT failed\n", __FUNCTION__);
-        /* Status already set by performS3PutUpload */
-        return -1;
-    }
-    
-    COMMONUTILITIES_INFO("%s: Complete CodeBig upload success\n", __FUNCTION__);
-    /* Report final success status with metadata POST http_code */
     __uploadutil_set_status(http_code, curl_ret_code);
     return 0;
 }
 
 /**
- * @brief Upload file using CodeBig workflow
+ * @brief Perform S3 PUT for CodeBig (Stage 2 - Public API)
  */
-int uploadFileWithCodeBigFlow(const char *src_file, int server_type)
+int performCodeBigS3Put(const char *s3_url, const char *src_file)
 {
-    void *curl = NULL;
-    FileUpload_t file_upload;
-    int status = -1;
-
-    if (!src_file) {
-        COMMONUTILITIES_ERROR("%s: Invalid arguments\n", __FUNCTION__);
+    if (!s3_url || !src_file) {
+        COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
 
-    /* Validate server type */
-    if (server_type != HTTP_SSR_CODEBIG && server_type != HTTP_XCONF_CODEBIG) {
-        COMMONUTILITIES_ERROR("%s: Invalid CodeBig server type: %d\n", __FUNCTION__, server_type);
-        return -1;
-    }
+    int result = performS3PutUpload(s3_url, src_file, NULL);
 
-    /* Prepare upload descriptor */
-    memset(&file_upload, 0, sizeof(FileUpload_t));
-    char urlbuf[URL_MAX];
-    char pathbuf[PATHNAME_MAX];
-    
-    // URL will be filled by CodeBig signing
-    urlbuf[0] = '\0';
-    strncpy(pathbuf, src_file, PATHNAME_MAX - 1);
-    pathbuf[PATHNAME_MAX - 1] = '\0';
-    file_upload.url        = urlbuf;
-    file_upload.pathname   = pathbuf;
-    file_upload.sslverify  = 1;
-    file_upload.hashData   = NULL;
-    
-    /* Set MD5 in POST fields if provided (matches script line 318) */
-    extern const char* __uploadutil_get_md5(void);
-    const char *md5 = __uploadutil_get_md5();
-    char postfields[256] = {0};
-    if (md5) {
-        snprintf(postfields, sizeof(postfields), "md5=%s", md5);
-        file_upload.pPostFields = postfields;
+    if (result == 0) {
+        COMMONUTILITIES_INFO("%s: CodeBig S3 PUT success\n", __FUNCTION__);
     } else {
-        file_upload.pPostFields = NULL;
+        COMMONUTILITIES_ERROR("%s: CodeBig S3 PUT failed\n", __FUNCTION__);
     }
 
-    curl = doCurlInit();
-    if (!curl) {
-        COMMONUTILITIES_ERROR("%s: CURL init failed\n", __FUNCTION__);
-        return -1;
-    }
-
-    /* Perform CodeBig upload */
-    status = performCodeBigUpload(curl, &file_upload, src_file, server_type);
-
-    doStopUpload(curl);
-    return status;
-
+    return result;
 }
