@@ -49,7 +49,7 @@ echo "*********** Return value of json_parse_gtest $jsonparse"
 dwnlutils=$?
 echo "*********** Return value of downloadUtil_gtest $dwnlutils"
 
-./mtls_upload_gtest
+./uploadutil/mtls_upload_gtest
 
 if [ "$systemutils" = "0" ] && [ "$utils" = "0" ] && [ "$deviceapi" = "0" ] && [ "$urlhelper" = "0" ] && [ "$jsonparse" = "0" ] && [ "$dwnlutils" = "0" ]; then
     cd ../
