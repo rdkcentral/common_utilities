@@ -49,7 +49,25 @@ echo "*********** Return value of json_parse_gtest $jsonparse"
 dwnlutils=$?
 echo "*********** Return value of downloadUtil_gtest $dwnlutils"
 
-if [ "$systemutils" = "0" ] && [ "$utils" = "0" ] && [ "$deviceapi" = "0" ] && [ "$urlhelper" = "0" ] && [ "$jsonparse" = "0" ] && [ "$dwnlutils" = "0" ]; then
+./uploadutil/mtls_upload_gtest
+mtls_upload=$?
+echo "*********** Return value of downloadUtil_gtest $mtls_upload"
+
+
+./uploadutil/codebig_upload_gtest
+codebig_upload=$?
+echo "*********** Return value of downloadUtil_gtest $codebig_upload"
+
+./uploadutil/uploadUtil_gtest
+uploadUtil=$?
+echo "*********** Return value of downloadUtil_gtest $uploadUtil"
+
+
+./uploadutil/upload_status_gtest
+upload_status=$?
+echo "*********** Return value of downloadUtil_gtest $upload_status"
+
+if [ "$systemutils" = "0" ] && [ "$utils" = "0" ] && [ "$upload_status" = "0" ] && [ "$uploadUtil" = "0" ] && [ "$codebig_upload" = "0" ] && [ "$mtls_upload" = "0" ] && [ "$deviceapi" = "0" ] && [ "$urlhelper" = "0" ] && [ "$jsonparse" = "0" ] && [ "$dwnlutils" = "0" ]; then
     cd ../
 
     lcov --capture --directory . --output-file coverage.info
