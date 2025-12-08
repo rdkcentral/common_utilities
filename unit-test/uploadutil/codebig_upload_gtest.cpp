@@ -15,9 +15,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
- * @file codebig_upload_gtest.cpp
- * @brief Google Test implementation for codebig_upload.c
- */
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
