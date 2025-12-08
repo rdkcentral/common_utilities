@@ -28,8 +28,7 @@
 #include <urlHelper.h>
 #include <system_utils.h>
 #include <ctype.h>
-#include "rdm_types.h"
-#include "rdm_utils.h"
+
 #include "json_parse.h"
 
 // DEBUG_CODEBIG_CDL can be turned on with distro feature debug_codebig_cdl
