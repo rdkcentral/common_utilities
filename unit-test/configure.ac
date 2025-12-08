@@ -45,6 +45,6 @@ AC_C_CONST
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 # Generate the Makefile
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile uploadutil/Makefile])
 # Generate the configure script
 AC_OUTPUT
