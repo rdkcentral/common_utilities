@@ -2,7 +2,7 @@ name: L1 Unit Tests
 
 on:
   push:
-    branches: [ feature/copilot_twostage ]
+    branches: [ topic/RDK-57502 ]
 
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
