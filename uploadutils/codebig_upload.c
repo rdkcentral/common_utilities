@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
 /**
  * @file codebig_upload.c
  * @brief CodeBig upload implementation with mTLS support
@@ -188,4 +187,5 @@ int performCodeBigS3Put(const char *s3_url, const char *src_file)
     }
 
     return result;
+
 }
