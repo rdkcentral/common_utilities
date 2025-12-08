@@ -118,10 +118,38 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     curl_off_t filesize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     
-    curl_easy_setopt(curl, CURLOPT_PUT, 1L);
-    curl_easy_setopt(curl, CURLOPT_READDATA, fp);
-    curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, filesize);
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    ret_code = curl_easy_setopt(curl, CURLOPT_PUT, 1L);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_PUT failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(fp);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
+    ret_code = curl_easy_setopt(curl, CURLOPT_READDATA, fp);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_READDATA failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(fp);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
+    ret_code = curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, filesize);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_INFILESIZE_LARGE failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(fp);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
+    ret_code = curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_VERBOSE failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(fp);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
 
     ret_code = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
@@ -191,7 +219,12 @@ int performHttpMetadataPost(void *in_curl,
         snprintf(postfields, sizeof(postfields), "filename=%s",
                  pfile_upload->pathname);
     }
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
+    ret_code = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        return (int)ret_code;
+    }
 
     /* Additional headers (hash/time) */
     if (pfile_upload->hashData != NULL) {
@@ -219,8 +252,22 @@ int performHttpMetadataPost(void *in_curl,
         if (headers) curl_slist_free_all(headers);
         return (int)UPLOAD_FAIL;
     }
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp_fp);
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    ret_code = curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp_fp);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_WRITEDATA failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(resp_fp);
+        if (headers) curl_slist_free_all(headers);
+        return (int)ret_code;
+    }
+    ret_code = curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_VERBOSE failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(resp_fp);
+        if (headers) curl_slist_free_all(headers);
+        return (int)ret_code;
+    }
 
     /* Perform request */
     ret_code = curl_easy_perform(curl);

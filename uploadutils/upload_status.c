@@ -25,6 +25,7 @@
 #include "mtls_upload.h"
 #include "codebig_upload.h"
 #include "uploadUtil.h"
+#include "downloadUtil.h"
 #include <string.h>
 #include <stdio.h>
 #include <curl/curl.h>
@@ -96,186 +97,6 @@ void __uploadutil_get_status(long *http_code, int *curl_code)
     g_last_curl_code = CURLE_OK;
 }
 
-/**
- * @brief Extract FQDN (hostname) from URL
- * @param url Full URL (e.g., "https://example.com:443/path?query")
- * @param fqdn_out Buffer to store FQDN (e.g., "example.com")
- * @param fqdn_size Size of fqdn_out buffer
- */
-static void extract_fqdn(const char *url, char *fqdn_out, size_t fqdn_size)
-{
-    if (!url || !fqdn_out || fqdn_size == 0) return;
-    
-    fqdn_out[0] = '\0';
-    
-    // Find start of hostname (after "://")
-    const char *hostname_start = strstr(url, "://");
-    if (!hostname_start) {
-        hostname_start = url; // No protocol, assume raw hostname
-    } else {
-        hostname_start += 3; // Skip "://"
-    }
-    
-    // Find end of hostname (before ':' port, '/' path, or '?' query)
-    const char *hostname_end = hostname_start;
-    while (*hostname_end && *hostname_end != ':' && *hostname_end != '/' && *hostname_end != '?') {
-        hostname_end++;
-    }
-    
-    // Copy hostname to output buffer
-    size_t hostname_len = hostname_end - hostname_start;
-    if (hostname_len > 0 && hostname_len < fqdn_size) {
-        strncpy(fqdn_out, hostname_start, hostname_len);
-        fqdn_out[hostname_len] = '\0';
-    }
-}
-
-void init_upload_status(UploadStatusDetail* status)
-{
-    if (!status) return;
-    
-    memset(status, 0, sizeof(UploadStatusDetail));
-    status->result_code = -1;
-    status->curl_code = CURLE_FAILED_INIT;
-    // error_message, http_code, upload_completed, auth_success, fqdn already zero'd by memset
-}
-
-int uploadFileWithTwoStageFlowEx(const char *upload_url, const char *src_file, 
-                                 const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status)
-{
-    if (!status) {
-        return -1; // Can't report status
-    }
-    
-    init_upload_status(status);
-    
-    if (!upload_url || !src_file) {
-        snprintf(status->error_message, sizeof(status->error_message), 
-                "Invalid parameters: upload_url=%p, src_file=%p", upload_url, src_file);
-        return -1;
-    }
-    
-    /* Extract FQDN from upload URL */
-    extract_fqdn(upload_url, status->fqdn, sizeof(status->fqdn));
-    
-    /* Set MD5 and OCSP flags for underlying functions */
-    __uploadutil_set_md5(md5_base64);
-    __uploadutil_set_ocsp(ocsp_enabled);
-    
-    /* Call underlying function - it will set thread-local status */
-    int result = uploadFileWithTwoStageFlow(upload_url, src_file);
-    
-    /* Capture real status codes from thread-local storage */
-    long http_code = 0;
-    int curl_code = CURLE_OK;
-    __uploadutil_get_status(&http_code, &curl_code);
-    
-    /* Capture FQDN if underlying function set it (may override URL-based extraction) */
-    char thread_fqdn[256];
-    __uploadutil_get_fqdn(thread_fqdn, sizeof(thread_fqdn));
-    if (thread_fqdn[0] != '\0') {
-        strncpy(status->fqdn, thread_fqdn, sizeof(status->fqdn) - 1);
-        status->fqdn[sizeof(status->fqdn) - 1] = '\0';
-    }
-    
-    status->result_code = result;
-    status->http_code = http_code;
-    status->curl_code = curl_code;
-    
-    if (result == 0) {
-        status->upload_completed = true;
-        status->auth_success = true;
-        snprintf(status->error_message, sizeof(status->error_message), 
-                "Upload successful (HTTP %ld)", http_code);
-    } else {
-        status->upload_completed = false;
-        
-        /* Determine failure type from HTTP/CURL codes */
-        if (curl_code != CURLE_OK) {
-            status->auth_success = false;
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "CURL error: %d", curl_code);
-        } else if (http_code == 401 || http_code == 403) {
-            status->auth_success = false;
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "Authentication failed (HTTP %ld)", http_code);
-        } else if (http_code >= 400) {
-            status->auth_success = true; // Auth OK, but other error
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "HTTP error %ld", http_code);
-        } else {
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "Upload failed");
-        }
-    }
-    
-    return result;
-}
-
-int uploadFileWithCodeBigFlowEx(const char *src_file, int server_type, 
-                                const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status)
-{
-    if (!status) {
-        return -1; // Can't report status
-    }
-    
-    init_upload_status(status);
-    
-    if (!src_file) {
-        snprintf(status->error_message, sizeof(status->error_message), 
-                "Invalid parameter: src_file=%p", src_file);
-        return -1;
-    }
-    
-    /* Set MD5 and OCSP flags for underlying functions */
-    __uploadutil_set_md5(md5_base64);
-    __uploadutil_set_ocsp(ocsp_enabled);
-    
-    /* Call underlying function - it will set thread-local status */
-    int result = uploadFileWithCodeBigFlow(src_file, server_type);
-    
-    /* Capture real status codes from thread-local storage */
-    long http_code = 0;
-    int curl_code = CURLE_OK;
-    __uploadutil_get_status(&http_code, &curl_code);
-    
-    /* Capture FQDN from thread-local storage (CodeBig sets this) */
-    __uploadutil_get_fqdn(status->fqdn, sizeof(status->fqdn));
-    
-    status->result_code = result;
-    status->http_code = http_code;
-    status->curl_code = curl_code;
-    
-    if (result == 0) {
-        status->upload_completed = true;
-        status->auth_success = true;
-        snprintf(status->error_message, sizeof(status->error_message), 
-                "CodeBig upload successful (HTTP %ld)", http_code);
-    } else {
-        status->upload_completed = false;
-        
-        /* Determine failure type from HTTP/CURL codes */
-        if (curl_code != CURLE_OK) {
-            status->auth_success = false;
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "CodeBig CURL error: %d", curl_code);
-        } else if (http_code == 401 || http_code == 403) {
-            status->auth_success = false;
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "CodeBig authorization failed (HTTP %ld)", http_code);
-        } else if (http_code >= 400) {
-            status->auth_success = true;
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "CodeBig HTTP error %ld", http_code);
-        } else {
-            snprintf(status->error_message, sizeof(status->error_message), 
-                    "CodeBig upload failed");
-        }
-    }
-    
-    return result;
-}
-
 int performS3PutUploadEx(const char *upload_url, const char *src_file, 
                         MtlsAuth_t *auth, const char *md5_base64, bool ocsp_enabled, UploadStatusDetail* status)
 {
@@ -283,7 +104,9 @@ int performS3PutUploadEx(const char *upload_url, const char *src_file,
         return -1; // Can't report status
     }
     
-    init_upload_status(status);
+    memset(status, 0, sizeof(UploadStatusDetail));
+    status->result_code = -1;
+    status->curl_code = CURLE_FAILED_INIT;
     
     if (!upload_url || !src_file) {
         snprintf(status->error_message, sizeof(status->error_message), 
@@ -291,8 +114,21 @@ int performS3PutUploadEx(const char *upload_url, const char *src_file,
         return -1;
     }
     
-    /* Extract FQDN from upload URL */
-    extract_fqdn(upload_url, status->fqdn, sizeof(status->fqdn));
+    /* Extract FQDN from upload URL (simple extraction) */
+    status->fqdn[0] = '\0';
+    const char *hostname_start = strstr(upload_url, "://");
+    if (hostname_start) {
+        hostname_start += 3;
+        const char *hostname_end = hostname_start;
+        while (*hostname_end && *hostname_end != ':' && *hostname_end != '/' && *hostname_end != '?') {
+            hostname_end++;
+        }
+        size_t len = hostname_end - hostname_start;
+        if (len > 0 && len < sizeof(status->fqdn)) {
+            strncpy(status->fqdn, hostname_start, len);
+            status->fqdn[len] = '\0';
+        }
+    }
     
     /* Set MD5 and OCSP flags for underlying functions */
     __uploadutil_set_md5(md5_base64);
