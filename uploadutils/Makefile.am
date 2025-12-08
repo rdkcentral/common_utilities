@@ -28,6 +28,8 @@ libuploadutil_la_SOURCES = uploadUtil.c \
 if USE_CPC_CODE
 libuploadutil_la_SOURCES += \
     ${top_srcdir}/src/upload_util-cpc/upload_util/codebigUtils.c
+else
+libuploadutil_la_SOURCES += codebigUtils.c    
 endif
 
 libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
