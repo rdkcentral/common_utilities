@@ -16,6 +16,7 @@
 #
 
 AUTOMAKE_OPTIONS = subdir-objects
+SUBDIRS = uploadutil
 
 # Define the program name and the source files
 bin_PROGRAMS = system_utils_gtest rdk_fwdl_utils_gtest common_device_api_gtest urlHelper_gtest json_parse_gtest downloadUtil_gtest
