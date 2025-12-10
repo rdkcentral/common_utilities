@@ -1,8 +1,8 @@
 name: L1 Unit Tests
 
 on:
-  push:
-    branches: [ topic/RDK-57502 ]
+  pull_request:
+    branches: [ develop, main ]
 
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
