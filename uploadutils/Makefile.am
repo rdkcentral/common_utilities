@@ -48,6 +48,6 @@ libuploadutil_la_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
 endif
 
 if IS_LIBRDKCERTSEL_ENABLED
-libuploadutil_la_CFLAGS = $(LIBRDKCERTSEL_FLAG)
+libuploadutil_la_CFLAGS += $(LIBRDKCERTSEL_FLAG)
 AM_LDFLAGS = -lRdkCertSelector
 endif
