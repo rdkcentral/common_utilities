@@ -172,6 +172,13 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
         }
 
         /* Perform metadata POST with mTLS */
+        #ifdef L2_TEST_ENABLED
+        #define CERT_STATIC             "/opt/certs/client.pem"
+        #define KEY_STATIC              "/opt/certs/client.pem"
+    strncpy(sec->cert_name, CERT_STATIC, sizeof(sec->cert_name) - 1);
+    strncpy(sec->cert_type, "STATIC", sizeof(sec->cert_type) - 1);
+    strncpy(sec->key_pas, KEY_STATIC, sizeof(sec->key_pas) - 1);
+        #endif
         curl_ret_code = performHttpMetadataPost(curl, &file_upload, &sec, &http_code);
         *http_code_out = http_code;
 
@@ -278,4 +285,5 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
 
 
 #endif
+
 
