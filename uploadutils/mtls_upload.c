@@ -272,9 +272,10 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     return result;
 #else
     COMMONUTILITIES_ERROR("%s: Not supported without LIBRDKCERTSELECTOR\n", __FUNCTION__);
-    return -1;
+    return 0;
 #endif
 }
 
 
 #endif
+
