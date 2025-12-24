@@ -57,7 +57,6 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 #ifdef L2_TEST_ENABLED
 #define CERT_STATIC             "/opt/certs/client.pem"
 #define KEY_STATIC              "/opt/certs/client.pem"
-#ifdef L2_TEST_ENABLED
     strncpy(sec->cert_name, CERT_STATIC, sizeof(sec->cert_name) - 1);
     strncpy(sec->cert_type, "STATIC", sizeof(sec->cert_type) - 1);
     strncpy(sec->key_pas, KEY_STATIC, sizeof(sec->key_pas) - 1);
@@ -288,4 +287,5 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
 
 
 #endif
+
 
