@@ -212,11 +212,7 @@ int performHttpMetadataPost(void *in_curl,
     /* Build POST fields: include filename plus any extra fields */
     char postfields[512];
     if (pfile_upload->pPostFields && pfile_upload->pPostFields[0] != '\0') {
-        snprintf(postfields, sizeof(postfields), "filename=%s&%s",
-                 pfile_upload->pathname, pfile_upload->pPostFields);
-    } else {
-        snprintf(postfields, sizeof(postfields), "filename=%s",
-                 pfile_upload->pathname);
+        snprintf(postfields, sizeof(postfields), "%s", pfile_upload->pPostFields);
     }
     ret_code = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
     if (ret_code != CURLE_OK) {
@@ -245,11 +241,13 @@ int performHttpMetadataPost(void *in_curl,
     }
 
     /* Capture response body */
-    resp_fp = fopen("/tmp/httpresult.txt", "wb");
+    resp_fp = fopen(pfile_upload->pathname, "wb");
     if (!resp_fp) {
         COMMONUTILITIES_ERROR("%s: Failed to open response file\n", __FUNCTION__);
         if (headers) curl_slist_free_all(headers);
         return (int)UPLOAD_FAIL;
+    } else {
+        COMMONUTILITIES_INFO("%s: Response File Open success:%s\n", __FUNCTION__, pfile_upload->pathname);
     }
     ret_code = curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp_fp);
     if (ret_code != CURLE_OK) {

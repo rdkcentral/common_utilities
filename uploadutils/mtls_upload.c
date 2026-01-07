@@ -118,7 +118,7 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 /**
  * @brief Perform metadata POST with certificate rotation (Stage 1 - Public API)
  */
-int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath,
+int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath_output,
                                         const char *extra_fields, rdkcertselector_h *pthisCertSel,
                                         MtlsAuth_t *sec_out, long *http_code_out)
 {
@@ -127,7 +127,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     int curl_ret_code = -1;
     long http_code = 0;
 
-    if (!curl || !upload_url || !filepath || !pthisCertSel || !sec_out || !http_code_out) {
+    if (!curl || !upload_url || !filepath_output || !pthisCertSel || !sec_out || !http_code_out) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -151,7 +151,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     char pathbuf[PATHNAME_MAX];
     strncpy(urlbuf, upload_url, URL_MAX - 1);
     urlbuf[URL_MAX - 1] = '\0';
-    strncpy(pathbuf, filepath, PATHNAME_MAX - 1);
+    strncpy(pathbuf, filepath_output, PATHNAME_MAX - 1);
     pathbuf[PATHNAME_MAX - 1] = '\0';
     
     file_upload.url = urlbuf;
@@ -216,13 +216,13 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
 /**
  * @brief Wrapper for metadata POST with certificate rotation - manages cert selector
  * @param upload_url Target URL for metadata POST
- * @param filepath Local file path
+ * @param filepath_output: Output (S3) url store inside this file.
  * @param extra_fields Extra POST fields (e.g., MD5), can be NULL
  * @param sec_out Output: successful certificate for Stage 2
  * @param http_code_out Output: HTTP response code
  * @return 0 on success, -1 on failure
  */
-int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath,
+int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath_output,
                                           const char *extra_fields, MtlsAuth_t *sec_out,
                                           long *http_code_out)
 {
@@ -231,7 +231,7 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     static rdkcertselector_h certSelector = NULL;
     int result = -1;
 
-    if (!upload_url || !filepath || !sec_out || !http_code_out) {
+    if (!upload_url || !filepath_output || !sec_out || !http_code_out) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -262,7 +262,7 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     }
 
     /* Call the actual rotation function */
-    result = performMetadataPostWithCertRotation(curl, upload_url, filepath,
+    result = performMetadataPostWithCertRotation(curl, upload_url, filepath_output,
                                                  extra_fields, &certSelector,
                                                  sec_out, http_code_out);
 
