@@ -78,14 +78,14 @@ int doCodeBigSigningForUpload(int server_type, const char* src_file,
  * @brief Perform CodeBig metadata POST (Stage 1 - Public API)
  */
 int performCodeBigMetadataPost(void *curl, const char *filepath, const char *extra_fields,
-                                int server_type, long *http_code_out)
+                                int server_type, long *http_code_out, const char *output_file)
 {
     int curl_ret_code = -1;
     long http_code = 0;
     char codebig_url[MAX_CODEBIG_URL] = {0};
     char auth_header[MAX_HEADER_LEN] = {0};
 
-    if (!curl || !filepath || !http_code_out) {
+    if (!curl || !filepath || !http_code_out || !output_file) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -152,7 +152,7 @@ int performCodeBigMetadataPost(void *curl, const char *filepath, const char *ext
     file_upload.pPostFields = (char*)extra_fields;
 
     /* Step 3: Perform metadata POST with CodeBig auth */
-    curl_ret_code = performHttpMetadataPost(curl, &file_upload, NULL, &http_code);
+    curl_ret_code = performHttpMetadataPost(curl, &file_upload, NULL, &http_code, output_file);
     *http_code_out = http_code;
 
     if (curl_ret_code != 0 || http_code < 200 || http_code >= 300) {

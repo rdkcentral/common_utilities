@@ -171,7 +171,8 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
 int performHttpMetadataPost(void *in_curl,
                             FileUpload_t *pfile_upload,
                             MtlsAuth_t *auth,
-                            long *out_httpCode)
+                            long *out_httpCode,
+                            const char *output_file)
 {
     CURL *curl;
     CURLcode ret_code = CURLE_OK;
@@ -182,7 +183,7 @@ int performHttpMetadataPost(void *in_curl,
         *out_httpCode = 0;
     }
 
-    if (!in_curl || !pfile_upload || !out_httpCode || 
+    if (!in_curl || !pfile_upload || !out_httpCode || !output_file ||
         !pfile_upload->pathname || !pfile_upload->url) {
         COMMONUTILITIES_ERROR("%s: Parameter validation failed\n", __FUNCTION__);
         return (int)UPLOAD_FAIL;
@@ -245,7 +246,7 @@ int performHttpMetadataPost(void *in_curl,
     }
 
     /* Capture response body */
-    resp_fp = fopen("/tmp/httpresult.txt", "wb");
+    resp_fp = fopen(output_file, "wb");
     if (!resp_fp) {
         COMMONUTILITIES_ERROR("%s: Failed to open response file\n", __FUNCTION__);
         if (headers) curl_slist_free_all(headers);

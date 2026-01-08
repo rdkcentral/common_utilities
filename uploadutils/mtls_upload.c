@@ -172,7 +172,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
         }
 
         /* Perform metadata POST with mTLS */
-        curl_ret_code = performHttpMetadataPost(curl, &file_upload, &sec, &http_code);
+        curl_ret_code = performHttpMetadataPost(curl, &file_upload, &sec, &http_code, output_file);
         *http_code_out = http_code;
 
         if (curl_ret_code == 0 && http_code >= 200 && http_code < 300) {
@@ -220,18 +220,19 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
  * @param extra_fields Extra POST fields (e.g., MD5), can be NULL
  * @param sec_out Output: successful certificate for Stage 2
  * @param http_code_out Output: HTTP response code
+ * @param output_file File path where HTTP response will be written
  * @return 0 on success, -1 on failure
  */
 int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath,
                                           const char *extra_fields, MtlsAuth_t *sec_out,
-                                          long *http_code_out)
+                                          long *http_code_out, const char *output_file)
 {
 #ifdef LIBRDKCERTSELECTOR
     void *curl = NULL;
     static rdkcertselector_h certSelector = NULL;
     int result = -1;
 
-    if (!upload_url || !filepath || !sec_out || !http_code_out) {
+    if (!upload_url || !filepath || !sec_out || !http_code_out || !output_file) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }

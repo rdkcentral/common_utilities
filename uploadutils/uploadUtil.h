@@ -119,13 +119,14 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
  * @return 0 on success, CURL error code on failure
  *
  * Posts metadata to server including filename and optional custom fields.
- * Response body is saved to /tmp/httpresult.txt for subsequent processing.
+ * Response body is saved to the specified output file for subsequent processing.
  * Supports optional hash headers and mTLS authentication.
  */
 int performHttpMetadataPost(void *in_curl,
                             FileUpload_t *pfile_upload,
                             MtlsAuth_t *auth,
-                            long *out_httpCode);
+                            long *out_httpCode,
+                            const char *output_file);
 
 #ifdef __cplusplus
 }

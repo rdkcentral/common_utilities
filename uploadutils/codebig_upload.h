@@ -78,17 +78,18 @@ extern int doCodeBigSigning(int server_type, const char* SignInput,
  * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
  * @param server_type CodeBig server type (HTTP_SSR_CODEBIG or HTTP_XCONF_CODEBIG)
  * @param http_code_out Output parameter for HTTP response code
+ * @param output_file File path where HTTP response will be written
  * @return 0 on success, -1 on failure
  *
  * Performs CodeBig-authorized metadata POST:
  * 1. Gets signed URL and auth header from CodeBig service
  * 2. Performs metadata POST to obtain S3 presigned URL
- * 3. Saves result to /tmp/httpresult.txt
+ * 3. Saves result to the specified output file
  *
  * This function should be called with retry logic by the caller.
  */
 int performCodeBigMetadataPost(void *curl, const char *filepath, const char *extra_fields,
-                                int server_type, long *http_code_out);
+                                int server_type, long *http_code_out, const char *output_file);
 
 /**
  * @brief Perform S3 PUT for CodeBig (Stage 2)

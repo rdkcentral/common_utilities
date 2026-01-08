@@ -103,6 +103,7 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
  * @param extra_fields Additional POST fields like "md5=..." (can be NULL)
  * @param sec_out Output parameter for successful mTLS credentials (use for Stage 2)
  * @param http_code_out Output parameter for HTTP response code
+ * @param output_file File path where HTTP response will be written
  * @return 0 on success (HTTP 200), -1 on failure
  *
  * Simplified wrapper that manages curl and certificate selector internally.
@@ -112,7 +113,7 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
  */
 int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath,
                                           const char *extra_fields, MtlsAuth_t *sec_out,
-                                          long *http_code_out);
+                                          long *http_code_out, const char *output_file);
 
 #ifdef __cplusplus
 }
