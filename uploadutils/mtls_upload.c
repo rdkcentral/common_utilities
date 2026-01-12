@@ -118,6 +118,24 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 #ifdef LIBRDKCERTSELECTOR
 /**
  * @brief Perform metadata POST with certificate rotation (Stage 1 - Public API)
+ *
+ * This function performs the Stage 1 metadata POST using mTLS and certificate
+ * rotation support. On success, the S3 URL (or related response data) returned
+ * by the server is written to the file specified by @p filepath_output.
+ *
+ * @param[in]  curl             Initialized CURL handle to use for the request.
+ * @param[in]  upload_url       URL to which the metadata POST is sent.
+ * @param[in]  filepath_output  Output file path where the S3 URL/response
+ *                              from the metadata POST will be stored.
+ * @param[in]  extra_fields     Additional POST fields to include in the request
+ *                              (may be NULL if not needed).
+ * @param[in]  pthisCertSel     Certificate selector handle used for mTLS
+ *                              certificate rotation.
+ * @param[out] sec_out          On success, receives the mTLS auth context that
+ *                              should be reused for Stage 2.
+ * @param[out] http_code_out    Receives the HTTP status code of the request.
+ *
+ * @return 0 on success, or -1 on failure.
  */
 int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath_output,
                                         const char *extra_fields, rdkcertselector_h *pthisCertSel,
