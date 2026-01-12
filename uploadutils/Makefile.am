@@ -20,7 +20,7 @@
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS) -DLIBRDKCERTSELECTOR
+AM_CFLAGS += -Wall -Werror $(curl_CFLAGS) $(CFLAGS)
 
 lib_LTLIBRARIES = libuploadutil.la
 libuploadutil_la_SOURCES = uploadUtil.c \
@@ -42,7 +42,7 @@ libuploadutil_la_include_HEADERS = uploadUtil.h \
                                    codebig_upload.h \
                                    upload_status.h
 
-libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
+libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson
 libuploadutil_la_includedir = ${includedir}
 
 if USE_CPC_CODE
