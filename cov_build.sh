@@ -22,6 +22,6 @@ mkdir -p $INSTALL_DIR
 
 # Build common utilities
 autoreconf -i
-./configure --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER"
+./configure --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER -DLIBRDKCERTSELECTOR"
 make && make install
 
