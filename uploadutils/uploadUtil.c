@@ -209,7 +209,7 @@ int performHttpMetadataPost(void *in_curl,
         if (ret_code != CURLE_OK) {
             COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
-           return (int)ret_code;
+            return (int)ret_code;
         }
     } else {
             COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS buffer empty\n",
