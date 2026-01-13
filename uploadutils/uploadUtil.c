@@ -235,7 +235,7 @@ int performHttpMetadataPost(void *in_curl,
         }
     }
 
-    /* Capture response body */
+    /* Capture response body in the file specified by pfile_upload->pathname */
     resp_fp = fopen(pfile_upload->pathname, "wb");
     if (!resp_fp) {
         COMMONUTILITIES_ERROR("%s: Failed to open response file\n", __FUNCTION__);
