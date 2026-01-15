@@ -295,7 +295,3 @@ int performHttpMetadataPost(void *in_curl,
 
     return (int)ret_code;
 }
-
-
-
-
