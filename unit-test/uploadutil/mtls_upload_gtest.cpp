@@ -599,6 +599,7 @@ TEST_F(MtlsUploadTest, performMetadataPostWithCertRotation_Failure_HttpError) {
     long http_code_out = 0;
     char* cert_uri = strdup(test_cert_uri);
     char* cert_pass = strdup(test_cert_pass);
+    rdkcertselector_h cert_selector = mock_cert_selector;
 
     EXPECT_CALL(mock_certselector, rdkcertselector_getCert(mock_cert_selector, NotNull(), NotNull()))
         .WillOnce(DoAll(
@@ -622,7 +623,7 @@ TEST_F(MtlsUploadTest, performMetadataPostWithCertRotation_Failure_HttpError) {
 
     int result = performMetadataPostWithCertRotation(mock_curl_handle, test_upload_url,
                                                      test_filepath, test_extra_fields,
-                                                     &mock_cert_selector, &test_sec_out,
+                                                     &cert_selector, &test_sec_out,
                                                      &http_code_out);
 
     EXPECT_EQ(-1, result);
