@@ -235,7 +235,7 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
 /**
  * @brief Wrapper for metadata POST with certificate rotation - manages cert selector
  * @param upload_url Target URL for metadata POST
- * @param filepath_output Output (S3) url store inside this file.
+ * @param filepath_output Output (S3) URL stored inside this file.
  * @param extra_fields Extra POST fields (e.g., MD5), can be NULL
  * @param sec_out Output: successful certificate for Stage 2
  * @param http_code_out Output: HTTP response code
