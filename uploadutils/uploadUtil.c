@@ -222,8 +222,8 @@ int performHttpMetadataPost(void *in_curl,
             return (int)ret_code;
         }
     } else {
-            COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS buffer empty\n",
-                __FUNCTION__);
+        COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS buffer empty\n",
+            __FUNCTION__);
     }
 
     /* Additional headers (hash/time) */
