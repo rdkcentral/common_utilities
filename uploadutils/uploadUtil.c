@@ -142,8 +142,8 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         return -1;
     }
 #ifdef CURL_DEBUG
-   ret_code = curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-   if (ret_code != CURLE_OK) {
+    ret_code = curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: CURLOPT_VERBOSE failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
         fclose(fp);
