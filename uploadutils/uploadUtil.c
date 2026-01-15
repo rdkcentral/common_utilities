@@ -250,9 +250,8 @@ int performHttpMetadataPost(void *in_curl,
         COMMONUTILITIES_ERROR("%s: Failed to open response file\n", __FUNCTION__);
         if (headers) curl_slist_free_all(headers);
         return (int)UPLOAD_FAIL;
-    } else {
-        COMMONUTILITIES_INFO("%s: Response File Open success:%s\n", __FUNCTION__, pfile_upload->pathname);
     }
+    COMMONUTILITIES_INFO("%s: Response File Open success:%s\n", __FUNCTION__, pfile_upload->pathname);
     ret_code = curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp_fp);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: CURLOPT_WRITEDATA failed: %s\n",
