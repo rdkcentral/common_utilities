@@ -108,7 +108,7 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
     COMMONUTILITIES_INFO("[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
 
-    rdkcertselector_free(pthisCertSel);    
+    rdkcertselector_free(pthisCertSel);
     return MTLS_CERT_FETCH_SUCCESS;
 
 }
