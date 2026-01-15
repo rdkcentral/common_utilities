@@ -141,6 +141,15 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         urlHelperDestroyCurl(curl);
         return -1;
     }
+#ifdef CURL_DEBUG
+   if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_VERBOSE failed: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        fclose(fp);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
+    
     ret_code = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
@@ -285,3 +294,4 @@ int performHttpMetadataPost(void *in_curl,
 
     return (int)ret_code;
 }
+
