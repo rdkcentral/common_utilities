@@ -57,7 +57,6 @@ typedef enum {
  */
 MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthisCertSel);
 
-#endif /* LIBRDKCERTSELECTOR */
 
 /**
  * @brief Perform metadata POST with certificate rotation (Stage 1)
@@ -82,6 +81,8 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath,
                                         const char *extra_fields, rdkcertselector_h *pthisCertSel,
                                         MtlsAuth_t *sec_out, long *http_code_out);
+
+#endif /* LIBRDKCERTSELECTOR */
 
 /**
  * @brief Perform S3 PUT with same certificate (Stage 2)
@@ -119,4 +120,5 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
 #endif
 
 #endif /* _RDK_MTLS_UPLOAD_H_ */
+
 
