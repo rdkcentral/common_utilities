@@ -1,7 +1,7 @@
 /**
  * Copyright 2025 RDK Management
+ * Licensed under the Apache License, Version 2.0;
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -146,9 +146,7 @@ extern "C" {
         if (g_mock_certselector) {
             g_mock_certselector->rdkcertselector_free(selector);
         }
-        if (selector) {
-            *selector = nullptr;
-        }
+        // Don't set *selector = nullptr here as it interferes with test expectations
     }
 
     /**

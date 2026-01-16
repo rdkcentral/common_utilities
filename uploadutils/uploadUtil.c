@@ -141,6 +141,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         urlHelperDestroyCurl(curl);
         return -1;
     }
+#ifdef CURL_DEBUG
     ret_code = curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: CURLOPT_VERBOSE failed: %s\n",
@@ -149,7 +150,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         urlHelperDestroyCurl(curl);
         return -1;
     }
-
+#endif
     ret_code = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
@@ -211,18 +212,17 @@ int performHttpMetadataPost(void *in_curl,
 
     /* Build POST fields: include filename plus any extra fields */
     char postfields[512];
+    postfields[0] = '\0';
     if (pfile_upload->pPostFields && pfile_upload->pPostFields[0] != '\0') {
-        snprintf(postfields, sizeof(postfields), "filename=%s&%s",
-                 pfile_upload->pathname, pfile_upload->pPostFields);
-    } else {
-        snprintf(postfields, sizeof(postfields), "filename=%s",
-                 pfile_upload->pathname);
-    }
-    ret_code = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
-    if (ret_code != CURLE_OK) {
-        COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS failed: %s\n",
+        snprintf(postfields, sizeof(postfields), "%s", pfile_upload->pPostFields);
+        ret_code = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postfields);
+        if (ret_code != CURLE_OK) {
+            COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
-        return (int)ret_code;
+            return (int)ret_code;
+        }
+    } else {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_POSTFIELDS buffer empty\n", __FUNCTION__);
     }
 
     /* Additional headers (hash/time) */
@@ -244,13 +244,14 @@ int performHttpMetadataPost(void *in_curl,
         }
     }
 
-    /* Capture response body */
-    resp_fp = fopen("/tmp/httpresult.txt", "wb");
+    /* Capture response body in the file specified by pfile_upload->pathname */
+    resp_fp = fopen(pfile_upload->pathname, "wb");
     if (!resp_fp) {
         COMMONUTILITIES_ERROR("%s: Failed to open response file\n", __FUNCTION__);
         if (headers) curl_slist_free_all(headers);
         return (int)UPLOAD_FAIL;
     }
+    COMMONUTILITIES_INFO("%s: Response File Open success:%s\n", __FUNCTION__, pfile_upload->pathname);
     ret_code = curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp_fp);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: CURLOPT_WRITEDATA failed: %s\n",

@@ -108,6 +108,7 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
     COMMONUTILITIES_INFO("[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
 
+    rdkcertselector_free(pthisCertSel);
     return MTLS_CERT_FETCH_SUCCESS;
 
 }
@@ -117,8 +118,26 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 #ifdef LIBRDKCERTSELECTOR
 /**
  * @brief Perform metadata POST with certificate rotation (Stage 1 - Public API)
+ *
+ * This function performs the Stage 1 metadata POST using mTLS and certificate
+ * rotation support. On success, the S3 URL (or related response data) returned
+ * by the server is written to the file specified by @p filepath_output.
+ *
+ * @param[in]  curl             Initialized CURL handle to use for the request.
+ * @param[in]  upload_url       URL to which the metadata POST is sent.
+ * @param[in]  filepath_output  Output file path where the S3 URL/response
+ *                              from the metadata POST will be stored.
+ * @param[in]  extra_fields     Additional POST fields to include in the request
+ *                              (may be NULL if not needed).
+ * @param[in]  pthisCertSel     Certificate selector handle used for mTLS
+ *                              certificate rotation.
+ * @param[out] sec_out          On success, receives the mTLS auth context that
+ *                              should be reused for Stage 2.
+ * @param[out] http_code_out    Receives the HTTP status code of the request.
+ *
+ * @return 0 on success, or -1 on failure.
  */
-int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath,
+int performMetadataPostWithCertRotation(void *curl, const char *upload_url, const char *filepath_output,
                                         const char *extra_fields, rdkcertselector_h *pthisCertSel,
                                         MtlsAuth_t *sec_out, long *http_code_out)
 {
@@ -127,7 +146,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     int curl_ret_code = -1;
     long http_code = 0;
 
-    if (!curl || !upload_url || !filepath || !pthisCertSel || !sec_out || !http_code_out) {
+    if (!curl || !upload_url || !filepath_output || !pthisCertSel || !sec_out || !http_code_out) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -151,7 +170,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     char pathbuf[PATHNAME_MAX];
     strncpy(urlbuf, upload_url, URL_MAX - 1);
     urlbuf[URL_MAX - 1] = '\0';
-    strncpy(pathbuf, filepath, PATHNAME_MAX - 1);
+    strncpy(pathbuf, filepath_output, PATHNAME_MAX - 1);
     pathbuf[PATHNAME_MAX - 1] = '\0';
     
     file_upload.url = urlbuf;
@@ -216,13 +235,13 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
 /**
  * @brief Wrapper for metadata POST with certificate rotation - manages cert selector
  * @param upload_url Target URL for metadata POST
- * @param filepath Local file path
+ * @param filepath_output Output (S3) URL stored inside this file.
  * @param extra_fields Extra POST fields (e.g., MD5), can be NULL
  * @param sec_out Output: successful certificate for Stage 2
  * @param http_code_out Output: HTTP response code
  * @return 0 on success, -1 on failure
  */
-int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath,
+int performMetadataPostWithCertRotationEx(const char *upload_url, const char *filepath_output,
                                           const char *extra_fields, MtlsAuth_t *sec_out,
                                           long *http_code_out)
 {
@@ -231,7 +250,7 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     static rdkcertselector_h certSelector = NULL;
     int result = -1;
 
-    if (!upload_url || !filepath || !sec_out || !http_code_out) {
+    if (!upload_url || !filepath_output || !sec_out || !http_code_out) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -262,7 +281,7 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     }
 
     /* Call the actual rotation function */
-    result = performMetadataPostWithCertRotation(curl, upload_url, filepath,
+    result = performMetadataPostWithCertRotation(curl, upload_url, filepath_output,
                                                  extra_fields, &certSelector,
                                                  sec_out, http_code_out);
 
