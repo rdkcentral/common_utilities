@@ -54,6 +54,14 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
     char *engine = NULL;
     char *certFile = NULL;
 
+#ifdef L2_TEST_ENABLED
+#define CERT_STATIC             "/opt/certs/client.pem"
+#define KEY_STATIC              "/opt/certs/client.pem"
+    strncpy(sec->cert_name, CERT_STATIC, sizeof(sec->cert_name) - 1);
+    strncpy(sec->cert_type, "STATIC", sizeof(sec->cert_type) - 1);
+    strncpy(sec->key_pas, KEY_STATIC, sizeof(sec->key_pas) - 1);
+#else
+    
     if (!sec || !pthisCertSel) {
         COMMONUTILITIES_ERROR("[%s:%d] Invalid parameters\n", __FUNCTION__, __LINE__);
         return MTLS_CERT_FETCH_FAILURE;
@@ -107,7 +115,7 @@ MtlsAuthStatus getCertificateForUpload(MtlsAuth_t *sec, rdkcertselector_h* pthis
 
     COMMONUTILITIES_INFO("[%s:%d] MTLS cert success. cert=%s, type=%s, engine=%s\n",
                __FUNCTION__, __LINE__, sec->cert_name, sec->cert_type, sec->engine);
-
+#endif
     rdkcertselector_free(pthisCertSel);
     return MTLS_CERT_FETCH_SUCCESS;
 
@@ -294,3 +302,4 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     return -1;
 #endif
 }
+
