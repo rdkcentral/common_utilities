@@ -35,14 +35,14 @@ libuploadutil_la_SOURCES += codebigUtils.c
 endif
 
 libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
-libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la  -DLIBRDKCERTSELECTOR
+libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la
 
 libuploadutil_la_include_HEADERS = uploadUtil.h \
                                    mtls_upload.h \
                                    codebig_upload.h \
                                    upload_status.h
 
-libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson
+libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson -DLIBRDKCERTSELECTOR
 libuploadutil_la_includedir = ${includedir}
 
 if USE_CPC_CODE
