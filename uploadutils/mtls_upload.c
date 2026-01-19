@@ -210,7 +210,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     __uploadutil_set_status(http_code, curl_ret_code);
     return -1;
 }
-
+#endif
 /**
  * @brief Perform S3 PUT with provided certificate (Stage 2 - Public API)
  */
@@ -294,6 +294,3 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     return -1;
 #endif
 }
-
-
-#endif
