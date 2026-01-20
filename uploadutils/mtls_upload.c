@@ -221,7 +221,7 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
         return -1;
     }
 
-    int result = performS3PutUpload(s3_url, src_file, sec);  
+    int result = performS3PutUpload(s3_url, src_file, sec);
     if (result == 0) {
         COMMONUTILITIES_INFO("%s: S3 PUT success\n", __FUNCTION__);
     } else {
@@ -293,3 +293,4 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     return -1;
 #endif
 }
+
