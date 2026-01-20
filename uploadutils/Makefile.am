@@ -51,5 +51,5 @@ endif
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS += $(LIBRDKCERTSEL_FLAG)
-AM_LDFLAGS = -lRdkCertSelector
+libuploadutil_la_LDFLAGS += -lRdkCertSelector -lrdkconfig
 endif
