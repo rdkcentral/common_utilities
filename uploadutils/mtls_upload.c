@@ -293,6 +293,3 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     return -1;
 #endif
 }
-
-
-
