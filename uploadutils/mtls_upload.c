@@ -220,9 +220,7 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
-#ifdef LIBRDKCERTSELECTOR
-    int result = performS3PutUpload(s3_url, src_file, sec);
-#endif    
+    int result = performS3PutUpload(s3_url, src_file, sec);  
     if (result == 0) {
         COMMONUTILITIES_INFO("%s: S3 PUT success\n", __FUNCTION__);
     } else {
@@ -294,4 +292,5 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
     return -1;
 #endif
 }
+
 
