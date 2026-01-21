@@ -183,7 +183,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     
     file_upload.url = urlbuf;
     file_upload.pathname = pathbuf;
-    file_upload.sslverify = 1;
+    file_upload.sslverify = 0;
     file_upload.hashData = NULL;
     file_upload.pPostFields = (char*)extra_fields;
 
