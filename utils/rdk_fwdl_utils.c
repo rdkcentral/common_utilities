@@ -254,7 +254,7 @@ int getDevicePropertyData(const char *dev_prop_name, char *out_data, unsigned in
         COMMONUTILITIES_ERROR("%s : parameter is NULL\n", __FUNCTION__);
         return ret;
     }
-    if (buff_size == 0 || buff_size > MAX_DEVICE_PROP_BUFF_SIZE) {
+    if (buff_size == 0 || buff_size >= MAX_DEVICE_PROP_BUFF_SIZE) {
         COMMONUTILITIES_ERROR("%s : buff size not in the range. size should be < %d\n", __FUNCTION__, MAX_DEVICE_PROP_BUFF_SIZE);
         return ret;
     }
