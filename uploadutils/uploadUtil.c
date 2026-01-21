@@ -87,7 +87,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     }
     
     /* Set common curl options with NULL POST fields for PUT operation */
-    ret_code = setCommonCurlOpt(curl, s3url, NULL, true);
+    ret_code = setCommonCurlOpt(curl, s3url, NULL, false);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: setCommonCurlOpt failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
@@ -96,6 +96,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     }
     
     /* Apply mTLS if provided */
+    /*
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
         if (ret_code != CURLE_OK) {
@@ -104,7 +105,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
             urlHelperDestroyCurl(curl);
             return -1;
         }
-    }
+    }*/
     
     fp = fopen(localfile, "rb");
     if (!fp) {
@@ -201,6 +202,7 @@ int performHttpMetadataPost(void *in_curl,
     }
 
     /* Apply mTLS if provided */
+    /*
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
         if (ret_code != CURLE_OK) {
@@ -208,7 +210,7 @@ int performHttpMetadataPost(void *in_curl,
                     __FUNCTION__, curl_easy_strerror(ret_code));
             return (int)ret_code;
         }
-    }
+    } */
 
     /* Build POST fields: include filename plus any extra fields */
     char postfields[512];
@@ -293,4 +295,5 @@ int performHttpMetadataPost(void *in_curl,
 
     return (int)ret_code;
 }
+
 
