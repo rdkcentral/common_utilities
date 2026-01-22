@@ -210,7 +210,7 @@ int performMetadataPostWithCertRotation(void *curl, const char *upload_url, cons
     __uploadutil_set_status(http_code, curl_ret_code);
     return -1;
 }
-
+#endif
 /**
  * @brief Perform S3 PUT with provided certificate (Stage 2 - Public API)
  */
@@ -222,7 +222,7 @@ int performS3PutWithCert(const char *s3_url, const char *src_file, MtlsAuth_t *s
     }
 
     int result = performS3PutUpload(s3_url, src_file, sec);
-    
+
     if (result == 0) {
         COMMONUTILITIES_INFO("%s: S3 PUT success\n", __FUNCTION__);
     } else {
@@ -296,4 +296,4 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
 }
 
 
-#endif
+
