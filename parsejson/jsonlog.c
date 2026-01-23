@@ -26,7 +26,7 @@
 
 int log_init()
 {
-	rdk_logger_init(DEBUG_INI_NAME);
+	rdk_logger_ext_init(DEBUG_INI_NAME);
 	SWUPDATELOG(LOG_INFO, "RDKLOG init completed\n");
 	return 0;
 }

@@ -27,7 +27,7 @@
 int log_init( ) {
     printf("RDKLOG init completed\n");
 #if defined(RDK_LOGGER)
-    rdk_logger_init(DEBUG_INI_NAME);
+    rdk_logger_ext_init(DEBUG_INI_NAME);
 #endif
 
     return 0;
