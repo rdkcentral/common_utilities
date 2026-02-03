@@ -34,7 +34,7 @@ else
 libuploadutil_la_SOURCES += codebigUtils.c    
 endif
 
-libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS) -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+libuploadutil_la_LDFLAGS = -shared -fPIC -lrdkloggers -lpthread $(curl_LIBS)
 libuploadutil_la_LDFLAGS += ${top_builddir}/dwnlutils/libdwnlutil.la ${top_builddir}/utils/libfwutils.la 
 
 libuploadutil_la_include_HEADERS = uploadUtil.h \
@@ -45,11 +45,14 @@ libuploadutil_la_include_HEADERS = uploadUtil.h \
 libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${top_srcdir}/parsejson
 libuploadutil_la_includedir = ${includedir}
 
+if IS_LIBRDKCONFIG_ENABLED
+libuploadutil_la_LDFLAGS += -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
+endif
+
 if USE_CPC_CODE
 libuploadutil_la_CFLAGS += -I${top_srcdir}/src/upload_util-cpc/upload_util
 endif
 
 if IS_LIBRDKCERTSEL_ENABLED
 libuploadutil_la_CFLAGS += $(LIBRDKCERTSEL_FLAG)
-AM_LDFLAGS = -lRdkCertSelector
 endif

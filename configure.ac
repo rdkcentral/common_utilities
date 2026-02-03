@@ -85,6 +85,20 @@ AC_ARG_ENABLE([rdkcertselector],
 AM_CONDITIONAL([IS_LIBRDKCERTSEL_ENABLED], [test x$IS_LIBRDKCERTSEL_ENABLED = xtrue])
 AC_SUBST(LIBRDKCERTSEL_FLAG)
 
+AC_ARG_ENABLE([mountutils],
+        AS_HELP_STRING([--enable-mountutils],[enables mountutils replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCONFIG_ENABLED=true
+                LIBRDKCONFIG_FLAG=" -DLIBRDKCONFIG_BUILD ";;
+           no)  IS_LIBRDKCONFIG_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-mountutils]) ;;
+           esac
+           ],
+        [echo "mountutils is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCONFIG_ENABLED], [test x$IS_LIBRDKCONFIG_ENABLED = xtrue])
+AC_SUBST(LIBRDKCONFIG_FLAG)
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_C_INLINE
