@@ -20,6 +20,12 @@ export ROOT=/usr
 export INSTALL_DIR=${ROOT}/local
 mkdir -p $INSTALL_DIR
 
+cd ${ROOT}
+git clone https://github.com/rdkcentral/rdk_logger.git
+cd rdk_logger
+sh cov_build.sh
+
+cd "$WORKDIR"
 # Build common utilities
 autoreconf -i
 ./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER "
