@@ -24,6 +24,7 @@
 
 #if defined(RDK_LOGGER)
 #include "rdk_debug.h"
+#include "rdk_logger.h"
 
 #define SWLOG_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
 #define SWLOG_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
