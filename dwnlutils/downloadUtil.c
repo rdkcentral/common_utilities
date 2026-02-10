@@ -21,7 +21,7 @@
 
 /* doCurlInit(): ininitialize curl resources
  * param : void
- * Return :void * : Send back curl init pointer
+ * Return :void * : Send back curl init pointer Test
  * */
 void *doCurlInit(void)
 {
