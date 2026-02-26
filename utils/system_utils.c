@@ -175,7 +175,7 @@ int createDir(const char *dirname) {
 
 /* Description: Use for clean Folder except file match with file_name.
  * @param folder: Folder name
- * @param file_name: File name pattern which are not to be deleted.
+ * @param file_name: Exact file name which is not to be deleted.
  * @return int : Fail RDK_API_FAILURE and Success RDK_API_SUCCESS
  * */
 int eraseFolderExceParamFile(const char *folder, const char* file_name, const char *model_num)
