@@ -177,7 +177,7 @@ int createDir(const char *dirname) {
  * @param file_name: File name pattern which are not to be deleted.
  * @return int : Fail RDK_API_FAILURE and Success RDK_API_SUCCESS
  * */
-int eraseFolderExcePramaFile(const char *folder, const char* file_name, const char *model_num)
+int eraseFolderExcePramFile(const char *folder, const char* file_name, const char *model_num)
 {
     int ret = RDK_API_FAILURE;
     DIR *folder_fd = NULL;
@@ -194,9 +194,9 @@ int eraseFolderExcePramaFile(const char *folder, const char* file_name, const ch
         return ret;
     }
     while((dir = readdir(folder_fd)) != NULL) {
-        if (dir->d_type == DT_DIR || (strstr(dir->d_name, file_name))) {
+        if (dir->d_type == DT_DIR || (strcasecmp(dir->d_name, file_name) == 0)) {
             continue;
-        } else if(strstr(dir->d_name, model_num)) {
+        } else if(strstr(dir->d_name, model_num) || (strlen(dir->d_name)>= 4 && (strcmp(dir->d_name + len - 4, ".tgz") == 0))) {
             snprintf(oldfile, sizeof(oldfile), "%s/%s", folder, dir->d_name);
             COMMONUTILITIES_INFO("%s Deleting old software file.%s\n", dir->d_name, oldfile);
             unlink(oldfile);
