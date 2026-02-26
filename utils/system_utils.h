@@ -57,7 +57,7 @@ int cmdExec(const char *cmd, char *output, unsigned int size_buff);
 int getFileSize(const char *file_name);
 int logFileData(const char *file_path);
 int createDir(const char *dirname);
-int eraseFolderExcePramaFile(const char *folder, const char* file_name, const char *model_num);
+int eraseFolderExcePramFile(const char *folder, const char* file_name, const char *model_num);
 
 int createFile(const char *file_name);
 int eraseTGZItemsMatching(const char *folder, const char* file_name);
