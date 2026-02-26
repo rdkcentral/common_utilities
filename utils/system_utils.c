@@ -177,7 +177,7 @@ int createDir(const char *dirname) {
  * @param file_name: File name pattern which are not to be deleted.
  * @return int : Fail RDK_API_FAILURE and Success RDK_API_SUCCESS
  * */
-int eraseFolderExceptParamFile(const char *folder, const char* file_name, const char *model_num)
+int eraseFolderExceParamFile(const char *folder, const char* file_name, const char *model_num)
 {
     int ret = RDK_API_FAILURE;
     DIR *folder_fd = NULL;
