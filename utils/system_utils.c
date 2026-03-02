@@ -189,6 +189,12 @@ int eraseFolderExceParamFile(const char *folder, const char* file_name, const ch
         COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
         return ret;
     }
+
+    char file_hdr[256];
+    char pdri_hdr[256];
+    snprintf(file_hdr, sizeof(file_hdr), "%s.header", file_name);
+    snprintf(pdri_hdr, sizeof(pdri_hdr), "%s.header", pdri_file_name);
+    
     folder_fd = opendir(folder);
     if (folder_fd == NULL) {
         COMMONUTILITIES_ERROR("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
