@@ -260,11 +260,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
         COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
         return DWNL_FAIL;
     }
-    // Defensive checks for critical fields to avoid crash on invalid/missing issue type
-    if (pfile_dwnl->pathname == NULL || pfile_dwnl->url == NULL || pfile_dwnl->url[0] == '\0') {
-        COMMONUTILITIES_ERROR("%s: Invalid or missing pathname or url in FileDwnl_t \n", __FUNCTION__);
-        return DWNL_FAIL;
-    }
+    
     // If hashData is expected, check its fields
     if (pfile_dwnl->hashData != NULL) {
         if (pfile_dwnl->hashData->hashvalue == NULL || pfile_dwnl->hashData->hashtime == NULL) {
