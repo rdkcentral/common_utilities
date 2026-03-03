@@ -190,8 +190,6 @@ int eraseFolderExceParamFile(const char *folder, const char* file_name, const ch
         COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
         return ret;
     }
-
-    
     folder_fd = opendir(folder);
     if (folder_fd == NULL) {
         COMMONUTILITIES_ERROR("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
