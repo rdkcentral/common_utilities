@@ -186,7 +186,7 @@ int eraseFolderExceParamFile(const char *folder, const char* file_name, const ch
     struct dirent *dir = NULL;
     char oldfile[512];
 
-    if (folder == NULL || file_name == NULL || model_num == NULL) {
+    if (folder == NULL || file_name == NULL || pdri_file_name == NULL || model_num == NULL) {
         COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
         return ret;
     }
