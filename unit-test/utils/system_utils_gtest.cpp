@@ -170,26 +170,26 @@ TEST_F(SystemUtilsTestFixture, createDir_directory_already_exists)
     ret = system("rm -f /tmp/newdir");
 }
 
-/* 6.eraseFolderExcePramaFile */
-TEST_F(SystemUtilsTestFixture, eraseFolderExcePramaFile_folder_NULL)   
+/* 6.eraseFolderExceParmFile */
+TEST_F(SystemUtilsTestFixture, eraseFolderExceParamFile_folder_NULL)   
 {
     char filename[30] = "file.txt";
     char model[30] = "new";
-    EXPECT_EQ(eraseFolderExcePramaFile(NULL, filename,model), -1);
+    EXPECT_EQ(eraseFolderExceParamFile(NULL, filename,model), -1);
 }
-TEST_F(SystemUtilsTestFixture, eraseFolderExcePramaFile_filename_NULL)   
+TEST_F(SystemUtilsTestFixture, eraseFolderExceParamFile_filename_NULL)   
 {
     char folder[30] = "/tmp";
     char model[30] = "abcd";
-    EXPECT_EQ(eraseFolderExcePramaFile(folder, NULL,model), -1);
+    EXPECT_EQ(eraseFolderExceParamFile(folder, NULL,model), -1);
 }
-TEST_F(SystemUtilsTestFixture, eraseFolderExcePramaFile_model_num_NULL)   
+TEST_F(SystemUtilsTestFixture, eraseFolderExceParamFile_model_num_NULL)   
 {
     char folder[30] = "/tmp";
     char filename[30] = "file.txt";
-    EXPECT_EQ(eraseFolderExcePramaFile(folder, filename, NULL), -1);
+    EXPECT_EQ(eraseFolderExceParamFile(folder, filename, NULL), -1);
 }
-TEST_F(SystemUtilsTestFixture, eraseFolderExcePramaFile_valid_inputs)   
+TEST_F(SystemUtilsTestFixture, eraseFolderExceParamFile_valid_inputs)   
 {
     int ret;
     char folder[30] = "/tmp";
@@ -200,7 +200,7 @@ TEST_F(SystemUtilsTestFixture, eraseFolderExcePramaFile_valid_inputs)
     ret = system("touch /tmp/abcd_1");
     ret = system("touch /tmp/abcd_2");
     ret = system("ls -l /tmp/");
-    EXPECT_EQ(eraseFolderExcePramaFile(folder, filename,model), 0);
+    EXPECT_EQ(eraseFolderExceParamFile(folder, filename,model), 0);
     ret = system("#After Deleteing:");
     ret = system("ls -l /tmp/");
     ret = system("rm -rf /tmp/file.txt /tmp/abcd_1 /tmp/abcd_2");
