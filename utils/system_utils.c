@@ -177,6 +177,7 @@ int createDir(const char *dirname) {
  * @param folder: Folder name
  * @param file_name: Exact file name which is not to be deleted.
  * @param pdri_file_name: Exact PDRI file name which is not to be deleted.
+ * @param model_name : This param is not in use in new design, but retaining this param for any future use case
  * @return int : Fail RDK_API_FAILURE and Success RDK_API_SUCCESS
  * */
 int eraseFolderExceParamFile(const char *folder, const char* file_name, const char* pdri_file_name, const char *model_num)
