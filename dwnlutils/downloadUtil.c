@@ -251,6 +251,11 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
     CURLcode ret_code = CURLE_OK;
     size_t byte_dwnled = 0;
     CURLcode curl_status = -1;
+    COMMONUTILITIES_INFO("%s: ENTRY", __FUNCTION__);
+    COMMONUTILITIES_INFO("%s: Parameters: in_curl=%p, pfile_dwnl=%p, auth=%p, max_dwnl_speed=%u, dnl_start_pos=%s, out_httpCode=%p", __FUNCTION__, in_curl, pfile_dwnl, auth, max_dwnl_speed, dnl_start_pos ? dnl_start_pos : "NULL", out_httpCode);
+    if (pfile_dwnl) {
+        COMMONUTILITIES_INFO("%s: pfile_dwnl->url=%s, pfile_dwnl->pPostFields=%s, pfile_dwnl->pathname=%s, pfile_dwnl->sslverify=%d, pfile_dwnl->chunk_dwnl_retry_time=%d", __FUNCTION__, pfile_dwnl->url ? pfile_dwnl->url : "NULL", pfile_dwnl->pPostFields ? pfile_dwnl->pPostFields : "NULL", pfile_dwnl->pathname ? pfile_dwnl->pathname : "NULL", pfile_dwnl->sslverify, pfile_dwnl->chunk_dwnl_retry_time);
+    }
 #ifdef CURL_DEBUG
     DbgData_t verbosinfo;
     memset(&verbosinfo, '\0', sizeof(DbgData_t));
@@ -258,13 +263,26 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 
     if (in_curl == NULL || pfile_dwnl == NULL || out_httpCode == NULL) {
         COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: EXIT (param check fail)", __FUNCTION__);
         return DWNL_FAIL;
+    }
+
+    // If hashData is expected, check its fields
+    if (pfile_dwnl->hashData != NULL) {
+        COMMONUTILITIES_INFO("%s: hashData present: hashvalue=%s, hashtime=%s", __FUNCTION__, pfile_dwnl->hashData->hashvalue ? pfile_dwnl->hashData->hashvalue : "NULL", pfile_dwnl->hashData->hashtime ? pfile_dwnl->hashData->hashtime : "NULL");
+        if (pfile_dwnl->hashData->hashvalue == NULL || pfile_dwnl->hashData->hashtime == NULL) {
+            COMMONUTILITIES_ERROR("%s: Invalid hashData fields in FileDwnl_t\n", __FUNCTION__);
+            COMMONUTILITIES_INFO("%s: EXIT (invalid hashData)", __FUNCTION__);
+            return DWNL_FAIL;
+        }
     }
     curl = (CURL *)in_curl;
 
+    COMMONUTILITIES_INFO("%s: Calling setCommonCurlOpt", __FUNCTION__);
     ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, pfile_dwnl->pPostFields, pfile_dwnl->sslverify);
     if(ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s : CURL: setCommonCurlOpt Failed\n", __FUNCTION__);
+        COMMONUTILITIES_INFO("%s: EXIT (setCommonCurlOpt fail)", __FUNCTION__);
         return DWNL_FAIL;
     } else {
         COMMONUTILITIES_INFO("%s : CURL: setCommonCurlOpt Success\n", __FUNCTION__);
@@ -273,9 +291,11 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 
     if( auth != NULL )
     {
+        COMMONUTILITIES_INFO("%s: Calling setMtlsHeaders", __FUNCTION__);
         ret_code = setMtlsHeaders(curl, auth);
         if(ret_code != CURLE_OK) {
             COMMONUTILITIES_ERROR("%s : CURL: setMtlsHeaders Failed\n", __FUNCTION__);
+            COMMONUTILITIES_INFO("%s: EXIT (setMtlsHeaders fail)", __FUNCTION__);
             return DWNL_FAIL;
         } else {
             COMMONUTILITIES_INFO("%s : CURL: setMtlsHeaders Success\n", __FUNCTION__);
@@ -284,6 +304,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 
     if(pfile_dwnl->hashData != NULL)
     {
+        COMMONUTILITIES_INFO("%s: Setting additional hash headers", __FUNCTION__);
         // Set additional headers
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, pfile_dwnl->hashData->hashvalue);
@@ -293,16 +314,19 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 	{
             COMMONUTILITIES_ERROR( "SetRequestHeaders: CURLOPT_HTTPHEADER failed:%s\n", curl_easy_strerror(ret_code));
             if( headers != NULL ) {
-            curl_slist_free_all( headers );
+                curl_slist_free_all( headers );
             }
+            COMMONUTILITIES_INFO("%s: EXIT (set hash headers fail)", __FUNCTION__);
             return DWNL_FAIL;
         }
     }
 
     if (max_dwnl_speed > 0) {
+        COMMONUTILITIES_INFO("%s: Calling setThrottleMode with max_dwnl_speed=%u", __FUNCTION__, max_dwnl_speed);
     	ret_code = setThrottleMode(curl, (curl_off_t) max_dwnl_speed);
     	if(ret_code != CURLE_OK) {
             COMMONUTILITIES_ERROR("%s : CURL: setThrottleMode Failed\n", __FUNCTION__);
+            COMMONUTILITIES_INFO("%s: EXIT (setThrottleMode fail)", __FUNCTION__);
     	    return DWNL_FAIL;
     	} else {
             COMMONUTILITIES_INFO("%s : CURL: setThrottleMode Success\n", __FUNCTION__);
@@ -318,13 +342,15 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 #endif
     if( *pfile_dwnl->pathname )
     {
+        COMMONUTILITIES_INFO("%s: Downloading to file: %s", __FUNCTION__, pfile_dwnl->pathname);
         byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, dnl_start_pos, pfile_dwnl->chunk_dwnl_retry_time, out_httpCode, &curl_status);
     }
     else
     {
+        COMMONUTILITIES_INFO("%s: Downloading to memory", __FUNCTION__);
         byte_dwnled = urlHelperDownloadToMem(curl, pfile_dwnl, out_httpCode, &curl_status);
     }
-    COMMONUTILITIES_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d\n", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
+    COMMONUTILITIES_INFO("%s : After curl operation no of bytes Downloaded=%zu and curl ret status=%d and http code=%d", __FUNCTION__, byte_dwnled, curl_status, *out_httpCode);
 
 #ifdef CURL_DEBUG
     if (verbosinfo.verboslog) {
@@ -332,6 +358,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
         fclose(verbosinfo.verboslog);
     }
 #endif    
+    COMMONUTILITIES_INFO("%s: EXIT with curl_status=%d", __FUNCTION__, (int)curl_status);
     return (int)curl_status;
 }
 
