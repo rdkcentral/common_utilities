@@ -18,6 +18,8 @@
 
 #include <iostream>
 #include "curl_mock.h"
+#include <cstdarg>
+
 
 using namespace std;
 
@@ -53,8 +55,13 @@ extern "C" CURLcode curl_easy_getinfo(CURL *curl, CURLINFO info, ...)
         cout << "g_CurlWrapperMock object is NULL" << endl;
         return CURLE_OK;
     }
+    va_list args;
+    va_start(args, info);
+    // Forward the argument as void*
+    void* param = va_arg(args, void*);
+    va_end(args);
     printf("Inside Mock Function curl_easy_getinfo\n");
-    return g_CurlWrapperMock->curl_easy_getinfo(curl, info, NULL);
+    return g_CurlWrapperMock->curl_easy_getinfo(curl, info, param);
 }
 extern "C" const char* curl_easy_strerror(CURLcode errornum)
 {
