@@ -60,6 +60,17 @@ PKG_CHECK_MODULES([cjson], [libcjson >= 1.7.12])
 PKG_CHECK_MODULES([curl], [libcurl >= 7.60.0])
 IS_LIBRDKCERTSEL_ENABLED=" "
 
+AC_ARG_ENABLE([cpc-code],
+    [AS_HELP_STRING([--enable-cpc-code], [Enable CPC code support])],
+    [USE_CPC_CODE="$enableval"],
+    [USE_CPC_CODE=no])
+
+AM_CONDITIONAL([USE_CPC_CODE], [test "$USE_CPC_CODE" = "yes"])
+
+if test "$USE_CPC_CODE" = "yes"; then
+    AC_DEFINE([USE_CPC_CODE], [1], [Define to enable CPC CODE support])
+fi
+
 AC_ARG_ENABLE([rdkcertselector],
         AS_HELP_STRING([--enable-rdkcertselector],[enables rdkcertselector replacement (default is no)]),
         [
@@ -74,6 +85,20 @@ AC_ARG_ENABLE([rdkcertselector],
 AM_CONDITIONAL([IS_LIBRDKCERTSEL_ENABLED], [test x$IS_LIBRDKCERTSEL_ENABLED = xtrue])
 AC_SUBST(LIBRDKCERTSEL_FLAG)
 
+AC_ARG_ENABLE([mountutils],
+        AS_HELP_STRING([--enable-mountutils],[enables mountutils replacement (default is no)]),
+        [
+          case "${enableval}" in
+           yes) IS_LIBRDKCONFIG_ENABLED=true
+                LIBRDKCONFIG_FLAG=" -DLIBRDKCONFIG_BUILD ";;
+           no)  IS_LIBRDKCONFIG_ENABLED=false ;;
+          *) AC_MSG_ERROR([bad value ${enableval} for --enable-mountutils]) ;;
+           esac
+           ],
+        [echo "mountutils is disabled"])
+AM_CONDITIONAL([IS_LIBRDKCONFIG_ENABLED], [test x$IS_LIBRDKCONFIG_ENABLED = xtrue])
+AC_SUBST(LIBRDKCONFIG_FLAG)
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_C_INLINE
@@ -87,11 +112,10 @@ AC_CONFIG_FILES([Makefile
     dwnlutils/Makefile
     utils/Makefile
     parsejson/Makefile
+    uploadutils/Makefile
     ])
 
 BUILD_BINS="false"
 AM_CONDITIONAL([build_parsejson_bins], [test "x$BUILD_BINS" = xtrue])
 
 AC_OUTPUT
-
-

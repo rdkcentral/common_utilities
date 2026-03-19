@@ -35,7 +35,7 @@
 
 #define UTILS_SUCCESS 1
 #define UTILS_FAIL -1
-#define MAX_DEVICE_PROP_BUFF_SIZE 80
+#define MAX_DEVICE_PROP_BUFF_SIZE 1024
 
 #ifndef GTEST_ENABLE
 #define DEVICE_PROPERTIES_FILE  "/etc/device.properties"
@@ -54,6 +54,12 @@ typedef enum {
     ePROD,
     eQA
 } BUILDTYPE;
+
+#ifndef GETRDMMANIFESTVERSION_IN_SCRIPT
+    #define GETRDMMANIFESTVERSION_IN_SCRIPT
+#endif
+
+
 
 /* Below structure contains data from /etc/device.property */
 typedef struct deviceproperty {

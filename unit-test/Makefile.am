@@ -16,6 +16,7 @@
 #
 
 AUTOMAKE_OPTIONS = subdir-objects
+SUBDIRS = uploadutil
 
 # Define the program name and the source files
 bin_PROGRAMS = system_utils_gtest rdk_fwdl_utils_gtest common_device_api_gtest urlHelper_gtest json_parse_gtest downloadUtil_gtest
@@ -30,7 +31,7 @@ COMMON_LDADD =  -lcjson -lgcov -lcurl -lgtest -lgtest_main -lgmock_main -lgmock
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage -fpermissive
 
 # Define the source files
-common_device_api_gtest_SOURCES = utils/common_device_api_gtest.cpp ../utils/common_device_api.c ../utils/rdkv_cdl_log_wrapper.c
+common_device_api_gtest_SOURCES = utils/common_device_api_gtest.cpp ../utils/common_device_api.c ../utils/rdk_fwdl_utils.c ../utils/system_utils.c ../utils/rdkv_cdl_log_wrapper.c
 system_utils_gtest_SOURCES = utils/system_utils_gtest.cpp ../utils/system_utils.c ../utils/rdkv_cdl_log_wrapper.c
 
 rdk_fwdl_utils_gtest_SOURCES = utils/rdk_fwdl_utils_gtest.cpp ../utils/rdk_fwdl_utils.c ../utils/rdkv_cdl_log_wrapper.c

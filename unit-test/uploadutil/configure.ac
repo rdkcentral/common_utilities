@@ -1,5 +1,9 @@
-# Copyright 2023 Comcast Cable Communications Management, LLC
-# 
+##########################################################################
+# If not stated otherwise in this file or this component's LICENSE
+# file the following copyright and licenses apply:
+#
+# Copyright 2025 RDK Management
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,12 +15,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# SPDX-License-Identifier: Apache-2.0
-#
+##########################################################################
 
 # Initialize Autoconf
-AC_INIT([system_utils_gtest],[1.0])
+AC_INIT([uploadutil_gtest],[1.0])
 # Initialize Automake
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 # Check for necessary headers
@@ -25,6 +27,9 @@ AC_CHECK_HEADERS([jsoncpp/json/json.h gtest/gtest.h gmock/gmock.h])
 AC_CHECK_LIB([jsoncpp], [main])
 AC_CHECK_LIB([gtest], [main])
 AC_CHECK_LIB([gmock], [main])
+AC_CHECK_LIB([curl], [main])
+AC_CHECK_LIB([ssl], [main])
+AC_CHECK_LIB([crypto], [main])
 # Checks for programs.
 AC_PROG_CXX
 # Checks for libraries.
@@ -45,6 +50,6 @@ AC_C_CONST
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 # Generate the Makefile
-AC_CONFIG_FILES([Makefile uploadutil/Makefile])
+AC_CONFIG_FILES([Makefile])
 # Generate the configure script
 AC_OUTPUT
