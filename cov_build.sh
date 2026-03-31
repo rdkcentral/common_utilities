@@ -22,5 +22,5 @@ mkdir -p $INSTALL_DIR
 
 # Build common utilities
 autoreconf -i
-./configure  --enable-rdkcertselector --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER "
+./configure  --enable-rdkcertselector --enable-mountutils --prefix=${INSTALL_DIR} CFLAGS=" -DRDK_LOGGER -DL2UPLOADENABLED"
 make && make install
