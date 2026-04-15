@@ -265,6 +265,7 @@ int performHttpMetadataPost(void *in_curl,
         if (headers) curl_slist_free_all(headers);
         return (int)ret_code;
     }
+#ifdef CURL_DEBUG
     ret_code = curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: CURLOPT_VERBOSE failed: %s\n",
@@ -273,6 +274,7 @@ int performHttpMetadataPost(void *in_curl,
         if (headers) curl_slist_free_all(headers);
         return (int)ret_code;
     }
+#endif
 
     /* Perform request */
     ret_code = curl_easy_perform(curl);
