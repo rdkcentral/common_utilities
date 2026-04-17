@@ -1,7 +1,7 @@
 name: Unit tests Common Utilities
 on:
   pull_request:
-    branches: [ topic/rdm-change-8_4 ]
+    branches: [  develop, main  ]
 
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
