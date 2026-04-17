@@ -260,6 +260,14 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
         COMMONUTILITIES_ERROR("%s: Parameter Check Fail\n", __FUNCTION__);
         return DWNL_FAIL;
     }
+
+	// If hashData is expected, check its fields
+    if (pfile_dwnl->hashData != NULL) {
+        if (pfile_dwnl->hashData->hashvalue == NULL || pfile_dwnl->hashData->hashtime == NULL) {
+            COMMONUTILITIES_ERROR("%s: Invalid hashData fields in FileDwnl_t\n", __FUNCTION__);
+            return DWNL_FAIL;
+        }
+    }
     curl = (CURL *)in_curl;
 
     ret_code = setCommonCurlOpt(curl, pfile_dwnl->url, pfile_dwnl->pPostFields, pfile_dwnl->sslverify);
