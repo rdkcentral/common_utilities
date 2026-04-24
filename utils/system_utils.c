@@ -30,6 +30,8 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <fnmatch.h>
+#include <strings.h>
+
 
 /** Description: File present check.
  *
@@ -172,19 +174,21 @@ int createDir(const char *dirname) {
     return ret ;
 }
 
-/* Description: Use for clean Folder except file match with file_name.
+/* Description: Use for clean Folder except file match with file_name and pdri_file_name..
  * @param folder: Folder name
- * @param file_name: File name pattern which are not to be deleted.
+ * @param file_name: Exact file name which is not to be deleted.
+ * @param pdri_file_name: Exact PDRI file name which is not to be deleted.
+ * @param model_name : This param is not in use in new design, but retaining this param for any future use case
  * @return int : Fail RDK_API_FAILURE and Success RDK_API_SUCCESS
  * */
-int eraseFolderExcePramaFile(const char *folder, const char* file_name, const char *model_num)
+int eraseFolderExceParamFile(const char *folder, const char* file_name, const char* pdri_file_name, const char *model_num)
 {
     int ret = RDK_API_FAILURE;
     DIR *folder_fd = NULL;
     struct dirent *dir = NULL;
     char oldfile[512];
 
-    if (folder == NULL || file_name == NULL || model_num == NULL) {
+    if (folder == NULL || file_name == NULL || pdri_file_name == NULL || model_num == NULL) {
         COMMONUTILITIES_ERROR("%s parameter is NULL\n", __FUNCTION__);
         return ret;
     }
@@ -193,10 +197,16 @@ int eraseFolderExcePramaFile(const char *folder, const char* file_name, const ch
         COMMONUTILITIES_ERROR("%s : Unable to open folder=%s and file=%s\n", __FUNCTION__, folder, file_name);
         return ret;
     }
+    char file_hdr[256];
+    char pdri_hdr[256];
+
+    snprintf(file_hdr, sizeof(file_hdr), "%s.header", file_name);
+    snprintf(pdri_hdr, sizeof(pdri_hdr), "%s.header", pdri_file_name);
+    
     while((dir = readdir(folder_fd)) != NULL) {
-        if (dir->d_type == DT_DIR || (strstr(dir->d_name, file_name))) {
+        if (dir->d_type == DT_DIR || (strcasecmp(dir->d_name, file_name) == 0) || (strcasecmp(dir->d_name, pdri_file_name)==0) || strcasecmp(dir->d_name, file_hdr) == 0 || strcasecmp(dir->d_name, pdri_hdr) == 0) {
             continue;
-        } else if(strstr(dir->d_name, model_num)) {
+        } else {
             snprintf(oldfile, sizeof(oldfile), "%s/%s", folder, dir->d_name);
             COMMONUTILITIES_INFO("%s Deleting old software file.%s\n", dir->d_name, oldfile);
             unlink(oldfile);
