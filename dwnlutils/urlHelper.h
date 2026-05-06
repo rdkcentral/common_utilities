@@ -30,7 +30,7 @@
 #include <ctype.h>
 
 #ifndef CURL_TLS_TIMEOUT //This is to provide an option Define custom timeout using DFLAGS
-#define CURL_TLS_TIMEOUT 7200L
+#define CURL_TLS_TIMEOUT 30L
 #endif
 
 #define CURL_PROGRESS_FILE "/opt/curl_progress"
