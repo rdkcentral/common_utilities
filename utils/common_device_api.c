@@ -317,6 +317,11 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
             pOut = "prod";
             eBuildType = ePROD;
         }
+	else if( strstr( pTmp, "signedlab" ) != NULL )
+        {
+            pOut = "signedlab";
+            eBuildType = eSIGNEDLAB;
+        }
         else if( strstr( pTmp, "qa" ) != NULL )
         {
             pOut = "qa";
