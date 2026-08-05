@@ -26,7 +26,21 @@
 
 int log_init()
 {
-	rdk_logger_init(DEBUG_INI_NAME);
+	// Initialize RDK Logger
+    rdk_LogOutput_File filelog;
+    /* Extended initialization with programmatic configuration */
+    rdk_logger_ext_config_t config = {
+        .pModuleName = "LOG.RDK.DCM",     /* Module name */
+        .loglevel = RDK_LOG_INFO,         /* Default log level */
+        //.output = RDKLOG_OUTPUT_FILE,
+        .output = RDKLOG_OUTPUT_CONSOLE,
+        .format = RDKLOG_FORMAT_WITH_TS,  /* Timestamped format */
+        .pFilePolicy =  NULL        /* using file output */
+    };
+
+    if (rdk_logger_ext_init(&config) != RDK_SUCCESS) {
+        printf("UPLOADSTB : ERROR - Extended logger init failed\n");
+    }
 	SWUPDATELOG(LOG_INFO, "RDKLOG init completed\n");
 	return 0;
 }
