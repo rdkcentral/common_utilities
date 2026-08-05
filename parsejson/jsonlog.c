@@ -22,6 +22,7 @@
 #include "rdk_debug.h"
 //#include "jsonlog.h"
 #include "rdkv_cdl_log_wrapper.h"
+#include "rdk_logger.h"
 
 
 int log_init()
