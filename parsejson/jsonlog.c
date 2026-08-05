@@ -31,7 +31,7 @@ int log_init()
     rdk_LogOutput_File filelog;
     /* Extended initialization with programmatic configuration */
     rdk_logger_ext_config_t config = {
-        .pModuleName = "LOG.RDK.DCM",     /* Module name */
+        .pModuleName = "LOG.RDK.COMMONUTILITIES",     /* Module name */
         .loglevel = RDK_LOG_INFO,         /* Default log level */
         //.output = RDKLOG_OUTPUT_FILE,
         .output = RDKLOG_OUTPUT_CONSOLE,
