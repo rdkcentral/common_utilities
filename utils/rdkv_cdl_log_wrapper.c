@@ -27,12 +27,17 @@
 int log_init( ) {
     printf("RDKLOG init completed\n");
 #if defined(RDK_LOGGER)
+#if !defined(USE_LEGACY_LOGGER_INIT)
     rdk_logger_ext_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.loglevel = RDK_LOG_INFO;
     cfg.output = RDKLOG_OUTPUT_CONSOLE;
     cfg.format = RDKLOG_FORMAT_DETAIL_WITH_TS;
     rdk_logger_ext_init(&cfg);
+#else
+#define DEBUG_INI_NAME "/etc/debug.ini"
+    rdk_logger_init(DEBUG_INI_NAME);
+#endif
 #endif
 
     return 0;
