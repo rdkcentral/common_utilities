@@ -35,7 +35,6 @@ int log_init( ) {
     cfg.format = RDKLOG_FORMAT_DETAIL_WITH_TS;
     rdk_logger_ext_init(&cfg);
 #else
-#define DEBUG_INI_NAME "/etc/debug.ini"
     rdk_logger_init(DEBUG_INI_NAME);
 #endif
 #endif
