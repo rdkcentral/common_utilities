@@ -25,7 +25,6 @@
 #include "rdkv_cdl_log_wrapper.h"
 
 int log_init( ) {
-    printf("RDKLOG init completed\n");
 #if defined(RDK_LOGGER)
 #if !defined(USE_LEGACY_LOGGER_INIT)
     rdk_logger_ext_config_t cfg;
@@ -38,7 +37,7 @@ int log_init( ) {
     rdk_logger_init(DEBUG_INI_NAME);
 #endif
 #endif
-
+    printf("RDKLOG init completed\n");
     return 0;
 }
 
