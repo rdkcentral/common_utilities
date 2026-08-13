@@ -20,7 +20,30 @@
 #define  _RDKV_CDL_LOG_WRPPER_H_
 
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
 
+char* RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL = NULL;
+#define RDK_LOGGER_PREFIX "LOG.RDK"
+#define COMMON_UTIL_IDENTIFIER ".COMMONUTILITIES"
+#define IDENTIFIER_LEN 256
+
+inline char* get_common_util_identifier()
+{
+    static char logger_identifier[IDENTIFIER_LEN] = {0};
+    if (logger_identifier[0] == '\0')
+    {
+        if (RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL == NULL)
+        {
+            snprintf(logger_identifier, IDENTIFIER_LEN, "%s%s", RDK_LOGGER_PREFIX, COMMON_UTIL_IDENTIFIER);
+        }
+        else
+        {
+            snprintf(logger_identifier, IDENTIFIER_LEN, "%s%s", RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL, COMMON_UTIL_IDENTIFIER);
+        }
+    }
+    return logger_identifier;
+}
 
 #if defined(RDK_LOGGER)
 #include "rdk_debug.h"
@@ -32,12 +55,12 @@
 #define SWLOG_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
 #define SWLOG_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.FWUPG", format, ##__VA_ARGS__)
 
-#define COMMONUTILITIES_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
-#define COMMONUTILITIES_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
-#define COMMONUTILITIES_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
-#define COMMONUTILITIES_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
-#define COMMONUTILITIES_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
-#define COMMONUTILITIES_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  "LOG.RDK.COMMONUTILITIES", format, ##__VA_ARGS__)
+#define COMMONUTILITIES_TRACE(format, ...)       RDK_LOG(RDK_LOG_TRACE1, get_common_util_identifier(), format, ##__VA_ARGS__)
+#define COMMONUTILITIES_DEBUG(format, ...)       RDK_LOG(RDK_LOG_DEBUG,  get_common_util_identifier(), format, ##__VA_ARGS__)
+#define COMMONUTILITIES_INFO(format, ...)        RDK_LOG(RDK_LOG_INFO,   get_common_util_identifier(), format, ##__VA_ARGS__)
+#define COMMONUTILITIES_WARN(format, ...)        RDK_LOG(RDK_LOG_WARN,   get_common_util_identifier(), format, ##__VA_ARGS__)
+#define COMMONUTILITIES_ERROR(format, ...)       RDK_LOG(RDK_LOG_ERROR,  get_common_util_identifier(), format, ##__VA_ARGS__)
+#define COMMONUTILITIES_FATAL(format, ...)       RDK_LOG(RDK_LOG_FATAL,  get_common_util_identifier(), format, ##__VA_ARGS__)
 
 #else
 #define SW_LOG_INFO      (1)
