@@ -24,6 +24,8 @@
 
 #include "rdkv_cdl_log_wrapper.h"
 
+char* RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL = NULL;
+
 int log_init( ) {
 #if defined(RDK_LOGGER)
 #if !defined(USE_LEGACY_LOGGER_INIT)
