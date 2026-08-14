@@ -69,6 +69,13 @@ bool isSecureDbgSrvUnlocked(){
 	char labsigned[8] = {0};
 	int ret = -1;
 	BUILDTYPE eBuildType;
+	char buf[BUF_MAX_LEN];//BUF_MAX_LEN=512 --> to be defined
+
+	//GET BUILD TYPE FROM /ETC/DEVICE.PROPERTIES --> NEED TO ADD A CASE ON HANDLING SIGNEDLAB HERE
+    GetBuildType( buf, sizeof(buf), &eBuildType);
+
+	
+
 	/* define a buffer to call get Build Type
 	   add functionality in buildType to support signedlab
 	   Add v_secure_system for getting RFC values.
