@@ -100,63 +100,55 @@ static bool getTr181Value(const char *paramName, char *value, size_t valueSize)
     return true;
 }
 
-bool isSecureDbgSrvUnlocked(){
-	char deviceType[16] = {0};
-    bool isDebugServicesUnlocked = false;
-	char labsigned[8] = {0};
-	char deviceType[16] = {0};
+bool isSecureDbgSrvUnlocked(void)
+{
+    char deviceType[16] = {0};
+    char labsigned[8] = {0};
     char dbgServices[8] = {0};
-	int ret = -1;
-	BUILDTYPE eBuildType;
-	char buf[BUF_MAX_LEN];//BUF_MAX_LEN=512 --> to be defined
+    char buf[BUF_MAX_LEN] = {0};
 
+    bool isDebugServicesUnlocked = false;
 
-	//GET BUILD TYPE FROM /ETC/DEVICE.PROPERTIES --> NEED TO ADD A CASE ON HANDLING SIGNEDLAB HERE
-    GetBuildType( buf, sizeof(buf), &eBuildType);
-	
-	if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN))
+    int ret = -1;
+    BUILDTYPE eBuildType;
+
+    GetBuildType(buf, sizeof(buf), &eBuildType);
+
+    if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
     {
         isDebugServicesUnlocked = true;
     }
-
-	else if(eBuildType == eSIGNEDLAB)
-	{
-
-        getTr181Value(
-            "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable",dbgServices,sizeof(dbgServices));
-
-        getTr181Value(
-            "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType",deviceType,sizeof(deviceType));
-
+    else if (eBuildType == eSIGNEDLAB)
+    {
+        bool dbgServicesCheck = getTr181Value("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable",dbgServices,sizeof(dbgServices));
+		bool deviceTypeCheck = getTr181Value("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType",deviceType,sizeof(deviceType));
         ret = getDevicePropertyData("LABSIGNED_ENABLED",labsigned,sizeof(labsigned));
 
-        if (ret == UTILS_SUCCESS)
+        if (dbgServicesCheck && deviceTypeCheck && (ret == UTILS_SUCCESS))
         {
-            dbgServicesEnabled = (strcmp(dbgServices, "true") == 0);
-
-            if ((strcmp(labsigned, "true") == 0) &&(strcmp(deviceType, "test") == 0) && dbgServicesEnabled)
+            if ((strcmp(labsigned, "true") == 0) && (strcmp(deviceType, "test") == 0) && (strcmp(dbgServices, "true") == 0))
             {
                 isDebugServicesUnlocked = true;
             }
             else
             {
-				COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: unable to enable debug services...\n");
-			}
-		}
+                COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: unable to enable debug services\n");
+            }
+        }
         else
         {
-            COMMONUTILITIES_ERROR("%s: getDevicePropertyData() for LABSIGNED_ENABLED failed\n",__FUNCTION__);
+            COMMONUTILITIES_ERROR("%s: Failed to read required values\n",__FUNCTION__);
         }
 
-        COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: dbgServices=%s, deviceType=%s, ""LABSIGNED_ENABLED=%s\n",dbgServices,deviceType,labsigned);
+        COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: dbgServices=%s, deviceType=%s, " "LABSIGNED_ENABLED=%s\n",dbgServices,deviceType,labsigned);
     }
 
     if (isDebugServicesUnlocked)
     {
         COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: Enabling debug services...\n");
 
-		//NEED TO ADD PROPER WAY TO ADD T2 MARKER
-        //t2ValNotify("SYST_INFO_FW_DbgSrv", "true");
+        /* TODO: Add proper T2 marker */
+        // t2ValNotify("SYST_INFO_FW_DbgSrv", "true");
     }
 
     return isDebugServicesUnlocked;
