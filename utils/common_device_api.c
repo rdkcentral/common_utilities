@@ -62,6 +62,23 @@ size_t stripinvalidchar( char *pIn, size_t szIn )
 
     return i;
 }
+
+bool isSecureDbgSrvUnlocked(){
+	char deviceType[16] = {0};
+    bool isDebugServicesUnlocked = false;
+	char labsigned[8] = {0};
+	int ret = -1;
+	BUILDTYPE eBuildType;
+	/* define a buffer to call get Build Type
+	   add functionality in buildType to support signedlab
+	   Add v_secure_system for getting RFC values.
+
+	   compare the values.
+
+	   Add t2 values
+	
+	
+}
 /* function GetEstbMac - gets the eSTB MAC address of the device.
 
         Usage: size_t GetEstbMac <char *pEstbMac> <size_t szBufSize>
