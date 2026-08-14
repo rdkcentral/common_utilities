@@ -22,6 +22,7 @@
 #include "rdk_fwdl_utils.h"
 #include "system_utils.h"
 #include "json_parse.h"
+#include "secure_wrapper.h"
 
 #include <stdbool.h>
 #include <stdio.h>
