@@ -23,27 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern char* RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL;
-#define RDK_LOGGER_PREFIX "LOG.RDK"
-#define COMMON_UTIL_IDENTIFIER ".COMMONUTILITIES"
-#define IDENTIFIER_LEN 256
-
-static inline char* get_common_util_identifier(void)
-{
-    static char logger_identifier[IDENTIFIER_LEN] = {0};
-    if (logger_identifier[0] == '\0')
-    {
-        if (RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL == NULL)
-        {
-            snprintf(logger_identifier, IDENTIFIER_LEN, "%s%s", RDK_LOGGER_PREFIX, COMMON_UTIL_IDENTIFIER);
-        }
-        else
-        {
-            snprintf(logger_identifier, IDENTIFIER_LEN, "%s%s", RDK_LOGGER_SHARED_NAME_IDENTIFIER_INTERNAL, COMMON_UTIL_IDENTIFIER);
-        }
-    }
-    return logger_identifier;
-}
+void commonutilities_set_log_prefix(const char *prefix);
+const char *get_common_util_identifier(void);
 
 #if defined(RDK_LOGGER)
 #include "rdk_debug.h"
