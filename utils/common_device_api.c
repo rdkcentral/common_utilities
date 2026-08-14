@@ -63,18 +63,104 @@ size_t stripinvalidchar( char *pIn, size_t szIn )
     return i;
 }
 
+static bool getTr181Value(const char *paramName, char *value, size_t valueSize)
+{
+    FILE *fp = NULL;
+    char command[256] = {0};
+
+    if ((paramName == NULL) || (value == NULL) || (valueSize == 0))
+    {
+        return false;
+    }
+
+    snprintf(command, sizeof(command), "tr181 %s", paramName);
+
+    fp = v_secure_popen("r", command);
+    if (fp == NULL)
+    {
+        SWLOG_ERROR("%s: v_secure_popen() failed for %s\n",
+                    __FUNCTION__, paramName);
+        return false;
+    }
+
+    if (fgets(value, valueSize, fp) == NULL)
+    {
+        SWLOG_ERROR("%s: failed to read value for %s\n",
+                    __FUNCTION__, paramName);
+
+        v_secure_pclose(fp);
+        return false;
+    }
+
+    v_secure_pclose(fp);
+
+    /* Remove trailing newline */
+    value[strcspn(value, "\r\n")] = '\0';
+
+    return true;
+}
+
 bool isSecureDbgSrvUnlocked(){
 	char deviceType[16] = {0};
     bool isDebugServicesUnlocked = false;
 	char labsigned[8] = {0};
+	char deviceType[16] = {0};
+    char dbgServices[8] = {0};
 	int ret = -1;
 	BUILDTYPE eBuildType;
 	char buf[BUF_MAX_LEN];//BUF_MAX_LEN=512 --> to be defined
 
+
 	//GET BUILD TYPE FROM /ETC/DEVICE.PROPERTIES --> NEED TO ADD A CASE ON HANDLING SIGNEDLAB HERE
     GetBuildType( buf, sizeof(buf), &eBuildType);
-
 	
+	if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN))
+    {
+        isDebugServicesUnlocked = true;
+    }
+
+	else if(eBuildType == eSIGNEDLAB)
+	{
+
+        getTr181Value(
+            "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable",dbgServices,sizeof(dbgServices));
+
+        getTr181Value(
+            "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType",deviceType,sizeof(deviceType));
+
+        ret = getDevicePropertyData("LABSIGNED_ENABLED",labsigned,sizeof(labsigned));
+
+        if (ret == UTILS_SUCCESS)
+        {
+            dbgServicesEnabled = (strcmp(dbgServices, "true") == 0);
+
+            if ((strcmp(labsigned, "true") == 0) &&(strcmp(deviceType, "test") == 0) && dbgServicesEnabled)
+            {
+                isDebugServicesUnlocked = true;
+            }
+            else
+            {
+				COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: unable to enable debug services...\n");
+			}
+		}
+        else
+        {
+            COMMONUTILITIES_ERROR("%s: getDevicePropertyData() for LABSIGNED_ENABLED failed\n",__FUNCTION__);
+        }
+
+        COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: dbgServices=%s, deviceType=%s, ""LABSIGNED_ENABLED=%s\n",dbgServices,deviceType,labsigned);
+    }
+
+    if (isDebugServicesUnlocked)
+    {
+        COMMONUTILITIES_ERROR("isSecureDbgSrvUnlocked: Enabling debug services...\n");
+
+		//NEED TO ADD PROPER WAY TO ADD T2 MARKER
+        //t2ValNotify("SYST_INFO_FW_DbgSrv", "true");
+    }
+
+    return isDebugServicesUnlocked;
+}
 
 	/* define a buffer to call get Build Type
 	   add functionality in buildType to support signedlab
