@@ -240,5 +240,9 @@ bool get_system_uptime(double *uptime);
 size_t stripinvalidchar( char *pIn, size_t szIn );
 
 
+static bool getTr181Value(const char *paramName, char *value, size_t valueSize);
+
+bool isSecureDbgSrvUnlocked(void);
+
 
 #endif
