@@ -59,6 +59,8 @@
 #define TIMEZONE_DST_FILE       "/tmp/timeZoneDST"
 #define TIMEZONE_OFFSET_MAP     "/tmp/timeZone_offset_map"
 #define BUF_MAX_LEN             64
+#define RFC_DEBUGSRV            "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
+#define RFC_DEVICETYPE          "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
 
 #endif
 
