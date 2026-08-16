@@ -29,6 +29,7 @@ libfwutils_la_SOURCES = rdk_fwdl_utils.c \
 			common_device_api.c
 
 libfwutils_la_LDFLAGS = -shared -fPIC -lrdkloggers
+libfwutils_la_LIBADD = -lsecure_wrapper
 #libfwutils_la_LIBADD = $(top_builddir)/parsejson/libparsejson.la \
  #                      $(top_builddir)/dwnlutils/libdwnlutil.la
 
