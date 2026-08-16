@@ -78,15 +78,13 @@ static bool getTr181Value(const char *paramName, char *value, size_t valueSize)
     fp = v_secure_popen("r", command);
     if (fp == NULL)
     {
-        SWLOG_ERROR("%s: v_secure_popen() failed for %s\n",
-                    __FUNCTION__, paramName);
+        COMMONUTILITIES_ERROR("%s: v_secure_popen() failed for %s\n",__FUNCTION__, paramName);
         return false;
     }
 
     if (fgets(value, valueSize, fp) == NULL)
     {
-        SWLOG_ERROR("%s: failed to read value for %s\n",
-                    __FUNCTION__, paramName);
+        COMMONUTILITIES_ERROR("%s: failed to read value for %s\n",__FUNCTION__, paramName);
 
         v_secure_pclose(fp);
         return false;
@@ -120,8 +118,8 @@ bool isSecureDbgSrvUnlocked(void)
     }
     else if (eBuildType == eSIGNEDLAB)
     {
-        bool dbgServicesCheck = getTr181Value("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable",dbgServices,sizeof(dbgServices));
-		bool deviceTypeCheck = getTr181Value("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType",deviceType,sizeof(deviceType));
+        bool dbgServicesCheck = getTr181Value(RFC_DEBUGSRV,dbgServices,sizeof(dbgServices));
+		bool deviceTypeCheck = getTr181Value(RFC_DEVICETYPE,deviceType,sizeof(deviceType));
         ret = getDevicePropertyData("LABSIGNED_ENABLED",labsigned,sizeof(labsigned));
 
         if (dbgServicesCheck && deviceTypeCheck && (ret == UTILS_SUCCESS))
@@ -152,17 +150,6 @@ bool isSecureDbgSrvUnlocked(void)
     }
 
     return isDebugServicesUnlocked;
-}
-
-	/* define a buffer to call get Build Type
-	   add functionality in buildType to support signedlab
-	   Add v_secure_system for getting RFC values.
-
-	   compare the values.
-
-	   Add t2 values
-	
-	
 }
 /* function GetEstbMac - gets the eSTB MAC address of the device.
 
