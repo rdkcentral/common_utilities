@@ -52,7 +52,8 @@ typedef enum {
     eDEV,
     eVBN,
     ePROD,
-    eQA
+    eQA,
+    eSIGNEDLAB
 } BUILDTYPE;
 
 #ifndef GETRDMMANIFESTVERSION_IN_SCRIPT
