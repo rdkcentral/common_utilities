@@ -21,7 +21,7 @@ AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
 AM_CFLAGS += -Wall -Werror  $(CFLAGS)
 
 lib_LTLIBRARIES = libpgocontrol.la
-libpgocontro_la_SOURCES = lib_pgo.c
+libpgocontro_la_SOURCES = libpgocontrol.c
 
 libpgocontro_la_LDFLAGS = -shared -fPIC -lpthread
 
