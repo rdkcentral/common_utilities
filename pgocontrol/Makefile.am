@@ -15,4 +15,14 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-SUBDIRS = parsejson dwnlutils utils uploadutils pgocontrol
+AM_CFLAGS = -D_ANSC_LINUX
+AM_CFLAGS += -D_ANSC_USER
+AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
+AM_CFLAGS += -Wall -Werror  $(CFLAGS)
+
+lib_LTLIBRARIES = libpgocontrol.la
+libpgocontro_la_SOURCES = lib_pgo.c
+
+libpgocontro_la_LDFLAGS = -shared -fPIC -lpthread
+
+libpgocontro_la_includedir = ${includedir}
