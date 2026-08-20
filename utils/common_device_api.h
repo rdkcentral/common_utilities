@@ -57,6 +57,7 @@
 #define OUTPUT_JSON_FILE_X86    "/tmp/output.json"
 #define TIMEZONE_DST_FILE       "/tmp/timeZoneDST"
 #define TIMEZONE_OFFSET_MAP     "/tmp/timeZone_offset_map"
+#define SECURE_DEBUG_STATE_FILE "/opt/enable_secure_dbg"
 
 #endif
 
@@ -110,6 +111,16 @@ size_t GetMFRName(char *pMFRName, size_t szBufSize );
             RETURN - number of characters copied to the output buffer.
 */
 size_t GetBuildType(char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeOut);
+
+/* function isSecureDbgSrvUnlocked - checks whether secure debug services can be enabled.
+ *
+ * Non-PROD, non-UNKNOWN and non-SIGNEDLAB builds are unlocked.
+ * SIGNEDLAB builds are unlocked only when SECURE_DEBUG_STATE_FILE contains "1".
+ * PROD and UNKNOWN builds remain locked.
+ *
+ * RETURN - true if secure debug services are unlocked, false otherwise.
+ */
+bool isSecureDbgSrvUnlocked(void);
 
 /* function GetFirmwareVersion - gets the firmware version of the device.
 
