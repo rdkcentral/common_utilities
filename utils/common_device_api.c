@@ -361,6 +361,7 @@ bool isSecureDbgSrvUnlocked(void)
 {
     FILE *fp = NULL;
     char buildType[32] = {0};
+    char labSigned[16] = {0};
     char secureDebugState[8] = {0};
     BUILDTYPE eBuildType = eUNKNOWN;
     bool isDebugServicesUnlocked = false;
@@ -373,6 +374,17 @@ bool isSecureDbgSrvUnlocked(void)
     }
     else if (eBuildType == eSIGNEDLAB)
     {
+        if (getDevicePropertyData("LABSIGNED_ENABLED", labSigned, sizeof(labSigned)) != UTILS_SUCCESS)
+        {
+            COMMONUTILITIES_ERROR("%s: Failed to read LABSIGNED_ENABLED\n", __FUNCTION__);
+            return false;
+        }
+
+        if (strcasecmp(labSigned, "true") != 0)
+        {
+            return false;
+        }
+
         fp = fopen(SECURE_DEBUG_STATE_FILE, "r");
         if (fp != NULL)
         {
@@ -385,10 +397,6 @@ bool isSecureDbgSrvUnlocked(void)
                     isDebugServicesUnlocked = true;
                 }
             }
-            else
-            {
-                COMMONUTILITIES_ERROR("%s: Failed to read %s\n", __FUNCTION__, SECURE_DEBUG_STATE_FILE);
-            }
 
             fclose(fp);
         }
@@ -397,8 +405,6 @@ bool isSecureDbgSrvUnlocked(void)
             COMMONUTILITIES_ERROR("%s: Cannot open %s for reading\n", __FUNCTION__, SECURE_DEBUG_STATE_FILE);
         }
     }
-
-    COMMONUTILITIES_INFO("%s: BuildType=%s, SecureDebugUnlocked=%d\n", __FUNCTION__, buildType, isDebugServicesUnlocked);
 
     return isDebugServicesUnlocked;
 }
