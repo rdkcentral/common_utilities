@@ -28,6 +28,60 @@
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
+/* function isSecureDbgSrvUnlocked - checks whether secure debug services can be enabled.
+ *
+ * Non-PROD, non-UNKNOWN and non-SIGNEDLAB builds are unlocked.
+ * SIGNEDLAB builds are unlocked only when SECURE_DEBUG_STATE_FILE contains "1".
+ * PROD and UNKNOWN builds remain locked.
+ *
+ * RETURN - true if secure debug services are unlocked, false otherwise.
+ */
+bool isSecureDbgSrvUnlocked(void)
+{
+    FILE *fp = NULL;
+    char buildType[32] = {0};
+    char secureDebugState[8] = {0};
+    BUILDTYPE eBuildType = eUNKNOWN;
+    bool isDebugServicesUnlocked = false;
+
+    GetBuildType(buildType, sizeof(buildType), &eBuildType);
+
+    if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
+    {
+        isDebugServicesUnlocked = true;
+    }
+    else if (eBuildType == eSIGNEDLAB)
+    {
+        fp = fopen(SECURE_DEBUG_STATE_FILE, "r");
+        if (fp != NULL)
+        {
+            if (fgets(secureDebugState, sizeof(secureDebugState), fp) != NULL)
+            {
+                stripinvalidchar(secureDebugState, sizeof(secureDebugState));
+
+                if (strcmp(secureDebugState, "1") == 0)
+                {
+                    isDebugServicesUnlocked = true;
+                }
+            }
+            else
+            {
+                COMMONUTILITIES_ERROR("%s: Failed to read %s\n", __FUNCTION__, SECURE_DEBUG_STATE_FILE);
+            }
+
+            fclose(fp);
+        }
+        else
+        {
+            COMMONUTILITIES_ERROR("%s: Cannot open %s for reading\n", __FUNCTION__, SECURE_DEBUG_STATE_FILE);
+        }
+    }
+
+    COMMONUTILITIES_INFO("%s: BuildType=%s, SecureDebugUnlocked=%d\n", __FUNCTION__, buildType, isDebugServicesUnlocked);
+
+    return isDebugServicesUnlocked;
+}
+
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
