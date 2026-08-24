@@ -23,14 +23,6 @@
 
 
 #include "rdkv_cdl_log_wrapper.h"
-{
-    if (common_util_identifier[0] == '\0')
-    {
-        snprintf(common_util_identifier, sizeof(common_util_identifier),
-                 "%s.COMMONUTILITIES", common_util_prefix);
-    }
-    return common_util_identifier;
-}
 
 int log_init( ) {
 #if defined(RDK_LOGGER)
