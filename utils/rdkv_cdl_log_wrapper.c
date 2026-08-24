@@ -23,26 +23,6 @@
 
 
 #include "rdkv_cdl_log_wrapper.h"
-
-#define LOG_PREFIX_MAX 128
-
-static char common_util_prefix[LOG_PREFIX_MAX] = "LOG.RDK";
-static char common_util_identifier[LOG_PREFIX_MAX + sizeof(".COMMONUTILITIES")];
-
-void commonutilities_set_log_prefix(const char *prefix)
-{
-    if (prefix == NULL || prefix[0] == '\0')
-    {
-        snprintf(common_util_prefix, sizeof(common_util_prefix), "%s", "LOG.RDK");
-    }
-    else
-    {
-        snprintf(common_util_prefix, sizeof(common_util_prefix), "%s", prefix);
-    }
-    common_util_identifier[0] = '\0';
-}
-
-const char *get_common_util_identifier(void)
 {
     if (common_util_identifier[0] == '\0')
     {
