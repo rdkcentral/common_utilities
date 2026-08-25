@@ -43,4 +43,4 @@ libfwutils_la_includedir = ${includedir}
 bin_PROGRAMS = runtime_feature_check
 
 runtime_feature_check_SOURCES = runtime_feature_check.c
-runtime_feature_check_LDADD = libfwutils.la
+runtime_feature_check_LDADD = libfwutils.la -lrdkloggers
