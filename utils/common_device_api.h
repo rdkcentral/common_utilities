@@ -113,15 +113,16 @@ size_t GetMFRName(char *pMFRName, size_t szBufSize );
 */
 size_t GetBuildType(char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeOut);
 
-/* function isSecureDbgSrvUnlocked - checks whether secure debug services can be enabled.
+/*
+ * Determines whether runtime feature access is enabled.
  *
- * Non-PROD, non-UNKNOWN and non-SIGNEDLAB builds are unlocked.
- * SIGNEDLAB builds are unlocked only when SECURE_DEBUG_STATE_FILE contains "1".
- * PROD and UNKNOWN builds remain locked.
+ * Access is enabled based on build type and applicable runtime
+ * configuration. SIGNEDLAB additionally requires the configured
+ * runtime enablement state.
  *
- * RETURN - true if secure debug services are unlocked, false otherwise.
+ * RETURN - true if runtime feature access is enabled, false otherwise.
  */
-bool isSecureDbgSrvUnlocked(void);
+bool isRuntimeFeatureEnabled(void);
 
 /* function GetFirmwareVersion - gets the firmware version of the device.
 

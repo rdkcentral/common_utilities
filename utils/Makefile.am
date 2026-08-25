@@ -39,3 +39,8 @@ libfwutils_la_include_HEADERS = rdk_fwdl_utils.h \
 
 libfwutils_la_includedir = ${includedir}
 # TODO Use right AC conditional flag for gtest GTEST_ENABLE_FLAG
+
+bin_PROGRAMS = runtime_feature_check
+
+runtime_feature_check_SOURCES = runtime_feature_check.c
+runtime_feature_check_LDADD = libfwutils.la

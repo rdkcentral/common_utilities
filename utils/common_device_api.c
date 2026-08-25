@@ -351,30 +351,30 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
     return i;
 }
 
-/* function isSecureDbgSrvUnlocked - checks whether secure debug services can be enabled.
+/*
+ * Determines whether runtime feature access is enabled.
  *
- * Non-PROD, non-UNKNOWN and non-SIGNEDLAB builds are unlocked.
- * SIGNEDLAB builds are unlocked only when SECURE_DEBUG_STATE_FILE contains "1".
- * PROD and UNKNOWN builds remain locked.
+ * Access is enabled based on build type and applicable runtime
+ * configuration. SIGNEDLAB additionally requires the configured
+ * runtime enablement state.
  *
- * RETURN - true if secure debug services are unlocked, false otherwise.
+ * RETURN - true if runtime feature access is enabled, false otherwise.
  */
-bool isSecureDbgSrvUnlocked(void)
+bool isRuntimeFeatureEnabled(void)
 {
     FILE *fp = NULL;
     char buildType[32] = {0};
     char labSigned[16] = {0};
     char secureDebugState[8] = {0};
     BUILDTYPE eBuildType = eUNKNOWN;
-    bool isDebugServicesUnlocked = false;
+    bool runtimeFeatureEnabled = false;
 
-	COMMONUTILITIES_INFO("*** CALLING isSecureDbgSrvUnlocked FROM COMMON_UTILITIES/LIBFWUTILS ***\n"); 
 	
     GetBuildType(buildType, sizeof(buildType), &eBuildType);
 
     if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
     {
-        isDebugServicesUnlocked = true;
+	runtimeFeatureEnabled = true;
     }
     else if (eBuildType == eSIGNEDLAB)
     {
@@ -395,12 +395,11 @@ bool isSecureDbgSrvUnlocked(void)
             if (fgets(secureDebugState, sizeof(secureDebugState), fp) != NULL)
             {
                 stripinvalidchar(secureDebugState, sizeof(secureDebugState));
-				COMMONUTILITIES_INFO("%s: Secure debug state read as '%s'\n",__FUNCTION__, secureDebugState);
+		COMMONUTILITIES_INFO("%s: Secure debug state read as '%s'\n",__FUNCTION__, secureDebugState);
 
                 if (strcmp(secureDebugState, "1") == 0)
                 {
-					COMMONUTILITIES_INFO("*** Enabling the secure override ***\n");
-                    isDebugServicesUnlocked = true;
+                                runtimeFeatureEnabled = true;
                 }
             }
 
@@ -408,11 +407,11 @@ bool isSecureDbgSrvUnlocked(void)
         }
         else
         {
-			COMMONUTILITIES_ERROR("%s: Cannot open %s for reading: errno=%d (%s)\n",__FUNCTION__, SECURE_DEBUG_STATE_FILE, errno,strerror(errno));
+	    COMMONUTILITIES_ERROR("%s: Cannot open %s for reading: errno=%d (%s)\n",__FUNCTION__, SECURE_DEBUG_STATE_FILE, errno,strerror(errno));
         }
     }
 
-    return isDebugServicesUnlocked;
+    return runtimeFeatureEnabled;
 }
 
 /* function GetFirmwareVersion - gets the firmware version of the device.
