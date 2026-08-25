@@ -25,6 +25,8 @@
 #include "rdkv_cdl_log_wrapper.h"
 #include "json_parse.h"
 #include "downloadUtil.h"
+#include <errno.h>
+#include <string.h>
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
@@ -366,6 +368,8 @@ bool isSecureDbgSrvUnlocked(void)
     BUILDTYPE eBuildType = eUNKNOWN;
     bool isDebugServicesUnlocked = false;
 
+	COMMONUTILITIES_INFO("*** CALLING isSecureDbgSrvUnlocked FROM COMMON_UTILITIES/LIBFWUTILS ***\n"); 
+	
     GetBuildType(buildType, sizeof(buildType), &eBuildType);
 
     if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
@@ -391,9 +395,11 @@ bool isSecureDbgSrvUnlocked(void)
             if (fgets(secureDebugState, sizeof(secureDebugState), fp) != NULL)
             {
                 stripinvalidchar(secureDebugState, sizeof(secureDebugState));
+				COMMONUTILITIES_INFO("%s: Secure debug state read as '%s'\n",__FUNCTION__, secureDebugState);
 
                 if (strcmp(secureDebugState, "1") == 0)
                 {
+					COMMONUTILITIES_INFO("*** Enabling the secure override ***\n");
                     isDebugServicesUnlocked = true;
                 }
             }
@@ -402,7 +408,7 @@ bool isSecureDbgSrvUnlocked(void)
         }
         else
         {
-            COMMONUTILITIES_ERROR("%s: Cannot open %s for reading\n", __FUNCTION__, SECURE_DEBUG_STATE_FILE);
+			COMMONUTILITIES_ERROR("%s: Cannot open %s for reading: errno=%d (%s)\n",__FUNCTION__, SECURE_DEBUG_STATE_FILE, errno,strerror(errno));
         }
     }
 
