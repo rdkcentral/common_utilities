@@ -21,7 +21,6 @@
 
 #include <time.h>
 
-
 #if defined(RDK_LOGGER)
 #include "rdk_debug.h"
 

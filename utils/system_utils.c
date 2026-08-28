@@ -172,6 +172,61 @@ int createDir(const char *dirname) {
     }
     return ret ;
 }
+/* Description: Ensure that the specified directory exists, creating it if necessary.
+ * @param dir_path: Path to the directory to check/create.
+ * @return int : Success RDK_API_SUCCESS and failure RDK_API_FAILURE
+ * */
+int ensure_directory_exists(const char *dir_path)
+{
+    char path[128] = {0};
+    size_t len = 0;
+
+    if (dir_path == NULL)
+    {
+        return RDK_API_FAILURE;
+    }
+
+    len = strlen(dir_path);
+    if (len == 0 || len >= sizeof(path))
+    {
+        return RDK_API_FAILURE;
+    }
+
+    strncpy(path, dir_path, sizeof(path) - 1);
+    path[sizeof(path) - 1] = '\0';
+
+    for (size_t i = 1; i < len; i++)
+    {
+        if (path[i] == '/')
+        {
+            path[i] = '\0';
+            if (mkdir(path, 0755) != 0)
+            {
+                if (errno != EEXIST)
+                    return RDK_API_FAILURE;
+
+                DIR *folder_fd = opendir(path);
+                if (folder_fd == NULL)
+                    return RDK_API_FAILURE;
+                closedir(folder_fd);
+            }
+            path[i] = '/';
+        }
+    }
+
+    if (mkdir(path, 0755) != 0)
+    {
+        if (errno != EEXIST)
+            return RDK_API_FAILURE;
+
+        DIR *folder_fd = opendir(path);
+        if (folder_fd == NULL)
+            return RDK_API_FAILURE;
+        closedir(folder_fd);
+    }
+
+    return RDK_API_SUCCESS;
+}
 
 /* Description: Use for clean Folder except file match with file_name and pdri_file_name.
  * @param folder: Folder name
