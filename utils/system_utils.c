@@ -172,7 +172,10 @@ int createDir(const char *dirname) {
     }
     return ret ;
 }
-
+/* Description: Ensure that the specified directory exists, creating it if necessary.
+ * @param dir_path: Path to the directory to check/create.
+ * @return int : Success RDK_API_SUCCESS and failure RDK_API_FAILURE
+ * */
 int ensure_directory_exists(const char *dir_path)
 {
     char path[128] = {0};
