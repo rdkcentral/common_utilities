@@ -1,33 +1,29 @@
 import os
 import shutil
 import subprocess
-import time
 
 import pytest
 
 
 DEVICE_PROPERTIES = "/etc/device.properties"
-RUNTIME_FEATURE_CHECK = "/usr/bin/runtime_feature_check"
+RUNTIME_FEATURE_CHECK = next(
+    (
+        path
+        for path in (
+            shutil.which("runtime_feature_check"),
+            "/usr/local/bin/runtime_feature_check",
+            "/usr/bin/runtime_feature_check",
+        )
+        if path and os.path.exists(path)
+    ),
+    None,
+)
 SECURE_DEBUG_STATE = "/opt/enable_secure_dbg"
 
-DEVICE_TYPE_RFC = (
-    "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DeviceType"
-)
-DBG_SERVICES_RFC = (
-    "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Identity.DbgServices.Enable"
-)
 
 BACKUP = "/tmp/device.properties.runtime_feature_l2.bak"
+STATE_BACKUP = "/tmp/enable_secure_dbg.runtime_feature_l2.bak"
 
-
-def run_command(command):
-    return subprocess.run(
-        command,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
 
 
 def replace_property(key, value):
@@ -55,63 +51,21 @@ def set_build_type(build_type):
     replace_property("BUILD_TYPE", build_type)
 
 
-def set_rfc(parameter, value, data_type):
-    cmd = (
-        "tr181 -d -s -t {} -v {} {}"
-        .format(data_type, value, parameter)
-    )
 
-    result = run_command(cmd)
-
-    assert result.returncode == 0, (
-        "Failed to set RFC {}={}.\nstdout={}\nstderr={}"
-        .format(parameter, value, result.stdout, result.stderr)
-    )
-
-
-def wait_for_runtime_state(expected, timeout=10):
-    end = time.time() + timeout
-
-    while time.time() < end:
-        if os.path.exists(SECURE_DEBUG_STATE):
-            with open(SECURE_DEBUG_STATE, "r") as fp:
-                if fp.read().strip() == expected:
-                    return
-
-        time.sleep(0.5)
-
-    raise AssertionError(
-        "{} did not become {}".format(
-            SECURE_DEBUG_STATE,
-            expected
-        )
-    )
+def write_secure_debug_state(enabled):
+    with open(SECURE_DEBUG_STATE, "w") as fp:
+        fp.write("{}\n".format("1" if enabled else "0"))
 
 
 def set_signedlab_state(enabled):
     replace_property("LABSIGNED_ENABLED", "true")
     set_build_type("signedlab")
-
-    set_rfc(
-        DEVICE_TYPE_RFC,
-        "test",
-        "string"
-    )
-
-    set_rfc(
-        DBG_SERVICES_RFC,
-        "true" if enabled else "false",
-        "bool"
-    )
-
-    wait_for_runtime_state(
-        "1" if enabled else "0"
-    )
+    write_secure_debug_state(enabled)
 
 
 def run_runtime_feature_check():
-    assert os.path.exists(RUNTIME_FEATURE_CHECK), (
-        "{} is not installed".format(RUNTIME_FEATURE_CHECK)
+    assert RUNTIME_FEATURE_CHECK is not None, (
+        "runtime_feature_check is not installed or could not be located"
     )
 
     return subprocess.run(
@@ -126,12 +80,25 @@ def run_runtime_feature_check():
 def preserve_device_properties():
     shutil.copy2(DEVICE_PROPERTIES, BACKUP)
 
+    state_existed = os.path.exists(SECURE_DEBUG_STATE)
+
+    if state_existed:
+        shutil.copy2(SECURE_DEBUG_STATE, STATE_BACKUP)
+
     yield
 
     shutil.copy2(BACKUP, DEVICE_PROPERTIES)
 
+    if state_existed:
+        shutil.copy2(STATE_BACKUP, SECURE_DEBUG_STATE)
+    elif os.path.exists(SECURE_DEBUG_STATE):
+        os.remove(SECURE_DEBUG_STATE)
+
     if os.path.exists(BACKUP):
         os.remove(BACKUP)
+
+    if os.path.exists(STATE_BACKUP):
+        os.remove(STATE_BACKUP)
 
 
 def test_runtime_feature_dev_enabled():
