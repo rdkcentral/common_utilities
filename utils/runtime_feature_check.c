@@ -2,7 +2,7 @@
  * Runtime Feature Check Utility
  *
  * Provides a command-line interface for shell scripts to query
- * isRuntimeFeatureEnabled() from common utilities.
+ * RDK_isDbgSrvUnlocked() from common utilities.
  *
  * Exit status:
  *   0 - runtime feature access is enabled
@@ -14,7 +14,7 @@
 
 int main(void)
 {
-    bool enabled = isRuntimeFeatureEnabled();
+    bool enabled = RDK_isDbgSrvUnlocked();
 
     COMMONUTILITIES_INFO("runtime_feature_check invoked: runtimeFeatureEnabled=%s\n",
                          enabled ? "true" : "false");

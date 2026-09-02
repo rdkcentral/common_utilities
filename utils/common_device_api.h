@@ -114,15 +114,15 @@ size_t GetMFRName(char *pMFRName, size_t szBufSize );
 size_t GetBuildType(char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeOut);
 
 /*
- * Determines whether runtime feature access is enabled.
+ * Determines whether debug services are enabled.
  *
  * Access is enabled based on build type and applicable runtime
  * configuration. SIGNEDLAB additionally requires the configured
- * runtime enablement state.
+ * secure debug enablement state.
  *
- * RETURN - true if runtime feature access is enabled, false otherwise.
+ * RETURN - true if debug services are unlocked, false otherwise.
  */
-bool isRuntimeFeatureEnabled(void);
+bool RDK_isDbgSrvUnlocked(void);
 
 /* function GetFirmwareVersion - gets the firmware version of the device.
 

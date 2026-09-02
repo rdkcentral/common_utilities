@@ -303,7 +303,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_DevUnlocked)
 
     writeSecureDebugDeviceProperties("dev", nullptr);
 
-    EXPECT_TRUE(isRuntimeFeatureEnabled());
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -314,7 +314,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_ProdLocked)
 
     writeSecureDebugDeviceProperties("prod", nullptr);
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -325,7 +325,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_UnknownLocked)
 
     writeSecureDebugDeviceProperties("invalid", nullptr);
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -337,7 +337,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabUnlocked)
     writeSecureDebugDeviceProperties("signedlab", "true");
     writeSecureDebugState("1");
 
-    EXPECT_TRUE(isRuntimeFeatureEnabled());
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -349,7 +349,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabStateDisabled)
     writeSecureDebugDeviceProperties("signedlab", "true");
     writeSecureDebugState("0");
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -361,7 +361,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabLabSignedDisabled)
     writeSecureDebugDeviceProperties("signedlab", "false");
     writeSecureDebugState("1");
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -373,7 +373,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabLabSignedMissing)
     writeSecureDebugDeviceProperties("signedlab", nullptr);
     writeSecureDebugState("1");
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -384,7 +384,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabStateFileMissing)
 
     writeSecureDebugDeviceProperties("signedlab", "true");
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -396,7 +396,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabInvalidState)
     writeSecureDebugDeviceProperties("signedlab", "true");
     writeSecureDebugState("invalid");
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -411,7 +411,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabEmptyStateFile)
     ASSERT_TRUE(file.is_open());
     file.close();
 
-    EXPECT_FALSE(isRuntimeFeatureEnabled());
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -422,7 +422,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_QAUnlocked)
 
     writeSecureDebugDeviceProperties("qa", nullptr);
 
-    EXPECT_TRUE(isRuntimeFeatureEnabled());
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
@@ -433,7 +433,7 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_VBNUnlocked)
 
     writeSecureDebugDeviceProperties("vbn", nullptr);
 
-    EXPECT_TRUE(isRuntimeFeatureEnabled());
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
 
     cleanupSecureDebugTestFiles();
 }
