@@ -401,11 +401,11 @@ bool RDK_isDbgSrvUnlocked(void)
             if (fgets(secureDebugState, sizeof(secureDebugState), fp) != NULL)
             {
                 stripinvalidchar(secureDebugState, sizeof(secureDebugState));
-		COMMONUTILITIES_INFO("%s: Secure debug state read as '%s'\n",__FUNCTION__, secureDebugState);
+		        COMMONUTILITIES_INFO("%s: Secure debug state read as '%s'\n",__FUNCTION__, secureDebugState);
 
                 if (strcmp(secureDebugState, "1") == 0)
                 {
-                                runtimeFeatureEnabled = true;
+                    runtimeFeatureEnabled = true;
                 }
             }
 
@@ -413,7 +413,7 @@ bool RDK_isDbgSrvUnlocked(void)
         }
         else
         {
-	    COMMONUTILITIES_ERROR("%s: Cannot open %s for reading: errno=%d (%s)\n",__FUNCTION__, SECURE_DEBUG_STATE_FILE, errno,strerror(errno));
+	    	COMMONUTILITIES_ERROR("%s: Cannot open %s for reading: errno=%d (%s)\n",__FUNCTION__, SECURE_DEBUG_STATE_FILE, errno,strerror(errno));
         }
     }
 
