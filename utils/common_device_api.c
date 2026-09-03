@@ -353,10 +353,11 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
 }
 
 /*
- * Determines whether runtime feature access is enabled.
+ * Determines whether to enable runtime debug services
  *
- * Access is enabled based on build type and applicable runtime
- * configuration. SIGNEDLAB additionally requires the configured
+ * Secure unlock of debug services is enabled based on build type 
+ * and applicable runtime configuration.
+ * SIGNEDLAB additionally requires the configured
  * secure debug enablement state.
  *
  * RETURN - true if debug services are unlocked, false otherwise.
@@ -371,11 +372,15 @@ bool RDK_isDbgSrvUnlocked(void)
     bool runtimeFeatureEnabled = false;
 
 	
-    GetBuildType(buildType, sizeof(buildType), &eBuildType);
+    if (GetBuildType(buildType, sizeof(buildType), &eBuildType) == 0)
+    {
+        COMMONUTILITIES_ERROR("%s: Failed to get build type\n", __FUNCTION__);
+        return false;
+    }
 
     if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
     {
-	runtimeFeatureEnabled = true;
+	    runtimeFeatureEnabled = true;
     }
     else if (eBuildType == eSIGNEDLAB)
     {
