@@ -27,6 +27,7 @@
 #include "downloadUtil.h"
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 

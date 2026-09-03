@@ -83,8 +83,7 @@ class CommonDeviceApiTestFixture : public ::testing::Test {
 static void writeSecureDebugDeviceProperties(const char *buildType, const char *labSigned)
 {
     std::ofstream file(DEVICE_PROPERTIES_FILE);
-    ASSERT_TRUE(file.is_open());
-
+    if (!file.is_open()) { ADD_FAILURE() << "Failed to open " << DEVICE_PROPERTIES_FILE; return; }
     file << "BUILD_TYPE=" << buildType << "\n";
 
     if (labSigned != nullptr)
