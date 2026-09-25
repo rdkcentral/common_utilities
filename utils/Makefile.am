@@ -43,4 +43,4 @@ libfwutils_la_includedir = ${includedir}
 bin_PROGRAMS = rdk-secure-debug-check
 
 rdk_secure_debug_check_SOURCES = rdk_secure_debug_check.c
-rdk_secure_debug_check_LDADD = libfwutils.la -lrdkloggers
+rdk_secure_debug_check_LDADD = libfwutils.la
