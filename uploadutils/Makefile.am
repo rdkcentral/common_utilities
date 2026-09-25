@@ -46,6 +46,7 @@ libuploadutil_la_CFLAGS = -I${top_srcdir}/dwnlutils -I$(top_srcdir)/utils -I${to
 libuploadutil_la_includedir = ${includedir}
 
 if IS_LIBRDKCONFIG_ENABLED
+libuploadutil_la_CFLAGS += $(LIBRDKCONFIG_FLAG)
 libuploadutil_la_LDFLAGS += -lRdkCertSelector -L$(PKG_CONFIG_SYSROOT_DIR)/usr/lib64 -lrdkconfig
 endif
 
