@@ -113,6 +113,7 @@ AC_CONFIG_FILES([Makefile
     utils/Makefile
     parsejson/Makefile
     uploadutils/Makefile
+    pgocontrol/Makefile
     ])
 
 BUILD_BINS="false"
