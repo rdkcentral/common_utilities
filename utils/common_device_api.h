@@ -47,6 +47,7 @@
 #define OUTPUT_JSON_FILE_X86    "/tmp/output.json"
 #define TIMEZONE_DST_FILE       "/opt/persistent/timeZoneDST"
 #define TIMEZONE_OFFSET_MAP     "/etc/timeZone_offset_map"
+#define SECURE_DEBUG_STATE_FILE "/opt/enable_secure_dbg"
 #else
 #define BOOTSTRAP_FILE          "/tmp/bootstrap.ini"
 #define PARTNER_ID_FILE         "/tmp/partnerId3.dat"
@@ -57,6 +58,7 @@
 #define OUTPUT_JSON_FILE_X86    "/tmp/output.json"
 #define TIMEZONE_DST_FILE       "/tmp/timeZoneDST"
 #define TIMEZONE_OFFSET_MAP     "/tmp/timeZone_offset_map"
+#define SECURE_DEBUG_STATE_FILE "/tmp/enable_secure_dbg"
 
 #endif
 
@@ -110,6 +112,17 @@ size_t GetMFRName(char *pMFRName, size_t szBufSize );
             RETURN - number of characters copied to the output buffer.
 */
 size_t GetBuildType(char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeOut);
+
+/*
+ * Determines whether debug services are enabled.
+ *
+ * Access is enabled based on build type and applicable runtime
+ * configuration. SIGNEDLAB additionally requires the configured
+ * secure debug enablement state.
+ *
+ * RETURN - true if debug services are unlocked, false otherwise.
+ */
+bool RDK_isDbgSrvUnlocked(void);
 
 /* function GetFirmwareVersion - gets the firmware version of the device.
 

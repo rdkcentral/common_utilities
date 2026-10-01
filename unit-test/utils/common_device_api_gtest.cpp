@@ -80,6 +80,35 @@ class CommonDeviceApiTestFixture : public ::testing::Test {
         }
     };
 
+static void writeSecureDebugDeviceProperties(const char *buildType, const char *labSigned)
+{
+    std::ofstream file(DEVICE_PROPERTIES_FILE);
+    if (!file.is_open()) { ADD_FAILURE() << "Failed to open " << DEVICE_PROPERTIES_FILE; return; }
+    file << "BUILD_TYPE=" << buildType << "\n";
+
+    if (labSigned != nullptr)
+    {
+        file << "LABSIGNED_ENABLED=" << labSigned << "\n";
+    }
+
+    file.close();
+}
+
+static void writeSecureDebugState(const char *state)
+{
+    std::ofstream file(SECURE_DEBUG_STATE_FILE);
+    ASSERT_TRUE(file.is_open());
+
+    file << state << "\n";
+    file.close();
+}
+
+static void cleanupSecureDebugTestFiles()
+{
+    unlink(DEVICE_PROPERTIES_FILE);
+    unlink(SECURE_DEBUG_STATE_FILE);
+}
+
 /*1. stripinvalidchar*/
 TEST_F(CommonDeviceApiTestFixture, TestName_stripinvalidchar_Null)
 {
@@ -249,6 +278,163 @@ TEST_F(CommonDeviceApiTestFixture, GetBuildType_file_found)
     ret = system("echo \"BUILD_TYPE=VBN\" > /tmp/device.properties");
     EXPECT_NE(GetBuildType(data, 7, &eBuildType),0);
     ret = system("rm -f /tmp/device.properties");
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetBuildType_SignedLab)
+{
+    cleanupSecureDebugTestFiles();
+
+    char data[32] = {0};
+    BUILDTYPE eBuildType = eUNKNOWN;
+
+    writeSecureDebugDeviceProperties("signedlab", nullptr);
+
+    EXPECT_NE(GetBuildType(data, sizeof(data), &eBuildType), 0);
+    EXPECT_STREQ(data, "signedlab");
+    EXPECT_EQ(eBuildType, eSIGNEDLAB);
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_DevUnlocked)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("dev", nullptr);
+
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_ProdLocked)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("prod", nullptr);
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_UnknownLocked)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("invalid", nullptr);
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabUnlocked)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", "true");
+    writeSecureDebugState("1");
+
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabStateDisabled)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", "true");
+    writeSecureDebugState("0");
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabLabSignedDisabled)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", "false");
+    writeSecureDebugState("1");
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabLabSignedMissing)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", nullptr);
+    writeSecureDebugState("1");
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabStateFileMissing)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", "true");
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabInvalidState)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", "true");
+    writeSecureDebugState("invalid");
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_SignedLabEmptyStateFile)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("signedlab", "true");
+
+    std::ofstream file(SECURE_DEBUG_STATE_FILE);
+    ASSERT_TRUE(file.is_open());
+    file.close();
+
+    EXPECT_FALSE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_QAUnlocked)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("qa", nullptr);
+
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, SecureDbg_VBNUnlocked)
+{
+    cleanupSecureDebugTestFiles();
+
+    writeSecureDebugDeviceProperties("vbn", nullptr);
+
+    EXPECT_TRUE(RDK_isDbgSrvUnlocked());
+
+    cleanupSecureDebugTestFiles();
 }
 
 /* 7. GetFirmwareVersion*/

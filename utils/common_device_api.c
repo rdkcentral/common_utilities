@@ -25,6 +25,9 @@
 #include "rdkv_cdl_log_wrapper.h"
 #include "json_parse.h"
 #include "downloadUtil.h"
+#include <errno.h>
+#include <string.h>
+#include <strings.h>
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
@@ -327,6 +330,11 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
             pOut = "dev";
             eBuildType = eDEV;
         }
+		else if( strstr( pTmp, "signedlab" ) != NULL )
+        {
+            pOut = "signedlab";
+            eBuildType = eSIGNEDLAB;
+        }
 
         if( *pBuildType == 0 && pOut != NULL )
         {
@@ -342,6 +350,74 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
         *peBuildTypeOut = eBuildType;
     }
     return i;
+}
+
+/*
+ * Determines whether to enable runtime debug services
+ *
+ * Secure unlock of debug services is enabled based on build type 
+ * and applicable runtime configuration.
+ * SIGNEDLAB additionally requires the configured
+ * secure debug enablement state.
+ *
+ * RETURN - true if debug services are unlocked, false otherwise.
+ */
+bool RDK_isDbgSrvUnlocked(void)
+{
+    FILE *fp = NULL;
+    char buildType[32] = {0};
+    char labSigned[16] = {0};
+    char secureDebugState[8] = {0};
+    BUILDTYPE eBuildType = eUNKNOWN;
+    bool runtimeFeatureEnabled = false;
+
+	
+    if (GetBuildType(buildType, sizeof(buildType), &eBuildType) == 0)
+    {
+        COMMONUTILITIES_ERROR("%s: Failed to get build type\n", __FUNCTION__);
+        return false;
+    }
+
+    if ((eBuildType != ePROD) && (eBuildType != eUNKNOWN) && (eBuildType != eSIGNEDLAB))
+    {
+	    runtimeFeatureEnabled = true;
+    }
+    else if (eBuildType == eSIGNEDLAB)
+    {
+        if (getDevicePropertyData("LABSIGNED_ENABLED", labSigned, sizeof(labSigned)) != UTILS_SUCCESS)
+        {
+            COMMONUTILITIES_ERROR("%s: Failed to read LABSIGNED_ENABLED\n", __FUNCTION__);
+            return false;
+        }
+
+        if (strcasecmp(labSigned, "true") != 0)
+        {
+            return false;
+        }
+
+        fp = fopen(SECURE_DEBUG_STATE_FILE, "r");
+        if (fp != NULL)
+        {
+            if (fgets(secureDebugState, sizeof(secureDebugState), fp) != NULL)
+            {
+                stripinvalidchar(secureDebugState, sizeof(secureDebugState));
+		        COMMONUTILITIES_INFO("%s: Secure debug state read as '%s'\n",__FUNCTION__, secureDebugState);
+
+                if (strcmp(secureDebugState, "1") == 0)
+                {
+                    runtimeFeatureEnabled = true;
+                }
+            }
+
+            fclose(fp);
+        }
+        else
+        {
+	    	COMMONUTILITIES_ERROR("%s: Cannot open %s for reading: errno=%d (%s)\n",__FUNCTION__, SECURE_DEBUG_STATE_FILE, errno,strerror(errno));
+        }
+    }
+
+    return runtimeFeatureEnabled;
 }
 
 /* function GetFirmwareVersion - gets the firmware version of the device.
