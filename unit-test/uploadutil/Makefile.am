@@ -32,7 +32,7 @@ COMMON_LDADD = -lcjson -lgcov -lcurl -lgtest -lgtest_main -lgmock_main -lgmock -
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage -fpermissive
 
 # Define the source files
-uploadUtil_gtest_SOURCES = uploadUtil_gtest.cpp ../../uploadutils/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c
+uploadUtil_gtest_SOURCES = uploadUtil_gtest.cpp ../mocks/curl_mock.cpp ../../uploadutils/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c
 
 upload_status_gtest_SOURCES = upload_status_gtest.cpp ../../uploadutils/upload_status.c ../../utils/rdkv_cdl_log_wrapper.c
 
@@ -41,7 +41,7 @@ codebig_upload_gtest_SOURCES = codebig_upload_gtest.cpp ../../uploadutils/codebi
 mtls_upload_gtest_SOURCES = mtls_upload_gtest.cpp ../../uploadutils/mtls_upload.c  ../../utils/rdkv_cdl_log_wrapper.c 
 
 # Apply common properties to each program
-uploadUtil_gtest_CPPFLAGS = $(COMMON_CPPFLAGS)
+uploadUtil_gtest_CPPFLAGS = $(COMMON_CPPFLAGS) -I../mocks
 uploadUtil_gtest_LDADD = $(COMMON_LDADD)
 uploadUtil_gtest_CXXFLAGS = $(COMMON_CXXFLAGS)
 uploadUtil_gtest_CFLAGS = $(COMMON_CXXFLAGS)
