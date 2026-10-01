@@ -298,6 +298,58 @@ TEST_F(downloadUtilTestFixture, doCurlPutRequest_file_dwnl_NULL)
     EXPECT_EQ(doCurlPutRequest(Curl_req, NULL, token_header, &httpCode), -1);
 }
 
+TEST_F(downloadUtilTestFixture, doCurlPutRequest_EmptyHeader_ReturnsFailureBeforeRequest)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char empty_header[] = "";
+    request.pHeaderData = empty_header;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(doCurlPutRequest(curl, &request, NULL, &http_code), DWNL_FAIL);
+}
+
+TEST_F(downloadUtilTestFixture, doCurlPutRequest_HeaderSetupFailure_ReturnsFailure)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char header[] = "Content-Type: application/json";
+    request.pHeaderData = header;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HTTPHEADER, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_BAD_FUNCTION_ARGUMENT))
+        .WillOnce(Return("bad argument"));
+
+    EXPECT_EQ(doCurlPutRequest(curl, &request, NULL, &http_code), DWNL_FAIL);
+}
+
+TEST_F(downloadUtilTestFixture, doCurlPutRequest_RequestFailure_PropagatesCurlStatus)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char header[] = "Content-Type: application/json";
+    request.pHeaderData = header;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HTTPHEADER, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_urlHelperMock, urlHelperPutReuqest(_, _, _, _))
+        .WillOnce(Invoke([](CURL*, void*, int *output_http, CURLcode *output_curl) {
+            *output_http = 503;
+            *output_curl = CURLE_OPERATION_TIMEDOUT;
+            return DWNL_FAIL;
+        }));
+
+    EXPECT_EQ(doCurlPutRequest(curl, &request, NULL, &http_code), CURLE_OPERATION_TIMEDOUT);
+    EXPECT_EQ(http_code, 503);
+}
+
 /*6. getJsonRpcData*/
 TEST_F(downloadUtilTestFixture, getJsonRpcData_curl_NULL)
 {
@@ -393,6 +445,49 @@ TEST_F(downloadUtilTestFixture, getJsonRpcData_download_succeeds)
     }
 }
 
+TEST_F(downloadUtilTestFixture, getJsonRpcData_CommonSetupFailure_ReturnsFailure)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char header[] = "Content-Type: application/json";
+    request.pHeaderData = header;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_URL_MALFORMAT));
+
+    EXPECT_EQ(getJsonRpcData(curl, &request, NULL, &http_code), DWNL_FAIL);
+}
+
+TEST_F(downloadUtilTestFixture, getJsonRpcData_EmptyHeader_ReturnsFailureBeforeDownload)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char empty_header[] = "";
+    request.pHeaderData = empty_header;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(getJsonRpcData(curl, &request, NULL, &http_code), DWNL_FAIL);
+}
+
+TEST_F(downloadUtilTestFixture, getJsonRpcData_HeaderSetupFailure_ReturnsFailure)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char header[] = "Content-Type: application/json";
+    request.pHeaderData = header;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HTTPHEADER, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_BAD_FUNCTION_ARGUMENT))
+        .WillOnce(Return("bad argument"));
+
+    EXPECT_EQ(getJsonRpcData(curl, &request, NULL, &http_code), DWNL_FAIL);
+}
+
 /*7. doHttpFileDownload*/
 TEST_F(downloadUtilTestFixture, doHttpFileDownload_curl_NULL)
 {
@@ -460,6 +555,48 @@ TEST_F(downloadUtilTestFixture, doHttpFileDownload_httpcode_NULL)
 
     EXPECT_EQ(doHttpFileDownload(Curl_req, &req_data, sec, 200000, range, NULL), -1);
 }
+
+TEST_F(downloadUtilTestFixture, doHttpFileDownload_IncompleteHashMetadata_ReturnsFailure)
+{
+    FileDwnl_t request = {};
+    hashParam_t hash_data = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    char hash_value[] = "x-md5: abc";
+    hash_data.hashvalue = hash_value;
+    hash_data.hashtime = NULL;
+    request.hashData = &hash_data;
+
+    EXPECT_EQ(doHttpFileDownload(curl, &request, NULL, 0, NULL, &http_code), DWNL_FAIL);
+}
+
+TEST_F(downloadUtilTestFixture, doHttpFileDownload_MtlsSetupFailure_ReturnsFailureBeforeDownload)
+{
+    FileDwnl_t request = {};
+    MtlsAuth_t auth = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_urlHelperMock, setMtlsHeaders(_, &auth))
+        .WillOnce(Return(CURLE_SSL_CERTPROBLEM));
+
+    EXPECT_EQ(doHttpFileDownload(curl, &request, &auth, 0, NULL, &http_code), DWNL_FAIL);
+}
+
+TEST_F(downloadUtilTestFixture, doHttpFileDownload_ThrottleSetupFailure_ReturnsFailureBeforeDownload)
+{
+    FileDwnl_t request = {};
+    CURL *curl = doCurlInit();
+    int http_code = 0;
+    EXPECT_CALL(*g_urlHelperMock, setCommonCurlOpt(_, _, _, false))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_urlHelperMock, setThrottleMode(_, 4096))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(doHttpFileDownload(curl, &request, NULL, 4096, NULL, &http_code), DWNL_FAIL);
+}
+
 TEST_F(downloadUtilTestFixture, doHttpFileDownload_downloadToMem)
 {
     FileDwnl_t req_data;
