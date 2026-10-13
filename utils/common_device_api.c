@@ -371,7 +371,7 @@ bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
         return false;
     }
 
-    if (strcmp(appsDebugId, "all") == 0)
+    if (strcmp(appsDebugId, "_all_") == 0)
     {
         *responseBuf = "{\"capabilities\":[\"*\"]}";
         return true;
