@@ -22,12 +22,14 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include "curl_mock.h"
 
 extern "C" {
 #include "uploadUtil.h"
 #include "urlHelper.h"
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <curl/curl.h>
 
 // Type alias for CURL to void for testing
@@ -45,6 +47,7 @@ using ::testing::SetArgPointee;
 using ::testing::StrEq;
 using ::testing::InSequence;
 using ::testing::StrictMock;
+using ::testing::Invoke;
 
 // Mock class for external dependencies only
 class MockCurlOperations {
@@ -58,6 +61,12 @@ public:
 };
 
 static MockCurlOperations* g_mock_curl = nullptr;
+CurlWrapperMock* g_CurlWrapperMock = nullptr;
+static CURLcode g_set_common_result = CURLE_OK;
+static CURLcode g_set_mtls_result = CURLE_OK;
+static int g_destroy_call_count = 0;
+static long g_last_http_code = 0;
+static int g_last_curl_code = 0;
 
 // Mock implementations for external dependencies only
 extern "C" {
@@ -72,30 +81,33 @@ void* doCurlInit(void) {
 }
 
 void urlHelperDestroyCurl(CURL* curl) {
-    // Mock implementation - do nothing
+    ++g_destroy_call_count;
 }
 
 CURLcode setCommonCurlOpt(CURL* curl, const char* url, char* pPostFields, bool sslverify) {
-    return CURLE_OK; // Mock success
+    return g_set_common_result;
 }
 
 CURLcode setMtlsHeaders(CURL* curl, MtlsAuth_t* auth) {
-    return CURLE_OK; // Mock success
+    return g_set_mtls_result;
 }
 
 // Provide the missing status tracking function with C linkage
 extern "C" void __uploadutil_set_status(long http_code, int curl_code) {
-    // Mock implementation - just track the values
-    static long last_http_code = 0;
-    static int last_curl_code = 0;
-    last_http_code = http_code;
-    last_curl_code = curl_code;
+    g_last_http_code = http_code;
+    g_last_curl_code = curl_code;
 }
 
 class UploadUtilTest : public ::testing::Test {
 protected:
     void SetUp() override {
         g_mock_curl = &mock_curl;
+        g_set_common_result = CURLE_OK;
+        g_set_mtls_result = CURLE_OK;
+        g_destroy_call_count = 0;
+        g_last_http_code = 0;
+        g_last_curl_code = 0;
+        g_CurlWrapperMock = &curl_wrapper_mock;
         
         // Initialize test data
         memset(&file_upload, 0, sizeof(file_upload));
@@ -119,9 +131,11 @@ protected:
     
     void TearDown() override {
         g_mock_curl = nullptr;
+        g_CurlWrapperMock = nullptr;
     }
     
     StrictMock<MockCurlOperations> mock_curl;
+    StrictMock<CurlWrapperMock> curl_wrapper_mock;
     
     FileUpload_t file_upload;
     UploadHashData_t hash_data;
@@ -144,32 +158,39 @@ TEST_F(UploadUtilTest, doStopUpload_NullCurl_NoAction) {
 }
 
 // ==================== extractS3PresignedUrl TESTS ====================
-// Note: Cannot mock standard C library file I/O functions (fopen/fgets/fclose)
-// when linking against compiled object files. These tests require actual files
-// or refactoring uploadUtil.c to use wrapper functions for file operations.
-
-TEST_F(UploadUtilTest, DISABLED_extractS3PresignedUrl_Success_ValidFile) {
-    // DISABLED: Requires mocking standard library file I/O
-    const char* test_file = "/tmp/test_response.txt";
+TEST_F(UploadUtilTest, extractS3PresignedUrl_ValidFile_PreservesUrl) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
     char url_buffer[256];
     const char* expected_url = "https://s3.amazonaws.com/bucket/key?signature=xyz";
-    
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(static_cast<ssize_t>(strlen(expected_url)),
+              write(fd, expected_url, strlen(expected_url)));
+    ASSERT_EQ(0, close(fd));
+
     int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
-    
+
     EXPECT_EQ(0, result);
     EXPECT_STREQ(expected_url, url_buffer);
+    EXPECT_EQ(0, unlink(test_file));
 }
 
-TEST_F(UploadUtilTest, DISABLED_extractS3PresignedUrl_Success_WithNewline) {
-    // DISABLED: Requires mocking standard library file I/O
-    const char* test_file = "/tmp/test_response.txt";
+TEST_F(UploadUtilTest, extractS3PresignedUrl_TrailingNewline_StripsNewline) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
     char url_buffer[256];
     const char* expected_url = "https://s3.amazonaws.com/bucket/key?signature=xyz";
-    
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(static_cast<ssize_t>(strlen(expected_url)),
+              write(fd, expected_url, strlen(expected_url)));
+    ASSERT_EQ(1, write(fd, "\n", 1));
+    ASSERT_EQ(0, close(fd));
+
     int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
-    
+
     EXPECT_EQ(0, result);
-    EXPECT_STREQ(expected_url, url_buffer);  // Should have newline stripped
+    EXPECT_STREQ(expected_url, url_buffer);
+    EXPECT_EQ(0, unlink(test_file));
 }
 
 TEST_F(UploadUtilTest, extractS3PresignedUrl_InvalidParameters) {
@@ -194,13 +215,17 @@ TEST_F(UploadUtilTest, extractS3PresignedUrl_FileOpenFailure) {
     EXPECT_EQ(-1, result);
 }
 
-TEST_F(UploadUtilTest, DISABLED_extractS3PresignedUrl_ReadFailure) {
-    // DISABLED: Requires mocking standard library file I/O
-    const char* test_file = "/tmp/test_response.txt";
+TEST_F(UploadUtilTest, extractS3PresignedUrl_EmptyFile_ReturnsFailure) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
     char url_buffer[256];
-    
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(0, close(fd));
+
     int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
+
     EXPECT_EQ(-1, result);
+    EXPECT_EQ(0, unlink(test_file));
 }
 
 // ==================== performS3PutUpload TESTS ====================
@@ -251,22 +276,93 @@ TEST_F(UploadUtilTest, performS3PutUpload_InvalidParams) {
     EXPECT_EQ(-1, performS3PutUpload("", "/tmp/test.log", nullptr));
 }
 
-TEST_F(UploadUtilTest, DISABLED_performS3PutUpload_MtlsAuthFailure) {
-    // DISABLED: Uses setMtlsHeaders not setMtlsAuth, and requires real file
+TEST_F(UploadUtilTest, performS3PutUpload_CommonSetupFailure_DestroysCurl) {
     const char* s3_url = "https://s3.amazonaws.com/bucket/key";
-    const char* local_file = "/tmp/test.log";
-    
-    int result = performS3PutUpload(s3_url, local_file, &mtls_auth);
-    // Should fail due to mTLS auth problem
+    g_set_common_result = CURLE_URL_MALFORMAT;
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_URL_MALFORMAT))
+        .WillOnce(Return("URL malformed"));
+
+    EXPECT_EQ(-1, performS3PutUpload(s3_url, "/tmp/test.log", nullptr));
+    EXPECT_EQ(1, g_destroy_call_count);
 }
 
-TEST_F(UploadUtilTest, DISABLED_performS3PutUpload_FileAccess) {
-    // DISABLED: Requires real file I/O operations
+TEST_F(UploadUtilTest, performS3PutUpload_MtlsSetupFailure_DestroysCurl) {
     const char* s3_url = "https://s3.amazonaws.com/bucket/key";
-    const char* local_file = "/tmp/nonexistent_file_12345.log";  // File that doesn't exist
-    
-    int result = performS3PutUpload(s3_url, local_file, nullptr);
-    // Should fail due to file access issues
+    g_set_mtls_result = CURLE_SSL_CERTPROBLEM;
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_SSL_CERTPROBLEM))
+        .WillOnce(Return("certificate problem"));
+
+    EXPECT_EQ(-1, performS3PutUpload(s3_url, "/tmp/test.log", &mtls_auth));
+    EXPECT_EQ(1, g_destroy_call_count);
+}
+
+TEST_F(UploadUtilTest, performS3PutUpload_MissingLocalFile_DestroysCurl) {
+    const char* s3_url = "https://s3.amazonaws.com/bucket/key";
+    const char* local_file = "/tmp/nonexistent_uploadutil_file_12345.log";
+    ASSERT_EQ(-1, unlink(local_file));
+
+    EXPECT_EQ(-1, performS3PutUpload(s3_url, local_file, nullptr));
+    EXPECT_EQ(1, g_destroy_call_count);
+}
+
+TEST_F(UploadUtilTest, performS3PutUpload_HttpSuccess_ReturnsSuccessAndReportsStatus) {
+    char local_file[] = "/tmp/uploadutil_payload_XXXXXX";
+    int fd = mkstemp(local_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(0, close(fd));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
+        .Times(3).WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
+        .WillOnce(Invoke([](CURL*, CURLINFO, void* output) {
+            *static_cast<long*>(output) = 204;
+            return CURLE_OK;
+        }));
+
+    EXPECT_EQ(0, performS3PutUpload("https://s3.example/upload", local_file, nullptr));
+    EXPECT_EQ(204, g_last_http_code);
+    EXPECT_EQ(CURLE_OK, g_last_curl_code);
+    EXPECT_EQ(1, g_destroy_call_count);
+    EXPECT_EQ(0, unlink(local_file));
+}
+
+TEST_F(UploadUtilTest, performS3PutUpload_TransportFailure_ReturnsFailureAndReportsStatus) {
+    char local_file[] = "/tmp/uploadutil_payload_XXXXXX";
+    int fd = mkstemp(local_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(0, close(fd));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
+        .Times(3).WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OPERATION_TIMEDOUT));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_EQ(-1, performS3PutUpload("https://s3.example/upload", local_file, nullptr));
+    EXPECT_EQ(0, g_last_http_code);
+    EXPECT_EQ(CURLE_OPERATION_TIMEDOUT, g_last_curl_code);
+    EXPECT_EQ(1, g_destroy_call_count);
+    EXPECT_EQ(0, unlink(local_file));
+}
+
+TEST_F(UploadUtilTest, performS3PutUpload_HttpFailure_ReturnsFailureAndReportsStatus) {
+    char local_file[] = "/tmp/uploadutil_payload_XXXXXX";
+    int fd = mkstemp(local_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(0, close(fd));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
+        .Times(3).WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
+        .WillOnce(Invoke([](CURL*, CURLINFO, void* output) {
+            *static_cast<long*>(output) = 403;
+            return CURLE_OK;
+        }));
+
+    EXPECT_EQ(-1, performS3PutUpload("https://s3.example/upload", local_file, nullptr));
+    EXPECT_EQ(403, g_last_http_code);
+    EXPECT_EQ(CURLE_OK, g_last_curl_code);
+    EXPECT_EQ(1, g_destroy_call_count);
+    EXPECT_EQ(0, unlink(local_file));
 }
 
 // ==================== performHttpMetadataPost TESTS ====================
@@ -283,6 +379,41 @@ TEST_F(UploadUtilTest, performHttpMetadataPost_InvalidParameters) {
     
     // Test null out_httpCode
     EXPECT_EQ(-1, performHttpMetadataPost(mock_curl_handle, &file_upload, nullptr, nullptr));
+}
+
+TEST_F(UploadUtilTest, performHttpMetadataPost_CommonSetupFailure_PropagatesError) {
+    void* mock_curl_handle = (void*)0x12345;
+    long http_code = 503;
+    g_set_common_result = CURLE_URL_MALFORMAT;
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_URL_MALFORMAT))
+        .WillOnce(Return("URL malformed"));
+
+    EXPECT_EQ(CURLE_URL_MALFORMAT,
+              performHttpMetadataPost(mock_curl_handle, &file_upload, nullptr, &http_code));
+    EXPECT_EQ(0, http_code);
+}
+
+TEST_F(UploadUtilTest, performHttpMetadataPost_MtlsSetupFailure_PropagatesError) {
+    void* mock_curl_handle = (void*)0x12345;
+    long http_code = 503;
+    g_set_mtls_result = CURLE_SSL_CERTPROBLEM;
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_SSL_CERTPROBLEM))
+        .WillOnce(Return("certificate problem"));
+
+    EXPECT_EQ(CURLE_SSL_CERTPROBLEM,
+              performHttpMetadataPost(mock_curl_handle, &file_upload, &mtls_auth, &http_code));
+    EXPECT_EQ(0, http_code);
+}
+
+TEST_F(UploadUtilTest, performHttpMetadataPost_ResponseFileOpenFailure_ReturnsUploadFail) {
+    void* mock_curl_handle = (void*)0x12345;
+    long http_code = 503;
+    file_upload.pathname = const_cast<char*>("/tmp/nonexistent_uploadutil_dir/response.txt");
+    file_upload.hashData = nullptr;
+
+    EXPECT_EQ(UPLOAD_FAIL,
+              performHttpMetadataPost(mock_curl_handle, &file_upload, nullptr, &http_code));
+    EXPECT_EQ(0, http_code);
 }
 
 // ==================== INTEGRATION TESTS ====================

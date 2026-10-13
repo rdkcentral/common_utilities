@@ -161,6 +161,59 @@ TEST_F(urlHelperTestFixture, performRequest_valid_inputs)
     */
 }
 
+TEST_F(urlHelperTestFixture, performRequest_CertificateFailure_PropagatesCurlAndHttpStatus)
+{
+    auto perform_request = getperformRequest();
+    CURL *curl = doCurlInit();
+    CURLcode curl_status = CURLE_OK;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .WillOnce(Return(CURLE_SSL_CERTPROBLEM));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .Times(4)
+        .WillOnce(Invoke([](CURL*, CURLINFO, void *output) {
+            *static_cast<long*>(output) = 495;
+            return CURLE_OK;
+        }))
+        .WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_SSL_CERTPROBLEM))
+        .WillOnce(Return("certificate problem"));
+
+    EXPECT_EQ(perform_request(curl, &curl_status), 495);
+    EXPECT_EQ(curl_status, CURLE_SSL_CERTPROBLEM);
+}
+
+TEST_F(urlHelperTestFixture, performRequest_ConnectivityFailure_PropagatesCurlStatus)
+{
+    auto perform_request = getperformRequest();
+    CURL *curl = doCurlInit();
+    CURLcode curl_status = CURLE_OK;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .WillOnce(Return(CURLE_OPERATION_TIMEDOUT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .Times(4).WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_OPERATION_TIMEDOUT))
+        .WillOnce(Return("operation timed out"));
+
+    EXPECT_EQ(perform_request(curl, &curl_status), 0);
+    EXPECT_EQ(curl_status, CURLE_OPERATION_TIMEDOUT);
+}
+
+TEST_F(urlHelperTestFixture, performRequest_NonConnectivityFailure_PropagatesCurlStatus)
+{
+    auto perform_request = getperformRequest();
+    CURL *curl = doCurlInit();
+    CURLcode curl_status = CURLE_OK;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_perform(_))
+        .WillOnce(Return(CURLE_URL_MALFORMAT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_getinfo(_, _, _))
+        .Times(4).WillRepeatedly(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_URL_MALFORMAT))
+        .WillOnce(Return("URL malformed"));
+
+    EXPECT_EQ(perform_request(curl, &curl_status), 0);
+    EXPECT_EQ(curl_status, CURLE_URL_MALFORMAT);
+}
+
 /*6.urlHelperPutReuqest*/
 TEST_F(urlHelperTestFixture, urlHelperPutReuqest_curl_NULL)
 {
@@ -683,6 +736,69 @@ TEST_F(urlHelperTestFixture, urlHelperDownloadFile_NULL_inputs)
     EXPECT_EQ(urlHelperDownloadFile(NULL, NULL, NULL, 0, NULL, NULL), 0);
 }
 
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_HeaderCallbackFailure_ReturnsErrorAndClosesFiles)
+{
+    CURL *curl = doCurlInit();
+    char file[] = "/tmp/urlhelper_download_XXXXXX";
+    int fd = mkstemp(file);
+    ASSERT_NE(fd, -1);
+    ASSERT_EQ(close(fd), 0);
+    int http_code = 0;
+    CURLcode curl_status = CURLE_OK;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERFUNCTION, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(urlHelperDownloadFile(curl, file, NULL, 0, &http_code, &curl_status),
+              CURLE_BAD_FUNCTION_ARGUMENT);
+    EXPECT_EQ(unlink(file), 0);
+    string header_file = string(file) + ".header";
+    EXPECT_EQ(unlink(header_file.c_str()), 0);
+}
+
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_HeaderDestinationFailure_ReturnsErrorAndClosesFiles)
+{
+    CURL *curl = doCurlInit();
+    char file[] = "/tmp/urlhelper_download_XXXXXX";
+    int fd = mkstemp(file);
+    ASSERT_NE(fd, -1);
+    ASSERT_EQ(close(fd), 0);
+    int http_code = 0;
+    CURLcode curl_status = CURLE_OK;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERFUNCTION, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERDATA, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(urlHelperDownloadFile(curl, file, NULL, 0, &http_code, &curl_status),
+              CURLE_BAD_FUNCTION_ARGUMENT);
+    EXPECT_EQ(unlink(file), 0);
+    string header_file = string(file) + ".header";
+    EXPECT_EQ(unlink(header_file.c_str()), 0);
+}
+
+TEST_F(urlHelperTestFixture, urlHelperDownloadFile_BodyCallbackFailure_ReturnsErrorAndClosesFiles)
+{
+    CURL *curl = doCurlInit();
+    char file[] = "/tmp/urlhelper_download_XXXXXX";
+    int fd = mkstemp(file);
+    ASSERT_NE(fd, -1);
+    ASSERT_EQ(close(fd), 0);
+    int http_code = 0;
+    CURLcode curl_status = CURLE_OK;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERFUNCTION, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERDATA, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_WRITEFUNCTION, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(urlHelperDownloadFile(curl, file, NULL, 0, &http_code, &curl_status),
+              CURLE_BAD_FUNCTION_ARGUMENT);
+    EXPECT_EQ(unlink(file), 0);
+    string header_file = string(file) + ".header";
+    EXPECT_EQ(unlink(header_file.c_str()), 0);
+}
+
 // Test retry logic for CURL 56 (CURLE_RECV_ERROR): should succeed on second attempt
 TEST_F(urlHelperTestFixture, urlHelperDownloadFile_Curl56_Logic_Success)
 {
@@ -1016,6 +1132,66 @@ TEST_F(urlHelperTestFixture, urlHelperDownloadToMem_curlStatus_NULL)
     EXPECT_EQ(urlHelperDownloadToMem(Curl_req, &req_data, &httpCode, NULL), CURLE_OK);
 }
 
+TEST_F(urlHelperTestFixture, urlHelperDownloadToMem_HeaderCallbackFailure_ReturnsZeroBytes)
+{
+    CURL *curl = doCurlInit();
+    int http_code = 200;
+    CURLcode curl_status = CURLE_OK;
+    char body_buffer[16] = {};
+    char header_buffer[16] = {};
+    DownloadData body = {body_buffer, 0, sizeof(body_buffer)};
+    DownloadData header = {header_buffer, 0, sizeof(header_buffer)};
+    FileDwnl_t request = {};
+    request.pDlData = &body;
+    request.pDlHeaderData = &header;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERFUNCTION, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_WRITEFUNCTION, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(urlHelperDownloadToMem(curl, &request, &http_code, &curl_status), 0u);
+    EXPECT_EQ(http_code, 0);
+}
+
+TEST_F(urlHelperTestFixture, urlHelperDownloadToMem_HeaderDestinationFailure_StillConfiguresBody)
+{
+    CURL *curl = doCurlInit();
+    int http_code = 200;
+    CURLcode curl_status = CURLE_OK;
+    char body_buffer[16] = {};
+    char header_buffer[16] = {};
+    DownloadData body = {body_buffer, 0, sizeof(body_buffer)};
+    DownloadData header = {header_buffer, 0, sizeof(header_buffer)};
+    FileDwnl_t request = {};
+    request.pDlData = &body;
+    request.pDlHeaderData = &header;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERFUNCTION, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HEADERDATA, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_WRITEFUNCTION, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(urlHelperDownloadToMem(curl, &request, &http_code, &curl_status), 0u);
+    EXPECT_EQ(http_code, 0);
+}
+
+TEST_F(urlHelperTestFixture, urlHelperDownloadToMem_BodyCallbackFailure_ResetsHttpStatus)
+{
+    CURL *curl = doCurlInit();
+    int http_code = 200;
+    CURLcode curl_status = CURLE_OK;
+    char body_buffer[16] = {};
+    DownloadData body = {body_buffer, 0, sizeof(body_buffer)};
+    FileDwnl_t request = {};
+    request.pDlData = &body;
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_WRITEFUNCTION, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+
+    EXPECT_EQ(urlHelperDownloadToMem(curl, &request, &http_code, &curl_status), 0u);
+    EXPECT_EQ(http_code, 0);
+}
+
 /*21.SetRequestHeaders*/
 TEST_F(urlHelperTestFixture, SetRequestHeaders_arg1_NULL)
 {
@@ -1061,6 +1237,22 @@ TEST_F(urlHelperTestFixture, SetRequestHeaders_list_NULL)
     EXPECT_NE(SetRequestHeaders(Curl_req, NULL, header), nullptr);
 }
 
+TEST_F(urlHelperTestFixture, SetRequestHeaders_SetoptFailure_ReturnsOwnedHeaderList)
+{
+    CURL *curl = doCurlInit();
+    char header[] = "Accept: application/json";
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_HTTPHEADER, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_BAD_FUNCTION_ARGUMENT))
+        .WillOnce(Return("bad argument"));
+
+    struct curl_slist *headers = SetRequestHeaders(curl, NULL, header);
+
+    ASSERT_NE(headers, nullptr);
+    EXPECT_STREQ(headers->data, header);
+    curl_slist_free_all(headers);
+}
+
 /*22.SetPostFields*/
 TEST_F(urlHelperTestFixture, SetPostFields_arg1_NULL)
 {
@@ -1084,6 +1276,32 @@ TEST_F(urlHelperTestFixture, SetPostFields_valid_inputs)
             .WillOnce(Return(CURLE_OK));
 
     EXPECT_EQ(SetPostFields(Curl_req, postfields), CURLE_OK);
+}
+
+TEST_F(urlHelperTestFixture, SetPostFields_SizeSetupFailure_PropagatesError)
+{
+    char postfields[] = "payload";
+    CURL *curl = doCurlInit();
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_POSTFIELDSIZE, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_BAD_FUNCTION_ARGUMENT))
+        .WillOnce(Return("bad argument"));
+
+    EXPECT_EQ(SetPostFields(curl, postfields), CURLE_BAD_FUNCTION_ARGUMENT);
+}
+
+TEST_F(urlHelperTestFixture, SetPostFields_DataSetupFailure_PropagatesError)
+{
+    char postfields[] = "payload";
+    CURL *curl = doCurlInit();
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_POSTFIELDSIZE, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_setopt(_, CURLOPT_POSTFIELDS, _))
+        .WillOnce(Return(CURLE_BAD_FUNCTION_ARGUMENT));
+    EXPECT_CALL(*g_CurlWrapperMock, curl_easy_strerror(CURLE_BAD_FUNCTION_ARGUMENT))
+        .WillOnce(Return("bad argument"));
+
+    EXPECT_EQ(SetPostFields(curl, postfields), CURLE_BAD_FUNCTION_ARGUMENT);
 }
 
 /*23.allocDowndLoadDataMem*/

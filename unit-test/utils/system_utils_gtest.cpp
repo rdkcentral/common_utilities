@@ -170,6 +170,202 @@ TEST_F(SystemUtilsTestFixture, createDir_directory_already_exists)
     ret = system("rm -f /tmp/newdir");
 }
 
+TEST_F(SystemUtilsTestFixture, ensure_directory_exists_InvalidPath_ReturnsFailure)
+{
+    EXPECT_EQ(ensure_directory_exists(NULL), RDK_API_FAILURE);
+    EXPECT_EQ(ensure_directory_exists(""), RDK_API_FAILURE);
+}
+
+TEST_F(SystemUtilsTestFixture, ensure_directory_exists_NestedPath_CreatesAllDirectories)
+{
+    char root[] = "/tmp/system_utils_dir_XXXXXX";
+    ASSERT_NE(mkdtemp(root), nullptr);
+    char parent[128];
+    char nested[128];
+    ASSERT_LT(snprintf(parent, sizeof(parent), "%s/parent", root), sizeof(parent));
+    ASSERT_LT(snprintf(nested, sizeof(nested), "%s/parent/child", root), sizeof(nested));
+
+    EXPECT_EQ(ensure_directory_exists(nested), RDK_API_SUCCESS);
+    EXPECT_EQ(filePresentCheck(parent), RDK_API_SUCCESS);
+    EXPECT_EQ(filePresentCheck(nested), RDK_API_SUCCESS);
+
+    EXPECT_EQ(rmdir(nested), 0);
+    EXPECT_EQ(rmdir(parent), 0);
+    EXPECT_EQ(rmdir(root), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, ensure_directory_exists_FileComponent_ReturnsFailure)
+{
+    char root[] = "/tmp/system_utils_dir_XXXXXX";
+    ASSERT_NE(mkdtemp(root), nullptr);
+    char component[128];
+    char nested[128];
+    ASSERT_LT(snprintf(component, sizeof(component), "%s/component", root), sizeof(component));
+    ASSERT_LT(snprintf(nested, sizeof(nested), "%s/component/child", root), sizeof(nested));
+    FILE *file = fopen(component, "w");
+    ASSERT_NE(file, nullptr);
+    ASSERT_EQ(fclose(file), 0);
+
+    EXPECT_EQ(ensure_directory_exists(nested), RDK_API_FAILURE);
+    EXPECT_EQ(filePresentCheck(nested), RDK_API_FAILURE);
+
+    EXPECT_EQ(unlink(component), 0);
+    EXPECT_EQ(rmdir(root), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, getFreeSpace_ValidAndInvalidPaths_ReportExpectedAvailability)
+{
+    char valid_path[] = "/tmp";
+    char relative_path[] = "tmp";
+    char missing_path[] = "/tmp/nonexistent_system_utils_mount";
+
+    EXPECT_GT(getFreeSpace(valid_path), 0u);
+    EXPECT_EQ(getFreeSpace(relative_path), 0u);
+    EXPECT_EQ(getFreeSpace(missing_path), 0u);
+    EXPECT_EQ(getFreeSpace(NULL), 0u);
+}
+
+TEST_F(SystemUtilsTestFixture, checkFileSystem_WritableDirectory_CreatesAndRemovesProbe)
+{
+    char root[] = "/tmp/system_utils_fs_XXXXXX";
+    ASSERT_NE(mkdtemp(root), nullptr);
+    char probe[128];
+    ASSERT_LT(snprintf(probe, sizeof(probe), "%s/testfile", root), sizeof(probe));
+
+    EXPECT_EQ(checkFileSystem(root), 1u);
+    EXPECT_EQ(filePresentCheck(probe), RDK_API_FAILURE);
+    EXPECT_EQ(checkFileSystem(NULL), 0u);
+
+    EXPECT_EQ(rmdir(root), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, findSize_ExistingAndMissingFiles_ReportExactSize)
+{
+    char file_path[] = "/tmp/system_utils_size_XXXXXX";
+    int fd = mkstemp(file_path);
+    ASSERT_NE(fd, -1);
+    const char payload[] = "known-size";
+    ASSERT_EQ(write(fd, payload, sizeof(payload) - 1), sizeof(payload) - 1);
+    ASSERT_EQ(close(fd), 0);
+
+    EXPECT_EQ(findSize(file_path), static_cast<int>(sizeof(payload) - 1));
+    EXPECT_EQ(unlink(file_path), 0);
+    EXPECT_EQ(findSize(file_path), 0);
+    EXPECT_EQ(findSize(NULL), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, isDataInList_PresentMissingAndInvalidInputs_ReportMembership)
+{
+    char first[] = "alpha";
+    char second[] = "beta";
+    char *values[] = {first, second};
+    char present[] = "beta";
+    char missing[] = "gamma";
+
+    EXPECT_EQ(isDataInList(values, present, 2), 1);
+    EXPECT_EQ(isDataInList(values, missing, 2), 0);
+    EXPECT_EQ(isDataInList(NULL, present, 2), 0);
+    EXPECT_EQ(isDataInList(values, NULL, 2), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, qsStringAndStrRmDuplicate_UnsortedValues_ProduceDescendingUniqueList)
+{
+    char alpha[] = "alpha";
+    char beta_one[] = "beta";
+    char beta_two[] = "beta";
+    char gamma[] = "gamma";
+    char *values[] = {beta_one, alpha, gamma, beta_two};
+
+    qsString(values, 4);
+    ASSERT_STREQ(values[0], "gamma");
+    ASSERT_STREQ(values[1], "beta");
+    ASSERT_STREQ(values[2], "beta");
+    ASSERT_STREQ(values[3], "alpha");
+
+    int unique_count = strRmDuplicate(values, 4);
+    ASSERT_EQ(unique_count, 3);
+    EXPECT_STREQ(values[0], "gamma");
+    EXPECT_STREQ(values[1], "beta");
+    EXPECT_STREQ(values[2], "alpha");
+}
+
+TEST_F(SystemUtilsTestFixture, strSplit_MoreTokensThanCapacity_StopsAtCapacity)
+{
+    char input[] = "one two three";
+    char delimiters[] = " ";
+    char *tokens[2] = {NULL, NULL};
+
+    ASSERT_EQ(strSplit(input, delimiters, tokens, 2), 2);
+    EXPECT_STREQ(tokens[0], "one");
+    EXPECT_STREQ(tokens[1], "two");
+}
+
+TEST_F(SystemUtilsTestFixture, copyFiles_MultiBufferPayload_PreservesAllBytes)
+{
+    char source[] = "/tmp/system_utils_source_XXXXXX";
+    char destination[] = "/tmp/system_utils_destination_XXXXXX";
+    int source_fd = mkstemp(source);
+    ASSERT_NE(source_fd, -1);
+    int destination_fd = mkstemp(destination);
+    ASSERT_NE(destination_fd, -1);
+    ASSERT_EQ(close(destination_fd), 0);
+    char payload[5000];
+    for (size_t index = 0; index < sizeof(payload); ++index) {
+        payload[index] = static_cast<char>(index % 251);
+    }
+    ASSERT_EQ(write(source_fd, payload, sizeof(payload)), static_cast<ssize_t>(sizeof(payload)));
+    ASSERT_EQ(close(source_fd), 0);
+
+    ASSERT_EQ(copyFiles(source, destination), RDK_API_SUCCESS);
+    ASSERT_EQ(findSize(destination), static_cast<int>(sizeof(payload)));
+    FILE *copied_file = fopen(destination, "rb");
+    ASSERT_NE(copied_file, nullptr);
+    char copied[sizeof(payload)];
+    ASSERT_EQ(fread(copied, 1, sizeof(copied), copied_file), sizeof(copied));
+    ASSERT_EQ(fclose(copied_file), 0);
+    EXPECT_EQ(memcmp(payload, copied, sizeof(payload)), 0);
+
+    EXPECT_EQ(unlink(source), 0);
+    EXPECT_EQ(unlink(destination), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, copyFiles_InvalidOrMissingInput_ReturnsFailure)
+{
+    char missing[] = "/tmp/nonexistent_system_utils_source";
+    char destination[] = "/tmp/system_utils_destination_XXXXXX";
+    int destination_fd = mkstemp(destination);
+    ASSERT_NE(destination_fd, -1);
+    ASSERT_EQ(close(destination_fd), 0);
+
+    EXPECT_EQ(copyFiles(NULL, destination), RDK_API_FAILURE);
+    EXPECT_EQ(copyFiles(missing, destination), RDK_API_FAILURE);
+    EXPECT_EQ(copyFiles(destination, NULL), RDK_API_FAILURE);
+
+    EXPECT_EQ(unlink(destination), 0);
+}
+
+TEST_F(SystemUtilsTestFixture, FileAndFolderChecks_RemoveFileReflectFilesystemState)
+{
+    char root[] = "/tmp/system_utils_lifecycle_XXXXXX";
+    ASSERT_NE(mkdtemp(root), nullptr);
+    char file_path[128];
+    ASSERT_LT(snprintf(file_path, sizeof(file_path), "%s/file", root), sizeof(file_path));
+    FILE *file = fopen(file_path, "w");
+    ASSERT_NE(file, nullptr);
+    ASSERT_EQ(fclose(file), 0);
+
+    EXPECT_EQ(fileCheck(file_path), 1);
+    EXPECT_EQ(folderCheck(file_path), 0);
+    EXPECT_EQ(folderCheck(root), 1);
+    EXPECT_EQ(folderCheck(NULL), 0);
+    EXPECT_EQ(removeFile(file_path), RDK_API_SUCCESS);
+    EXPECT_EQ(fileCheck(file_path), 0);
+    EXPECT_EQ(removeFile(file_path), RDK_API_FAILURE);
+    EXPECT_EQ(removeFile(NULL), RDK_API_FAILURE);
+
+    EXPECT_EQ(rmdir(root), 0);
+}
+
 /* 6.eraseFolderExceParmFile */
 TEST_F(SystemUtilsTestFixture, eraseFolderExceParamFile_folder_NULL)   
 {
