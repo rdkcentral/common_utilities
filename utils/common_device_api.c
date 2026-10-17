@@ -352,6 +352,34 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
     return i;
 }
 
+bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
+{
+    if (responseBuf == NULL)
+    {
+        return false;
+    }
+
+    *responseBuf = NULL;
+
+    if (!RDK_isDbgSrvUnlocked())
+    {
+        return false;
+    }
+
+    if (appsDebugId == NULL)
+    {
+        return false;
+    }
+
+    if (strcmp(appsDebugId, "_all_") == 0)
+    {
+        *responseBuf = "{\"capabilities\":[\"*\"]}";
+        return true;
+    }
+
+    return false;
+}
+
 /*
  * Determines whether to enable runtime debug services
  *
