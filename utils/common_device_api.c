@@ -352,32 +352,44 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
     return i;
 }
 
-bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
+/**
+ * Returns the secure debug capabilities for an application.
+ *
+ * On success, responseBuf contains an allocated JSON string.
+ * The caller must free the returned buffer using free().
+ *
+ * @return true on success, false otherwise.
+ */
+bool getSecureDebugConfig(const char *appId, char **responseBuf);
+bool getSecureDebugConfig(const char *appId, char **responseBuf)
 {
-    if (responseBuf == NULL)
-    {
-        return false;
-    }
+    static const char *allCapabilitiesJson =
+        "{\"capabilities\":[\"*\"]}";
 
-    *responseBuf = NULL;
+    if (responseBuf == NULL)
+    {
+        return false;
+    }
 
-    if (!RDK_isDbgSrvUnlocked())
-    {
-        return false;
-    }
+    *responseBuf = NULL;
 
-    if (appsDebugId == NULL)
-    {
-        return false;
-    }
+    if (!RDK_isDbgSrvUnlocked())
+    {
+        return false;
+    }
 
-    if (strcmp(appsDebugId, "_all_") == 0)
-    {
-        *responseBuf = "{\"capabilities\":[\"*\"]}";
-        return true;
-    }
+    if (appId == NULL || appId[0] == '\0')
+    {
+        return false;
+    }
 
-    return false;
+    *responseBuf = strdup(allCapabilitiesJson);
+    if (*responseBuf == NULL)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 /*
