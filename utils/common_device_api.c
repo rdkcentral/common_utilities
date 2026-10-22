@@ -360,7 +360,6 @@ size_t GetBuildType( char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeO
  *
  * @return true on success, false otherwise.
  */
-bool getSecureDebugConfig(const char *appId, char **responseBuf);
 bool getSecureDebugConfig(const char *appId, char **responseBuf)
 {
     static const char *allCapabilitiesJson =
