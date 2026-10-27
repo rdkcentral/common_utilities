@@ -1089,7 +1089,7 @@ unsigned int getFileLastModifyTime(char *file_name)
         COMMONUTILITIES_ERROR("File: %s not present: %d\n", file_name, ret);
         return 0;
     }
-    COMMONUTILITIES_INFO("Last mod time: %lu\n", attr.st_mtime);
+    COMMONUTILITIES_INFO("Last mod time: %lld\n", (long long)attr.st_mtime);
     return attr.st_mtime;
 }
 
@@ -1104,7 +1104,7 @@ time_t getCurrentSysTimeSec(void)
         COMMONUTILITIES_INFO("time return error\n");
         return 0;
     } else {
-        COMMONUTILITIES_INFO("current system time=%lu\n", curtime);
+        COMMONUTILITIES_INFO("current system time=%lld\n", (long long)curtime);
     }
     return curtime;
 }

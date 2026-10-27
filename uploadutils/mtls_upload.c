@@ -28,6 +28,8 @@
 
 #include "rdkv_cdl_log_wrapper.h"
 
+#include <unistd.h>
+
 /* External declarations for utility functions */
 extern void __uploadutil_set_status(long http_code, int curl_code);
 extern bool __uploadutil_get_ocsp(void);
@@ -37,10 +39,85 @@ extern const char* __uploadutil_get_md5(void);
 #include "rdkcertselector.h"
 #endif
 
+#if defined(DEVICE_EXTENDER) && defined(LIBRDKCONFIG_BUILD)
+#include <stdint.h>
+#include "rdkconfig.h"
+#endif
+
 #define FILESCHEME "file://"
 #define URL_MAX 512
 #define PATHNAME_MAX 256
 #define S3_URL_BUF 1024
+
+#if defined(DEVICE_EXTENDER) && defined(LIBRDKCONFIG_BUILD)
+#define EXTENDER_DYNAMIC_CERT "/mnt/data/pstore/certs/devicecert_1.pk12"
+#define EXTENDER_STATIC_CERT  "/usr/opensync/certs/cert.p12"
+#define EXTENDER_DYNAMIC_CFG  "/tmp/.cfgDynamicxpki"
+#define EXTENDER_STATIC_CFG   "/tmp/.cfgStaticxpki"
+
+static int fill_extender_p12_auth(MtlsAuth_t *sec)
+{
+    const char *cert = NULL;
+    const char *cfgref = NULL;
+    uint8_t *mtls_buf = NULL;
+    size_t mtls_size = 0;
+    size_t n;
+
+    if (!sec)
+    {
+        return -1;
+    }
+    memset(sec, 0, sizeof(*sec));
+
+    if (access(EXTENDER_DYNAMIC_CERT, F_OK) == 0)
+    {
+        cert = EXTENDER_DYNAMIC_CERT;
+        cfgref = EXTENDER_DYNAMIC_CFG;
+    }
+    else if (access(EXTENDER_STATIC_CERT, F_OK) == 0)
+    {
+        cert = EXTENDER_STATIC_CERT;
+        cfgref = EXTENDER_STATIC_CFG;
+    }
+    else
+    {
+        COMMONUTILITIES_ERROR("%s: Extender mTLS certs not found\n", __FUNCTION__);
+        return -1;
+    }
+
+    if (rdkconfig_get(&mtls_buf, &mtls_size, cfgref) == RDKCONFIG_FAIL || mtls_buf == NULL || mtls_size == 0)
+    {
+        COMMONUTILITIES_ERROR("%s: rdkconfig_get failed for extender mTLS\n", __FUNCTION__);
+        if (mtls_buf)
+        {
+            (void)rdkconfig_free(&mtls_buf, mtls_size);
+        }
+        return -1;
+    }
+
+    n = mtls_size;
+    if (n >= sizeof(sec->key_pas))
+    {
+        n = sizeof(sec->key_pas) - 1;
+    }
+    memcpy(sec->key_pas, mtls_buf, n);
+    sec->key_pas[n] = '\0';
+    {
+        char *nl = strchr(sec->key_pas, '\n');
+        if (nl)
+        {
+            *nl = '\0';
+        }
+    }
+    (void)rdkconfig_free(&mtls_buf, mtls_size);
+
+    snprintf(sec->cert_name, sizeof(sec->cert_name), "%s", cert);
+    snprintf(sec->cert_type, sizeof(sec->cert_type), "%s", "P12");
+    COMMONUTILITIES_INFO("%s: Using extender P12 cert=%s type=%s\n",
+                         __FUNCTION__, sec->cert_name, sec->cert_type);
+    return 0;
+}
+#endif
 
 /**
  * @brief Retrieve mTLS certificate for upload operation
@@ -251,15 +328,85 @@ int performMetadataPostWithCertRotationEx(const char *upload_url, const char *fi
                                           const char *extra_fields, MtlsAuth_t *sec_out,
                                           long *http_code_out)
 {
-#ifdef LIBRDKCERTSELECTOR
-    void *curl = NULL;
-    static rdkcertselector_h certSelector = NULL;
-    int result = -1;
-
     if (!upload_url || !filepath_output || !sec_out || !http_code_out) {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
+
+#if defined(DEVICE_EXTENDER) && defined(LIBRDKCONFIG_BUILD)
+    {
+        void *curl = NULL;
+        MtlsAuth_t sec;
+        FileUpload_t file_upload;
+        char urlbuf[URL_MAX];
+        char pathbuf[PATHNAME_MAX];
+        int curl_ret_code = -1;
+        long http_code = 0;
+        int result = -1;
+
+        if (fill_extender_p12_auth(&sec) != 0)
+        {
+            return -1;
+        }
+
+        curl = doCurlInit();
+        if (!curl)
+        {
+            COMMONUTILITIES_ERROR("%s: Failed to initialize curl\n", __FUNCTION__);
+            memset(sec.key_pas, 0, sizeof(sec.key_pas));
+            return -1;
+        }
+
+        if (__uploadutil_get_ocsp())
+        {
+            CURLcode cret = curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1L);
+            if (cret != CURLE_OK)
+            {
+                COMMONUTILITIES_ERROR("%s: CURLOPT_SSL_VERIFYSTATUS failed: %s\n",
+                                      __FUNCTION__, curl_easy_strerror(cret));
+            }
+        }
+
+        memset(&file_upload, 0, sizeof(file_upload));
+        snprintf(urlbuf, sizeof(urlbuf), "%s", upload_url);
+        snprintf(pathbuf, sizeof(pathbuf), "%s", filepath_output);
+        file_upload.url = urlbuf;
+        file_upload.pathname = pathbuf;
+#ifdef L2UPLOADENABLED
+        file_upload.sslverify = 0;
+#else
+        file_upload.sslverify = 1;
+#endif
+        file_upload.hashData = NULL;
+        file_upload.pPostFields = (char *)extra_fields;
+
+        curl_ret_code = performHttpMetadataPost(curl, &file_upload, &sec, &http_code);
+        *http_code_out = http_code;
+        if (curl_ret_code == 0 && http_code >= 200 && http_code < 300)
+        {
+            COMMONUTILITIES_INFO("%s: Extender metadata POST success (HTTP %ld)\n",
+                                 __FUNCTION__, http_code);
+            memcpy(sec_out, &sec, sizeof(sec));
+            __uploadutil_set_status(http_code, curl_ret_code);
+            result = 0;
+        }
+        else
+        {
+            COMMONUTILITIES_ERROR("%s: Extender metadata POST failed curl=%d http=%ld\n",
+                                  __FUNCTION__, curl_ret_code, http_code);
+            __uploadutil_set_status(http_code, curl_ret_code);
+            result = -1;
+        }
+        memset(sec.key_pas, 0, sizeof(sec.key_pas));
+        doStopUpload(curl);
+        return result;
+    }
+#endif
+
+#ifdef LIBRDKCERTSELECTOR
+    void *curl = NULL;
+    static rdkcertselector_h certSelector = NULL;
+    int result = -1;
 
     /* Initialize certificate selector if not already done */
     if (!certSelector) {

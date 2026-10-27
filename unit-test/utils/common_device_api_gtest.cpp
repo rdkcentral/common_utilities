@@ -478,6 +478,165 @@ TEST_F(CommonDeviceApiTestFixture, CurrentRunningInst_File_found)
     EXPECT_EQ(CurrentRunningInst("/tmp/.rfcServiceLock"), true);
     ret = system("rm -rf /tmp/.rfcServiceLock");
 }
+
+TEST_F(CommonDeviceApiTestFixture, GetFileContents_NonemptyFile_ReturnsAllocatedExactContents)
+{
+    char file_path[] = "/tmp/common_device_contents_XXXXXX";
+    int fd = mkstemp(file_path);
+    ASSERT_NE(fd, -1);
+    const char payload[] = "first line\nsecond line";
+    ASSERT_EQ(write(fd, payload, sizeof(payload) - 1), sizeof(payload) - 1);
+    ASSERT_EQ(close(fd), 0);
+    char *contents = NULL;
+
+    EXPECT_EQ(GetFileContents(&contents, file_path), sizeof(payload));
+    ASSERT_NE(contents, nullptr);
+    EXPECT_STREQ(contents, payload);
+
+    free(contents);
+    EXPECT_EQ(unlink(file_path), 0);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetFileContents_EmptyFile_ReturnsAllocatedEmptyString)
+{
+    char file_path[] = "/tmp/common_device_contents_XXXXXX";
+    int fd = mkstemp(file_path);
+    ASSERT_NE(fd, -1);
+    ASSERT_EQ(close(fd), 0);
+    char *contents = NULL;
+
+    EXPECT_EQ(GetFileContents(&contents, file_path), 1u);
+    ASSERT_NE(contents, nullptr);
+    EXPECT_STREQ(contents, "");
+
+    free(contents);
+    EXPECT_EQ(unlink(file_path), 0);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetFileContents_InvalidOrMissingInput_ReturnsNoContents)
+{
+    char missing_file[] = "/tmp/nonexistent_common_device_contents";
+    char *contents = reinterpret_cast<char*>(0x1);
+
+    EXPECT_EQ(GetFileContents(&contents, missing_file), 0u);
+    EXPECT_EQ(contents, nullptr);
+    EXPECT_EQ(GetFileContents(NULL, missing_file), 0u);
+    EXPECT_EQ(GetFileContents(&contents, NULL), 0u);
+}
+
+TEST_F(CommonDeviceApiTestFixture, makeHttpHttps_HttpAndCapacityBoundaries_ConvertOnlyWithRoom)
+{
+    char url[64] = "http://example.com/path";
+    EXPECT_EQ(makeHttpHttps(url, sizeof(url)), strlen("https://example.com/path"));
+    EXPECT_STREQ(url, "https://example.com/path");
+
+    char full_buffer[] = "http://x";
+    EXPECT_EQ(makeHttpHttps(full_buffer, strlen(full_buffer) + 1), strlen("http://x"));
+    EXPECT_STREQ(full_buffer, "http://x");
+    EXPECT_EQ(makeHttpHttps(NULL, 10), 0u);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetCapabilities_ValidAndSmallBuffers_ReportRequiredLength)
+{
+    const char expected[] = "rebootDecoupled&capabilities=RCDL&capabilities=supportsFullHttpUrl";
+    char output[128];
+    char small[8];
+
+    EXPECT_EQ(GetCapabilities(output, sizeof(output)), strlen(expected));
+    EXPECT_STREQ(output, expected);
+    EXPECT_EQ(GetCapabilities(small, sizeof(small)), strlen(expected));
+    EXPECT_STREQ(small, "rebootD");
+    EXPECT_EQ(GetCapabilities(NULL, sizeof(output)), 0u);
+}
+
+TEST_F(CommonDeviceApiTestFixture, get_system_uptime_ValidAndNullOutputs_ReportStatus)
+{
+    double uptime = 0.0;
+
+    EXPECT_TRUE(get_system_uptime(&uptime));
+    EXPECT_GT(uptime, 0.0);
+    EXPECT_FALSE(get_system_uptime(NULL));
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetUTCTime_ValidBuffer_ReturnsFormattedUtcTime)
+{
+    char output[64];
+
+    size_t length = GetUTCTime(output, sizeof(output));
+
+    ASSERT_GT(length, 0u);
+    EXPECT_EQ(length, strlen(output));
+    EXPECT_NE(strstr(output, " UTC "), nullptr);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetUTCTime_SmallBuffer_ReturnsZeroAndClearsOutput)
+{
+    char output[4] = "old";
+
+    EXPECT_EQ(GetUTCTime(output, sizeof(output)), 0u);
+    EXPECT_STREQ(output, "");
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetUTCTime_NullOutput_ReturnsZero)
+{
+    EXPECT_EQ(GetUTCTime(NULL, 64), 0u);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetTimezone_OutputJsonPresent_ReturnsJsonTimezone)
+{
+    std::ofstream properties("/tmp/device.properties");
+    ASSERT_TRUE(properties.is_open());
+    properties << "DEVICE_NAME=NONPLATCO\n";
+    properties.close();
+    std::ofstream output_json("/tmp/output.json");
+    ASSERT_TRUE(output_json.is_open());
+    output_json << "{\"timezone\": \"America/Chicago\"}\n";
+    output_json.close();
+    char timezone[64];
+
+    EXPECT_EQ(GetTimezone(timezone, "x86", sizeof(timezone)), strlen("America/Chicago"));
+    EXPECT_STREQ(timezone, "America/Chicago");
+
+    EXPECT_EQ(unlink("/tmp/output.json"), 0);
+    EXPECT_EQ(unlink("/tmp/device.properties"), 0);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetTimezone_JsonMissing_UsesDstFile)
+{
+    std::ofstream properties("/tmp/device.properties");
+    ASSERT_TRUE(properties.is_open());
+    properties << "DEVICE_NAME=NONPLATCO\n";
+    properties.close();
+    ASSERT_EQ(unlink("/tmp/output.json"), -1);
+    std::ofstream dst_file("/tmp/timeZoneDST");
+    ASSERT_TRUE(dst_file.is_open());
+    dst_file << "Europe/London\n";
+    dst_file.close();
+    char timezone[64];
+
+    EXPECT_EQ(GetTimezone(timezone, "x86", sizeof(timezone)), strlen("Europe/London"));
+    EXPECT_STREQ(timezone, "Europe/London");
+
+    EXPECT_EQ(unlink("/tmp/timeZoneDST"), 0);
+    EXPECT_EQ(unlink("/tmp/device.properties"), 0);
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetTimezone_AllTimezoneFilesMissing_UsesUniversalDefault)
+{
+    std::ofstream properties("/tmp/device.properties");
+    ASSERT_TRUE(properties.is_open());
+    properties << "DEVICE_NAME=NONPLATCO\n";
+    properties.close();
+    ASSERT_EQ(unlink("/tmp/output.json"), -1);
+    ASSERT_EQ(unlink("/tmp/timeZoneDST"), -1);
+    char timezone[64];
+
+    EXPECT_EQ(GetTimezone(timezone, "x86", sizeof(timezone)), strlen("Universal"));
+    EXPECT_STREQ(timezone, "Universal");
+
+    EXPECT_EQ(unlink("/tmp/device.properties"), 0);
+}
+
 GTEST_API_ int main(int argc, char *argv[]){
     char testresults_fullfilepath[GTEST_REPORT_FILEPATH_SIZE];
     char buffer[GTEST_REPORT_FILEPATH_SIZE];

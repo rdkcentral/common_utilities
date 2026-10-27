@@ -784,6 +784,7 @@ size_t GetFileContents( char **pOut, char *pFileName )
         else
         {
             COMMONUTILITIES_ERROR("GetFileContents: getFileSize failed for %s\n", pFileName);
+            len = 0;
         }
         *pOut = pBuf;
     }

@@ -20,7 +20,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 # Define the program name and the source files
-bin_PROGRAMS = uploadUtil_gtest upload_status_gtest codebig_upload_gtest mtls_upload_gtest
+bin_PROGRAMS = uploadUtil_gtest upload_status_gtest codebig_upload_gtest mtls_upload_gtest mtls_upload_extender_gtest
 
 # Define the include directories
 COMMON_CPPFLAGS = -std=c++11 -I/usr/include/cjson -I../../utils -I../../mocks -I../../uploadutils -I../../dwnlutils -I../../parsejson -DGTEST_ENABLE -DLIBRDKCERTSELECTOR
@@ -32,7 +32,7 @@ COMMON_LDADD = -lcjson -lgcov -lcurl -lgtest -lgtest_main -lgmock_main -lgmock -
 COMMON_CXXFLAGS = -frtti -fprofile-arcs -ftest-coverage -fpermissive
 
 # Define the source files
-uploadUtil_gtest_SOURCES = uploadUtil_gtest.cpp ../../uploadutils/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c
+uploadUtil_gtest_SOURCES = uploadUtil_gtest.cpp ../mocks/curl_mock.cpp ../../uploadutils/uploadUtil.c ../../utils/rdkv_cdl_log_wrapper.c ../../parsejson/json_parse.c
 
 upload_status_gtest_SOURCES = upload_status_gtest.cpp ../../uploadutils/upload_status.c ../../utils/rdkv_cdl_log_wrapper.c
 
@@ -41,7 +41,7 @@ codebig_upload_gtest_SOURCES = codebig_upload_gtest.cpp ../../uploadutils/codebi
 mtls_upload_gtest_SOURCES = mtls_upload_gtest.cpp ../../uploadutils/mtls_upload.c  ../../utils/rdkv_cdl_log_wrapper.c 
 
 # Apply common properties to each program
-uploadUtil_gtest_CPPFLAGS = $(COMMON_CPPFLAGS)
+uploadUtil_gtest_CPPFLAGS = $(COMMON_CPPFLAGS) -I../mocks
 uploadUtil_gtest_LDADD = $(COMMON_LDADD)
 uploadUtil_gtest_CXXFLAGS = $(COMMON_CXXFLAGS)
 uploadUtil_gtest_CFLAGS = $(COMMON_CXXFLAGS)
@@ -60,3 +60,10 @@ mtls_upload_gtest_CPPFLAGS = $(COMMON_CPPFLAGS)
 mtls_upload_gtest_LDADD = $(COMMON_LDADD)
 mtls_upload_gtest_CXXFLAGS = $(COMMON_CXXFLAGS)
 mtls_upload_gtest_CFLAGS = $(COMMON_CXXFLAGS)
+
+# Separate binary so existing certselector L1 is unchanged.
+mtls_upload_extender_gtest_SOURCES = mtls_upload_extender_gtest.cpp ../../uploadutils/mtls_upload.c ../../utils/rdkv_cdl_log_wrapper.c
+mtls_upload_extender_gtest_CPPFLAGS = $(COMMON_CPPFLAGS) -I../mocks -DDEVICE_EXTENDER -DLIBRDKCONFIG_BUILD
+mtls_upload_extender_gtest_LDADD = $(COMMON_LDADD)
+mtls_upload_extender_gtest_CXXFLAGS = $(COMMON_CXXFLAGS)
+mtls_upload_extender_gtest_CFLAGS = $(COMMON_CXXFLAGS) -I../mocks -DDEVICE_EXTENDER -DLIBRDKCONFIG_BUILD -Daccess=mock_extender_access
