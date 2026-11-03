@@ -113,6 +113,7 @@ size_t GetMFRName(char *pMFRName, size_t szBufSize );
 */
 size_t GetBuildType(char *pBuildType, size_t szBufSize, BUILDTYPE *peBuildTypeOut);
 
+bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf);
 /*
  * Determines whether debug services are enabled.
  *
