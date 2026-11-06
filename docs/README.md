@@ -253,7 +253,7 @@ The following table summarizes selected fixed runtime paths. Other APIs accept c
 | `/opt/output.json` / `/tmp/output.json` | `common_device_api.c` | Timezone lookup for non-PLATCO devices (`/tmp/output.json` on x86) |
 | `/tmp/partnerId.out`                  | `common_device_api.c` | Partner-ID fallback for `GetPartnerId()` |
 | `/tmp/.manufacturer`                  | `common_device_api.c` | Manufacturer name read by `GetMFRName()` |
-| `/opt/enable_secure_dbg` (`/tmp/enable_secure_dbg` on x86) | `common_device_api.h` | Secure-debug state flag path (`SECURE_DEBUG_STATE_FILE`) |
+| `/opt/enable_secure_dbg` (`/tmp/enable_secure_dbg` when built with `GTEST_ENABLE`) | `common_device_api.h` | Secure-debug state flag path (`SECURE_DEBUG_STATE_FILE`) |
 | `/etc/debug.ini`                      | `rdkv_cdl_log_wrapper.h` | RDK log configuration (via RDK logger)                                     |
 | `/opt/logs/tlsError.log`              | `rdkv_cdl_log_wrapper.h` | TLS error log output destination                                           |
 | `/opt/curl_progress`                  | `urlHelper.h`            | Download progress tracking (path constant defined in header)               |
@@ -876,7 +876,7 @@ No Device Services or HAL API integration is implemented in `common_utilities`. 
 | HTTP              | Non-2xx response code        | S3 PUT and higher-level metadata wrappers treat it as failure; `performHttpMetadataPost()` exposes it through `out_httpCode` for the caller to validate |
 | File I/O          | `fopen` / `fgets` failure    | Logged with `COMMONUTILITIES_ERROR`, function returns failure code                                                  |
 | JSON              | `cJSON_Parse` failure        | `ParseJsonStr` returns `NULL`; callers check return before use                                                      |
-| Device properties | File not found               | `getDevicePropertyData` returns `UTILS_FAIL`; fields remain at zero-initialized default                             |
+| Device properties | File not found               | `getDevicePropertyData` returns `UTILS_FAIL` and leaves the output buffer unchanged; callers must initialize it and check the return value |
 | Upload Stage 1    | No presigned URL in response | `extractS3PresignedUrl` returns `-1` if response file is empty or missing                                           |
 
 ---
