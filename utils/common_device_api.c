@@ -742,7 +742,8 @@ size_t GetFileContents( char **pOut, char *pFileName )
 {
     FILE *fp;
     char *pBuf = NULL;
-    char *pPtr;
+    int fileSize;
+    size_t bytesRead;
     size_t len = 0;
 
     COMMONUTILITIES_DEBUG("GetFileContents: Called with filename '%s'\n", 
@@ -751,22 +752,29 @@ size_t GetFileContents( char **pOut, char *pFileName )
     if( pOut != NULL && pFileName != NULL )
     {
         COMMONUTILITIES_INFO( "GetFileContents: pFileName = %s\n", pFileName );
-        if( (len=(size_t)getFileSize( pFileName )) != -1 )
-        {
-            COMMONUTILITIES_INFO( "GetFileContents: file len = %zu\n", len );
+        if( (fileSize=getFileSize( pFileName )) >= 0 && (size_t)fileSize < (size_t)-1 )
+	{
+            len = (size_t)fileSize;
+	    COMMONUTILITIES_INFO( "GetFileContents: file len = %zu\n", len );
             if( (fp=fopen( pFileName, "r" )) != NULL )
             {
                 ++len;  // room for NULL, included in return value
                 pBuf = malloc( len );
                 if( pBuf != NULL )
                 {
-                    pPtr = pBuf;
-                    while( ((*pPtr=(char)fgetc( fp )) != EOF) && !feof( fp ) )
+                    bytesRead = fread( pBuf, 1, len - 1, fp );
+                    if( fgetc( fp ) != EOF || ferror( fp ) || bytesRead != len - 1 )
                     {
-                        ++pPtr;
+                        COMMONUTILITIES_ERROR("GetFileContents: File size changed or read failed for %s\n", pFileName);
+                        free( pBuf );
+                        pBuf = NULL;
+                        len = 0;
                     }
-                    *pPtr = 0;
-                    COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", len-1);
+                    else
+                    {
+                         pBuf[bytesRead] = '\0';
+                         COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", bytesRead);
+                    }
                 }
                 else
                 {
