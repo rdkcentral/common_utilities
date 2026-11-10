@@ -21,7 +21,9 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <sys/time.h>
-
+#include <libgen.h>
+#include <limits.h>
+#include <fcntl.h>
 #include "rdkv_cdl_log_wrapper.h"
 
 #define DEFAULT_CONN_IDLE_SECS  118
@@ -350,6 +352,61 @@ static size_t header_callback(char *buffer, size_t size, size_t nitems, void *us
     return nitems * size;
 }
 
+static int validateDownloadPath(const char *inputPath, char *safePath, size_t safePathSize)
+{
+    char tmpPath[PATH_MAX] = {0};
+    char *baseName = NULL;
+
+    if ((inputPath == NULL) || (safePath == NULL) || (safePathSize == 0))
+    {
+        return 0;
+    }
+
+    if ((strnlen(inputPath, PATH_MAX) == 0) || (strnlen(inputPath, PATH_MAX) >= PATH_MAX))
+    {
+        return 0;
+    }
+
+    /* Reject traversal attempts */
+    if (strstr(inputPath, "..") != NULL)
+    {
+        COMMONUTILITIES_ERROR("%s: Path traversal detected [%s]\n",  __FUNCTION__, inputPath);
+        return 0;
+    }
+
+    if (strlcpy(tmpPath, inputPath, sizeof(tmpPath)) >= sizeof(tmpPath))
+    {
+        return 0;
+    }
+
+    /* Only keep filename component */
+    baseName = basename(tmpPath);
+
+    if ((baseName == NULL) || (*baseName == '\0'))
+    {
+        return 0;
+    }
+
+    while (*baseName)
+    {
+        if (!(isalnum((unsigned char)*baseName) || (*baseName == '.') || (*baseName == '_') || (*baseName == '-')))
+        {
+	COMMONUTILITIES_ERROR("%s: Invalid filename\n", __FUNCTION__);
+            return 0;
+        }
+        baseName++;
+    }
+
+    baseName = basename(tmpPath);
+
+    if (snprintf(safePath, safePathSize, "%s/%s", DIFW_PATH, baseName) >= (int)safePathSize)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
 /* urlHelperGetHeaderInfo(): Used for get curl request header data
  * url: Request server url
  * httpCode: Use for return http status to called function.
@@ -640,18 +697,48 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
         strncpy(file_open_mode, "rb+", sizeof(file_open_mode) - 1);
     }
 
-    COMMONUTILITIES_INFO("urlHelperDownloadFile() download file name with path:%s and file open mode=%s\n", file, file_open_mode);
-    data.pvOut = (void*)fopen(file, file_open_mode);
-    if(data.pvOut == NULL) {
-        COMMONUTILITIES_INFO("urlHelperDownloadFile(): File open Fail:%s\n", file);
+    if (!validateDownloadPath(file, safeFilePath, sizeof(safeFilePath)))
+    {
+        COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, file);
         return 0;
     }
+
+    COMMONUTILITIES_INFO("urlHelperDownloadFile() validated path:%s and file open mode=%s\n", safeFilePath, file_open_mode);
+
+    if (dnl_start_pos == NULL)
+    {
+        fd = open(safeFilePath, O_CREAT | O_WRONLY | O_TRUNC | O_NOFOLLOW, 0644);
+    }
+    else
+    {
+        fd = open(safeFilePath, O_CREAT | O_RDWR | O_NOFOLLOW, 0644);
+    }
+
+    if (fd < 0)
+    {
+        COMMONUTILITIES_ERROR("urlHelperDownloadFile(): File open Fail:%s\n", safeFilePath);
+        return 0;
+    }
+
+    data.pvOut = (void *)fdopen(fd, file_open_mode);
+
+    if (data.pvOut == NULL)
+    {
+        close(fd);
+        return 0;
+    }
+
     /*If the download request is not chunk download then dump header information to separate file
      * if the request is chunkdownload then already header information file is present so no need to dump
      * again header information */
     if (dnl_start_pos == NULL) {
-        snprintf(header_dump, sizeof(header_dump), "%s.header", file);
-        COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
+        if (snprintf(header_dump, sizeof(header_dump), "%s.header", safeFilePath) >= sizeof(header_dump))
+        {
+            COMMONUTILITIES_ERROR("%s: header path truncated\n", __FUNCTION__);
+            closeFile(pData, NULL, NULL);
+            return 0;
+        }
+	COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
         headerfile = fopen(header_dump, "w");
         if(headerfile == NULL) {
             COMMONUTILITIES_ERROR("CURL: path=%s file unable to open\n", header_dump);
