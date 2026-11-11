@@ -28,6 +28,9 @@
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
+#include <stdint.h>
+#include <limits.h>
+#include <unistd.h>
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
@@ -738,62 +741,94 @@ size_t GetTimezone( char *pTimezone, const char *cpuArch, size_t szBufSize )
             Notes - GetFileContents uses malloc to allocate the the buffer where the string is stored.
                     The caller must use free(*pOut) when done using the buffer to avoid memory leaks.
 */
-size_t GetFileContents( char **pOut, char *pFileName )
+size_t GetFileContents(char **pOut, char *pFileName)
 {
-    FILE *fp;
+    FILE *fp = NULL;
     char *pBuf = NULL;
-    char *pPtr;
+    struct stat st;
     size_t len = 0;
+    size_t bytesRead = 0;
 
-    COMMONUTILITIES_DEBUG("GetFileContents: Called with filename '%s'\n", 
-                         pFileName ? pFileName : "NULL");
+    COMMONUTILITIES_DEBUG("GetFileContents: Called with filename '%s'\n", pFileName ? pFileName : "NULL");
 
-    if( pOut != NULL && pFileName != NULL )
+    if ((pOut == NULL) || (pFileName == NULL))
     {
-        COMMONUTILITIES_INFO( "GetFileContents: pFileName = %s\n", pFileName );
-        if( (len=(size_t)getFileSize( pFileName )) != -1 )
-        {
-            COMMONUTILITIES_INFO( "GetFileContents: file len = %zu\n", len );
-            if( (fp=fopen( pFileName, "r" )) != NULL )
-            {
-                ++len;  // room for NULL, included in return value
-                pBuf = malloc( len );
-                if( pBuf != NULL )
-                {
-                    pPtr = pBuf;
-                    while( ((*pPtr=(char)fgetc( fp )) != EOF) && !feof( fp ) )
-                    {
-                        ++pPtr;
-                    }
-                    *pPtr = 0;
-                    COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", len-1);
-                }
-                else
-                {
-                    len = 0;
-                    COMMONUTILITIES_ERROR("GetFileContents: malloc failed for size %zu\n", len);
-                }
-                fclose( fp );
-            }
-            else
-            {
-                COMMONUTILITIES_ERROR("GetFileContents: Failed to open file %s\n", pFileName);
-                len = 0;
-            }
-        }
-        else
-        {
-            COMMONUTILITIES_ERROR("GetFileContents: getFileSize failed for %s\n", pFileName);
-            len = 0;
-        }
-        *pOut = pBuf;
+        COMMONUTILITIES_ERROR( "GetFileContents: Error, input argument NULL\n");
+        return 0;
     }
-    else
+
+    *pOut = NULL;
+
+    COMMONUTILITIES_INFO("GetFileContents: pFileName = %s\n", pFileName);
+
+    /* Open file first */
+    fp = fopen(pFileName, "r");
+    if (fp == NULL)
     {
-        COMMONUTILITIES_ERROR( "GetFileContents: Error, input argument NULL\n" );
+        COMMONUTILITIES_ERROR("GetFileContents: Failed to open file %s\n", pFileName);
+        return 0;
     }
-    return len;
+
+    /* Get size from opened file descriptor */
+    if (fstat(fileno(fp), &st) != 0)
+    {
+        COMMONUTILITIES_ERROR("GetFileContents: fstat failed for %s\n", pFileName);
+        fclose(fp);
+        return 0;
+    }
+
+    /* Reject FIFO, socket, device files */
+    if (!S_ISREG(st.st_mode))
+    {
+        COMMONUTILITIES_ERROR("GetFileContents: %s is not a regular file\n", pFileName);
+        fclose(fp);
+        return 0;
+    }
+
+    /* Validate size before converting to size_t */
+    if ((st.st_size < 0) || ((uintmax_t)st.st_size > (SIZE_MAX - 1)))
+    {
+        COMMONUTILITIES_ERROR("GetFileContents: Invalid file size %ld\n", (long)st.st_size);
+        fclose(fp);
+        return 0;
+    }
+
+    len = (size_t)st.st_size;
+
+    COMMONUTILITIES_INFO("GetFileContents: file len = %zu\n", len);
+
+    /* +1 for NULL terminator */
+    pBuf = (char *)malloc(len + 1);
+    if (pBuf == NULL)
+    {
+        COMMONUTILITIES_ERROR("GetFileContents: malloc failed for size %zu\n", len + 1);
+        fclose(fp);
+        return 0;
+    }
+
+    /* Bounded read */
+    bytesRead = fread(pBuf, 1, len, fp);
+
+    if (ferror(fp))
+    {
+        COMMONUTILITIES_ERROR("GetFileContents: fread failed for %s\n", pFileName);
+        free(pBuf);
+        fclose(fp);
+        return 0;
+    }
+
+    /* Safe NULL termination */
+    pBuf[bytesRead] = '\0';
+
+    fclose(fp);
+
+    *pOut = pBuf;
+
+    COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", bytesRead);
+
+    return bytesRead + 1;
 }
+
 
 /* function makeHttpHttps - converts http:// URLs to https:// in place.
 
