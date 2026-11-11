@@ -826,7 +826,7 @@ size_t GetFileContents(char **pOut, char *pFileName)
 
     COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", bytesRead);
 
-    return bytesRead;
+    return bytesRead + 1;
 }
 
 
