@@ -36,7 +36,7 @@
  * Do not derive this value from the requested file path.
  */
 #ifndef DOWNLOAD_STAGING_DIR
-#error "Define DOWNLOAD_STAGING_DIR or pass a trusted staging directory to the download helper"
+#error "/opt/CDL"
 #endif
 
 pthread_once_t initOnce = PTHREAD_ONCE_INIT;
