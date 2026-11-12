@@ -745,6 +745,8 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
     char header_dump[DWNL_PATH_FILE_LEN + 16];
     char validated_filename[NAME_MAX] = {0};
     bool resume = false;
+    char header_name[NAME_MAX];
+    int ret;
 
     if(curl == NULL || file == NULL || httpCode_ret_status == NULL || curl_ret_status == NULL) {
         COMMONUTILITIES_ERROR("urlHelperDownloadFile(): pathname not present or parameter is NULL\n");
@@ -776,9 +778,6 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
      * if the request is chunkdownload then already header information file is present so no need to dump
      * again header information */
     if (dnl_start_pos == NULL) {
-        char header_name[NAME_MAX];
-        int ret;
-
         ret = snprintf(header_name, sizeof(header_name), "%s.header", validated_filename);
 
         if ((ret < 0) || (ret >= (int)sizeof(header_name))){
@@ -786,7 +785,6 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
 	    closeFile(pData, NULL, NULL);
 	    return 0;
         }
-     }
 
      ret = snprintf(header_dump, sizeof(header_dump), "%s/%s", DOWNLOAD_STAGING_DIR, header_name);
 
