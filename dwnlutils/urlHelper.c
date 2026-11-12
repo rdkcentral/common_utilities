@@ -21,11 +21,23 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <sys/time.h>
-
+#include <fcntl.h>
+#include <libgen.h>
+#include <limits.h>
+#include <unistd.h>
+#include <errno.h>
 #include "rdkv_cdl_log_wrapper.h"
 
 #define DEFAULT_CONN_IDLE_SECS  118
 #define TLSVERSION     CURL_SSLVERSION_TLSv1_2
+
+/*
+ * Must be set to a trusted, existing download directory.
+ * Do not derive this value from the requested file path.
+ */
+#ifndef DOWNLOAD_STAGING_DIR
+#error "Define DOWNLOAD_STAGING_DIR or pass a trusted staging directory to the download helper"
+#endif
 
 pthread_once_t initOnce = PTHREAD_ONCE_INIT;
 
@@ -603,6 +615,111 @@ void closeFile(DownloadData *data, struct curlprogress *prog, FILE *fp)
 		fclose(fp);
 	}
 }
+
+static FILE *openStagedFile(const char *requested_path, bool resume, char *sanitized_name, size_t sanitized_name_len)
+{
+    char path_copy[PATH_MAX];
+    char canonical_dir[PATH_MAX];
+    char candidate[PATH_MAX];
+    char *filename = NULL;
+    size_t dir_len;
+    int dir_fd = -1;
+    int file_fd = -1;
+    int flags;
+    struct stat st;
+    FILE *fp = NULL;
+
+    if ((requested_path == NULL) || (strstr(requested_path, "..") != NULL))
+    {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (snprintf(path_copy, sizeof(path_copy), "%s", requested_path) >= (int)sizeof(path_copy))
+    {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    filename = basename(path_copy);
+
+    if ((filename == NULL) || (*filename == '\0') || (strcmp(filename, ".") == 0) || (strcmp(filename, "..") == 0))
+    {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (realpath(DOWNLOAD_STAGING_DIR, canonical_dir) == NULL)
+    {
+        return NULL;
+    }
+
+    if (snprintf(candidate, sizeof(candidate), "%s/%s", canonical_dir, filename) >= (int)sizeof(candidate))
+    {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    dir_len = strlen(canonical_dir);
+
+    if ((strncmp(candidate, canonical_dir, dir_len) != 0) || (candidate[dir_len] != '/'))
+    {
+        errno = EPERM;
+        return NULL;
+    }
+
+    dir_fd = open(canonical_dir, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+
+    if (dir_fd < 0)
+    {
+        return NULL;
+    }
+
+    flags = (resume ? O_RDWR : (O_WRONLY | O_CREAT)) | O_NOFOLLOW | O_CLOEXEC;
+
+    file_fd = openat(dir_fd, filename, flags, 0600);
+
+    close(dir_fd);
+
+    if (file_fd < 0)
+    {
+        return NULL;
+    }
+
+    if ((fstat(file_fd, &st) != 0) || !S_ISREG(st.st_mode) || (st.st_nlink != 1))
+    {
+        close(file_fd);
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (!resume)
+    {
+        if (ftruncate(file_fd, 0) != 0)
+        {
+            close(file_fd);
+            return NULL;
+        }
+    }
+
+    if ((sanitized_name != NULL) && (sanitized_name_len > 0))
+    {
+        strncpy(sanitized_name, filename, sanitized_name_len - 1);
+
+        sanitized_name[sanitized_name_len - 1] = '\0';
+    }
+
+    fp = fdopen(file_fd,
+                resume ? "rb+" : "wb");
+
+    if (fp == NULL)
+    {
+        close(file_fd);
+    }
+
+    return fp;
+}
+
 /* urlHelperDownloadFile(): Use for download a file
  * curl : Curl Object
  * file : path with file name to download
@@ -625,7 +742,9 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
     int seek_ret = -1;
     CURLcode ret_code = -1;
     FILE *headerfile = NULL;
-    char header_dump[128];
+    char header_dump[DWNL_PATH_FILE_LEN + 16];
+    char validated_filename[NAME_MAX] = {0};
+    bool resume = false;
 
     if(curl == NULL || file == NULL || httpCode_ret_status == NULL || curl_ret_status == NULL) {
         COMMONUTILITIES_ERROR("urlHelperDownloadFile(): pathname not present or parameter is NULL\n");
@@ -640,25 +759,55 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
         strncpy(file_open_mode, "rb+", sizeof(file_open_mode) - 1);
     }
 
-    COMMONUTILITIES_INFO("urlHelperDownloadFile() download file name with path:%s and file open mode=%s\n", file, file_open_mode);
-    data.pvOut = (void*)fopen(file, file_open_mode);
-    if(data.pvOut == NULL) {
-        COMMONUTILITIES_INFO("urlHelperDownloadFile(): File open Fail:%s\n", file);
-        return 0;
+    resume = (dnl_start_pos != NULL);
+
+    COMMONUTILITIES_INFO("urlHelperDownloadFile() download file name with path:%s and file open mode=%s\n",
+		         file, file_open_mode);
+
+    data.pvOut = (void *)openStagedFile(file, resume, validated_filename, sizeof(validated_filename));
+
+    if (data.pvOut == NULL){
+         COMMONUTILITIES_ERROR("urlHelperDownloadFile(): secure open failed for %s : %s\n", file, strerror(errno));
+
+    return 0;
     }
+
     /*If the download request is not chunk download then dump header information to separate file
      * if the request is chunkdownload then already header information file is present so no need to dump
      * again header information */
     if (dnl_start_pos == NULL) {
-        snprintf(header_dump, sizeof(header_dump), "%s.header", file);
-        COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
-        headerfile = fopen(header_dump, "w");
-        if(headerfile == NULL) {
-            COMMONUTILITIES_ERROR("CURL: path=%s file unable to open\n", header_dump);
+        char header_name[NAME_MAX];
+        int ret;
+
+        ret = snprintf(header_name, sizeof(header_name), "%s.header", validated_filename);
+
+        if ((ret < 0) || (ret >= (int)sizeof(header_name))){
+	    COMMONUTILITIES_ERROR("%s: header filename truncated\n", __FUNCTION__);
 	    closeFile(pData, NULL, NULL);
-            return 0;
+	    return 0;
         }
-        ret_code = curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+     }
+
+     ret = snprintf(header_dump, sizeof(header_dump), "%s/%s", DOWNLOAD_STAGING_DIR, header_name);
+
+     if ((ret < 0) || (ret >= (int)sizeof(header_dump))){
+	     COMMONUTILITIES_ERROR("%s: header path truncated\n", __FUNCTION__);
+
+             closeFile(pData, NULL, NULL);
+             return 0;
+      }
+
+      COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
+
+      headerfile = openStagedFile(header_dump, false, NULL, 0);
+
+      if (headerfile == NULL){
+          COMMONUTILITIES_ERROR("CURL: secure open failed for header file %s : %s\n", header_dump, strerror(errno));
+
+          closeFile(pData, NULL, NULL);
+          return 0;
+      }
+	ret_code = curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
         if(ret_code != CURLE_OK) {
             COMMONUTILITIES_ERROR("CURL: CURLOPT_HEADERFUNCTION set failed\n");
             closeFile(pData, NULL, headerfile);
