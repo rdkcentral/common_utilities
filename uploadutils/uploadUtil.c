@@ -41,32 +41,6 @@ void doStopUpload(void *curl)
     }
 }
 
-static bool isHttpsUrl(const char *url)
-{
-    CURLU *parsed = curl_url();
-    char *scheme = NULL;
-    char *host = NULL;
-    CURLUcode rc;
-    bool valid = false;
-
-    if (!parsed)
-        return false;
-
-    rc = curl_url_set(parsed, CURLUPART_URL, url, 0);
-    if (rc == CURLUE_OK)
-        rc = curl_url_get(parsed, CURLUPART_SCHEME, &scheme, 0);
-    if (rc == CURLUE_OK)
-        rc = curl_url_get(parsed, CURLUPART_HOST, &host, 0);
-
-    valid = (rc == CURLUE_OK && scheme && host && host[0] &&
-             curl_strequal(scheme, "https"));
-
-    curl_free(scheme);
-    curl_free(host);
-    curl_url_cleanup(parsed);
-    return valid;
-}
-
 int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url_sz)
 {
     if (!result_file || !out_url || out_url_sz == 0) {
@@ -86,12 +60,12 @@ int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url
         return -1;
     }
     
-        /* Remove trailing CR/LF */
+    /* Remove trailing CR/LF */
     size_t len = strcspn(out_url, "\r\n");
     out_url[len] = '\0';
 
     /* Only HTTPS URLs are allowed */
-    if (!isHttpsUrl(out_url)) {
+    if (!curl_strnequal(out_url, "https://", 8)) {
         fclose(fp);
         COMMONUTILITIES_ERROR("%s: Invalid S3 URL scheme\n", __FUNCTION__);
         return -1;
