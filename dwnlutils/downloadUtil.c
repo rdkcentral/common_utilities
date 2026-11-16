@@ -326,7 +326,11 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 #endif
     if( *pfile_dwnl->pathname )
     {
-        byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, dnl_start_pos, pfile_dwnl->chunk_dwnl_retry_time, out_httpCode, &curl_status);
+        if ((strstr(pfile_dwnl->pathname, "../") != NULL) || (strstr(pfile_dwnl->pathname, "./") != NULL) {
+             COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
+             return DWNL_FAIL;
+        }
+	byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, dnl_start_pos, pfile_dwnl->chunk_dwnl_retry_time, out_httpCode, &curl_status);
     }
     else
     {
