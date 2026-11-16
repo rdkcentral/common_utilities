@@ -326,7 +326,7 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 #endif
     if( *pfile_dwnl->pathname )
     {
-        if ((strstr(pfile_dwnl->pathname, "../") != NULL) || (strstr(pfile_dwnl->pathname, "./") != NULL) {
+        if ((strstr(pfile_dwnl->pathname, "../") != NULL) || (strstr(pfile_dwnl->pathname, "./") != NULL)) {
              COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
              return DWNL_FAIL;
         }
