@@ -193,6 +193,72 @@ TEST_F(UploadUtilTest, extractS3PresignedUrl_TrailingNewline_StripsNewline) {
     EXPECT_EQ(0, unlink(test_file));
 }
 
+TEST_F(UploadUtilTest, extractS3PresignedUrl_TrailingCarriageReturnAndLineFeed_StripsBoth) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
+    char url_buffer[256];
+    const char* expected_url = "HTTPS://s3.amazonaws.com/bucket/key?signature=xyz";
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(static_cast<ssize_t>(strlen(expected_url)),
+              write(fd, expected_url, strlen(expected_url)));
+    ASSERT_EQ(2, write(fd, "\r\n", 2));
+    ASSERT_EQ(0, close(fd));
+
+    int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
+
+    EXPECT_EQ(0, result);
+    EXPECT_STREQ(expected_url, url_buffer);
+    EXPECT_EQ(0, unlink(test_file));
+}
+
+TEST_F(UploadUtilTest, extractS3PresignedUrl_RejectsHttpScheme) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
+    char url_buffer[256];
+    const char* invalid_url = "http://s3.amazonaws.com/bucket/key?signature=xyz";
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(static_cast<ssize_t>(strlen(invalid_url)),
+              write(fd, invalid_url, strlen(invalid_url)));
+    ASSERT_EQ(0, close(fd));
+
+    int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
+
+    EXPECT_EQ(-1, result);
+    EXPECT_EQ(0, unlink(test_file));
+}
+
+TEST_F(UploadUtilTest, extractS3PresignedUrl_RejectsOtherScheme) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
+    char url_buffer[256];
+    const char* invalid_url = "ftp://s3.amazonaws.com/bucket/key?signature=xyz";
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(static_cast<ssize_t>(strlen(invalid_url)),
+              write(fd, invalid_url, strlen(invalid_url)));
+    ASSERT_EQ(0, close(fd));
+
+    int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
+
+    EXPECT_EQ(-1, result);
+    EXPECT_EQ(0, unlink(test_file));
+}
+
+TEST_F(UploadUtilTest, extractS3PresignedUrl_RejectsMissingScheme) {
+    char test_file[] = "/tmp/uploadutil_response_XXXXXX";
+    char url_buffer[256];
+    const char* invalid_url = "s3.amazonaws.com/bucket/key?signature=xyz";
+    int fd = mkstemp(test_file);
+    ASSERT_NE(-1, fd);
+    ASSERT_EQ(static_cast<ssize_t>(strlen(invalid_url)),
+              write(fd, invalid_url, strlen(invalid_url)));
+    ASSERT_EQ(0, close(fd));
+
+    int result = extractS3PresignedUrl(test_file, url_buffer, sizeof(url_buffer));
+
+    EXPECT_EQ(-1, result);
+    EXPECT_EQ(0, unlink(test_file));
+}
+
 TEST_F(UploadUtilTest, extractS3PresignedUrl_InvalidParameters) {
     char url_buffer[256];
     
@@ -281,6 +347,17 @@ TEST_F(UploadUtilTest, performS3PutUpload_CommonSetupFailure_DestroysCurl) {
     g_set_common_result = CURLE_URL_MALFORMAT;
     EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_URL_MALFORMAT))
         .WillOnce(Return("URL malformed"));
+#if defined(CURLOPT_PROTOCOLS_STR)
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+#else
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+#endif
 
     EXPECT_EQ(-1, performS3PutUpload(s3_url, "/tmp/test.log", nullptr));
     EXPECT_EQ(1, g_destroy_call_count);
@@ -291,6 +368,17 @@ TEST_F(UploadUtilTest, performS3PutUpload_MtlsSetupFailure_DestroysCurl) {
     g_set_mtls_result = CURLE_SSL_CERTPROBLEM;
     EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_SSL_CERTPROBLEM))
         .WillOnce(Return("certificate problem"));
+#if defined(CURLOPT_PROTOCOLS_STR)
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+#else
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+#endif
 
     EXPECT_EQ(-1, performS3PutUpload(s3_url, "/tmp/test.log", &mtls_auth));
     EXPECT_EQ(1, g_destroy_call_count);
@@ -300,6 +388,21 @@ TEST_F(UploadUtilTest, performS3PutUpload_MissingLocalFile_DestroysCurl) {
     const char* s3_url = "https://s3.amazonaws.com/bucket/key";
     const char* local_file = "/tmp/nonexistent_uploadutil_file_12345.log";
     ASSERT_EQ(-1, unlink(local_file));
+#if defined(CURLOPT_PROTOCOLS_STR)
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, _))
+        .WillOnce(Return(CURLE_OK));
+#else
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, _))
+        .WillOnce(Return(CURLE_OK));
+#endif
 
     EXPECT_EQ(-1, performS3PutUpload(s3_url, local_file, nullptr));
     EXPECT_EQ(1, g_destroy_call_count);
@@ -310,8 +413,25 @@ TEST_F(UploadUtilTest, performS3PutUpload_HttpSuccess_ReturnsSuccessAndReportsSt
     int fd = mkstemp(local_file);
     ASSERT_NE(-1, fd);
     ASSERT_EQ(0, close(fd));
-    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
-        .Times(3).WillRepeatedly(Return(CURLE_OK));
+#if defined(CURLOPT_PROTOCOLS_STR)
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+#else
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+#endif
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PUT, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_READDATA, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_INFILESIZE_LARGE, _))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
         .WillOnce(Invoke([](CURL*, CURLINFO, void* output) {
@@ -331,8 +451,25 @@ TEST_F(UploadUtilTest, performS3PutUpload_TransportFailure_ReturnsFailureAndRepo
     int fd = mkstemp(local_file);
     ASSERT_NE(-1, fd);
     ASSERT_EQ(0, close(fd));
-    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
-        .Times(3).WillRepeatedly(Return(CURLE_OK));
+#if defined(CURLOPT_PROTOCOLS_STR)
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+#else
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+#endif
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PUT, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_READDATA, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_INFILESIZE_LARGE, _))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OPERATION_TIMEDOUT));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
         .WillOnce(Return(CURLE_OK));
@@ -349,8 +486,25 @@ TEST_F(UploadUtilTest, performS3PutUpload_HttpFailure_ReturnsFailureAndReportsSt
     int fd = mkstemp(local_file);
     ASSERT_NE(-1, fd);
     ASSERT_EQ(0, close(fd));
-    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
-        .Times(3).WillRepeatedly(Return(CURLE_OK));
+#if defined(CURLOPT_PROTOCOLS_STR)
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS_STR, _))
+        .WillOnce(Return(CURLE_OK));
+#else
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, _))
+        .WillOnce(Return(CURLE_OK));
+#endif
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PUT, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_READDATA, _))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_INFILESIZE_LARGE, _))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
         .WillOnce(Invoke([](CURL*, CURLINFO, void* output) {
