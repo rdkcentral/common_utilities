@@ -748,19 +748,17 @@ size_t GetFileContents(char **pOut, char *pFileName)
     struct stat st;
     size_t len = 0;
     size_t bytesRead = 0;
-
+	
     COMMONUTILITIES_DEBUG("GetFileContents: Called with filename '%s'\n", pFileName ? pFileName : "NULL");
-
+	
     if ((pOut == NULL) || (pFileName == NULL))
     {
         COMMONUTILITIES_ERROR( "GetFileContents: Error, input argument NULL\n");
         return 0;
     }
-
     *pOut = NULL;
-
-    COMMONUTILITIES_INFO("GetFileContents: pFileName = %s\n", pFileName);
-
+    
+	COMMONUTILITIES_INFO("GetFileContents: pFileName = %s\n", pFileName);
     /* Open file first */
     fp = fopen(pFileName, "r");
     if (fp == NULL)
@@ -768,7 +766,6 @@ size_t GetFileContents(char **pOut, char *pFileName)
         COMMONUTILITIES_ERROR("GetFileContents: Failed to open file %s\n", pFileName);
         return 0;
     }
-
     /* Get size from opened file descriptor */
     if (fstat(fileno(fp), &st) != 0)
     {
@@ -776,7 +773,6 @@ size_t GetFileContents(char **pOut, char *pFileName)
         fclose(fp);
         return 0;
     }
-
     /* Reject FIFO, socket, device files */
     if (!S_ISREG(st.st_mode))
     {
@@ -784,7 +780,6 @@ size_t GetFileContents(char **pOut, char *pFileName)
         fclose(fp);
         return 0;
     }
-
     /* Validate size before converting to size_t */
     if ((st.st_size < 0) || ((uintmax_t)st.st_size > (SIZE_MAX - 1)))
     {
@@ -792,11 +787,9 @@ size_t GetFileContents(char **pOut, char *pFileName)
         fclose(fp);
         return 0;
     }
-
     len = (size_t)st.st_size;
-
-    COMMONUTILITIES_INFO("GetFileContents: file len = %zu\n", len);
-
+   
+	COMMONUTILITIES_INFO("GetFileContents: file len = %zu\n", len);
     /* +1 for NULL terminator */
     pBuf = (char *)malloc(len + 1);
     if (pBuf == NULL)
@@ -805,10 +798,8 @@ size_t GetFileContents(char **pOut, char *pFileName)
         fclose(fp);
         return 0;
     }
-
     /* Bounded read */
     bytesRead = fread(pBuf, 1, len, fp);
-
     if (ferror(fp))
     {
         COMMONUTILITIES_ERROR("GetFileContents: fread failed for %s\n", pFileName);
@@ -816,19 +807,13 @@ size_t GetFileContents(char **pOut, char *pFileName)
         fclose(fp);
         return 0;
     }
-
     /* Safe NULL termination */
     pBuf[bytesRead] = '\0';
-
     fclose(fp);
-
     *pOut = pBuf;
-
     COMMONUTILITIES_DEBUG("GetFileContents: Successfully read file, length %zu\n", bytesRead);
-
     return bytesRead + 1;
 }
-
 
 /* function makeHttpHttps - converts http:// URLs to https:// in place.
 
