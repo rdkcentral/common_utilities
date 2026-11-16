@@ -65,7 +65,7 @@ int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url
     out_url[len] = '\0';
 
     /* Only HTTPS URLs are allowed */
-    if (!curl_strnequal(out_url, "https://", 8) != 0) {
+    if (!curl_strnequal(out_url, "https://", 8)) {
         fclose(fp);
         COMMONUTILITIES_ERROR("%s: Invalid S3 URL scheme\n", __FUNCTION__);
         return -1;
