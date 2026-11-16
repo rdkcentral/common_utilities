@@ -41,6 +41,32 @@ void doStopUpload(void *curl)
     }
 }
 
+static bool isHttpsUrl(const char *url)
+{
+    CURLU *parsed = curl_url();
+    char *scheme = NULL;
+    char *host = NULL;
+    CURLUcode rc;
+    bool valid = false;
+
+    if (!parsed)
+        return false;
+
+    rc = curl_url_set(parsed, CURLUPART_URL, url, 0);
+    if (rc == CURLUE_OK)
+        rc = curl_url_get(parsed, CURLUPART_SCHEME, &scheme, 0);
+    if (rc == CURLUE_OK)
+        rc = curl_url_get(parsed, CURLUPART_HOST, &host, 0);
+
+    valid = (rc == CURLUE_OK && scheme && host && host[0] &&
+             curl_strequal(scheme, "https"));
+
+    curl_free(scheme);
+    curl_free(host);
+    curl_url_cleanup(parsed);
+    return valid;
+}
+
 int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url_sz)
 {
     if (!result_file || !out_url || out_url_sz == 0) {
