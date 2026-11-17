@@ -109,8 +109,8 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     }
     
     ret_code = curl_easy_setopt(curl,
-                                CURLOPT_PROTOCOLS_STR,
-                                "https");
+                                CURLOPT_PROTOCOLS,
+                                CURLPROTO_HTTPS);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: Failed to set protocol restriction: %s\n",
                               __FUNCTION__,
@@ -120,8 +120,8 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     }
 
     ret_code = curl_easy_setopt(curl,
-                                CURLOPT_REDIR_PROTOCOLS_STR,
-                                "https");
+                                CURLOPT_REDIR_PROTOCOLS,
+                                CURLPROTO_HTTPS);
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: Failed to set redirect protocol restriction: %s\n",
                               __FUNCTION__,
@@ -130,16 +130,6 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         return -1;
     }
 
-    ret_code = curl_easy_setopt(curl,
-                                CURLOPT_FOLLOWLOCATION,
-                                0L);
-    if (ret_code != CURLE_OK) {
-        COMMONUTILITIES_ERROR("%s: CURLOPT_FOLLOWLOCATION failed: %s\n",
-                              __FUNCTION__,
-                              curl_easy_strerror(ret_code));
-        urlHelperDestroyCurl(curl);
-        return -1;
-    }
 
     /* Set common curl options with NULL POST fields for PUT operation */
 #ifdef L2UPLOADENABLED
@@ -155,6 +145,21 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         return -1;
     }
     
+    /*
+     * setCommonCurlOpt() enables redirects.
+     * Override it here for PUT uploads.
+     */
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_FOLLOWLOCATION,
+                                0L);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: CURLOPT_FOLLOWLOCATION failed: %s\n",
+                              __FUNCTION__,
+                              curl_easy_strerror(ret_code));
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
+
     /* Apply mTLS if provided */
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
