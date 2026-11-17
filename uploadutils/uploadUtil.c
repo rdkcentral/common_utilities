@@ -145,7 +145,8 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         return -1;
     }
     
-    /* Keep redirects enabled by setCommonCurlOpt(), restricted to HTTPS above. */
+    /* Keep redirects enabled by setCommonCurlOpt(), restricted to HTTPS above. */
+
 
     /* Apply mTLS if provided */
     if (auth) {
@@ -252,6 +253,24 @@ int performHttpMetadataPost(void *in_curl,
         return (int)ret_code;
     }
 
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_PROTOCOLS,
+                                CURLPROTO_HTTPS);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: Failed to set protocol restriction: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        return (int)ret_code;
+    }
+
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_REDIR_PROTOCOLS,
+                                CURLPROTO_HTTPS);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: Failed to set redirect protocol restriction: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        return (int)ret_code;
+    }
+	
     /* Apply mTLS if provided */
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
