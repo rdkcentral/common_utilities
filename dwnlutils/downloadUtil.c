@@ -399,6 +399,10 @@ int doAuthHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, int *out_httpC
     {
         if ((strstr(pfile_dwnl->pathname, "../") != NULL)) {
              COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
+             if (slist != NULL) {
+                 curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
+                 curl_slist_free_all(slist);
+             }
              return DWNL_FAIL;
         }
 		byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, NULL, 0, out_httpCode, &curl_status);
