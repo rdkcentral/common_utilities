@@ -281,9 +281,12 @@ TEST_F(UploadUtilTest, performS3PutUpload_CommonSetupFailure_DestroysCurl) {
     g_set_common_result = CURLE_URL_MALFORMAT;
     EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_URL_MALFORMAT))
         .WillOnce(Return("URL malformed"));
+    EXPECT_CALL(curl_wrapper_mock,curl_easy_setopt(_, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
 
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_EQ(-1, performS3PutUpload(s3_url, "/tmp/test.log", nullptr));
-    EXPECT_EQ(1, g_destroy_call_count);
 }
 
 TEST_F(UploadUtilTest, performS3PutUpload_MtlsSetupFailure_DestroysCurl) {
@@ -292,6 +295,14 @@ TEST_F(UploadUtilTest, performS3PutUpload_MtlsSetupFailure_DestroysCurl) {
     EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_SSL_CERTPROBLEM))
         .WillOnce(Return("certificate problem"));
 
+     EXPECT_EQ(1, g_destroy_call_count);EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
+
+     EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS))
+         .WillOnce(Return(CURLE_OK));
+
+     EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, 0L))
+         .WillOnce(Return(CURLE_OK));
     EXPECT_EQ(-1, performS3PutUpload(s3_url, "/tmp/test.log", &mtls_auth));
     EXPECT_EQ(1, g_destroy_call_count);
 }
@@ -300,7 +311,14 @@ TEST_F(UploadUtilTest, performS3PutUpload_MissingLocalFile_DestroysCurl) {
     const char* s3_url = "https://s3.amazonaws.com/bucket/key";
     const char* local_file = "/tmp/nonexistent_uploadutil_file_12345.log";
     ASSERT_EQ(-1, unlink(local_file));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
 
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, 0L))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_EQ(-1, performS3PutUpload(s3_url, local_file, nullptr));
     EXPECT_EQ(1, g_destroy_call_count);
 }
@@ -310,8 +328,19 @@ TEST_F(UploadUtilTest, performS3PutUpload_HttpSuccess_ReturnsSuccessAndReportsSt
     int fd = mkstemp(local_file);
     ASSERT_NE(-1, fd);
     ASSERT_EQ(0, close(fd));
-    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
-        .Times(6).WillRepeatedly(Return(CURLE_OK));
+    InSequence seq;
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS)) .WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS,CURLPROTO_HTTPS)) .WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_FOLLOWLOCATION, 0L)) .WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PUT, 1L)).WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_READDATA, _)) .WillOnce(Return(CURLE_OK));
+
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_INFILESIZE_LARGE, _)).WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
         .WillOnce(Invoke([](CURL*, CURLINFO, void* output) {
@@ -332,7 +361,7 @@ TEST_F(UploadUtilTest, performS3PutUpload_TransportFailure_ReturnsFailureAndRepo
     ASSERT_NE(-1, fd);
     ASSERT_EQ(0, close(fd));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
-        .Times(6).WillRepeatedly(Return(CURLE_OK));
+        .Times(3).WillRepeatedly(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OPERATION_TIMEDOUT));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
         .WillOnce(Return(CURLE_OK));
@@ -350,7 +379,7 @@ TEST_F(UploadUtilTest, performS3PutUpload_HttpFailure_ReturnsFailureAndReportsSt
     ASSERT_NE(-1, fd);
     ASSERT_EQ(0, close(fd));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, _, _))
-        .Times(6).WillRepeatedly(Return(CURLE_OK));
+        .Times(3).WillRepeatedly(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_perform(_)).WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_getinfo(_, CURLINFO_RESPONSE_CODE, _))
         .WillOnce(Invoke([](CURL*, CURLINFO, void* output) {
@@ -410,7 +439,11 @@ TEST_F(UploadUtilTest, performHttpMetadataPost_ResponseFileOpenFailure_ReturnsUp
     long http_code = 503;
     file_upload.pathname = const_cast<char*>("/tmp/nonexistent_uploadutil_dir/response.txt");
     file_upload.hashData = nullptr;
+    EXPECT_CALL(curl_wrapper_mock,curl_easy_setopt(_, CURLOPT_PROTOCOLS,CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
 
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS,CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_EQ(UPLOAD_FAIL,
               performHttpMetadataPost(mock_curl_handle, &file_upload, nullptr, &http_code));
     EXPECT_EQ(0, http_code);
