@@ -63,10 +63,27 @@ int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url
     size_t len = strcspn(out_url, "\r\n");
     out_url[len] = '\0';
 
-    if (!curl_strnequal(out_url, "https://", 8)) {
-	    fclose(fp);
-	    COMMONUTILITIES_ERROR("%s: Invalid S3 URL scheme\n", __FUNCTION__);
-	    return -1;
+    CURLU *url = NULL;
+    char *scheme = NULL;
+    int valid = 0;
+
+    url = curl_url();
+
+    if ((url != NULL) &&
+        (curl_url_set(url, CURLUPART_URL, out_url, 0) == CURLUE_OK) &&
+        (curl_url_get(url, CURLUPART_SCHEME, &scheme, 0) == CURLUE_OK) &&
+        (strcasecmp(scheme, "https") == 0)){
+	    valid = 1;
+    }
+
+    curl_free(scheme);
+    curl_url_cleanup(url);
+
+    if (!valid){
+         fclose(fp);
+         COMMONUTILITIES_ERROR("%s: Invalid S3 URL scheme\n",
+                                __FUNCTION__);
+         return -1;
     }
 
     fclose(fp);
