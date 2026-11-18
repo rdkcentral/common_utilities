@@ -326,7 +326,11 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 #endif
     if( *pfile_dwnl->pathname )
     {
-        if ((strstr(pfile_dwnl->pathname, "../") != NULL)) {
+        const char *path = pfile_dwnl->pathname;
+        size_t path_len = strlen(path);
+        if (strcmp(path, "..") == 0 || strncmp(path, "../", 3) == 0 ||
+            strstr(path, "/../") != NULL ||
+            (path_len >= 3 && strcmp(path + path_len - 3, "/..") == 0)) {
              COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
 #ifdef CURL_DEBUG
              if (verbosinfo.verboslog) {
