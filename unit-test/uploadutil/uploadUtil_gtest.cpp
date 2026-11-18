@@ -397,6 +397,10 @@ TEST_F(UploadUtilTest, performHttpMetadataPost_MtlsSetupFailure_PropagatesError)
     void* mock_curl_handle = (void*)0x12345;
     long http_code = 503;
     g_set_mtls_result = CURLE_SSL_CERTPROBLEM;
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
     EXPECT_CALL(curl_wrapper_mock, curl_easy_strerror(CURLE_SSL_CERTPROBLEM))
         .WillOnce(Return("certificate problem"));
 
@@ -410,6 +414,10 @@ TEST_F(UploadUtilTest, performHttpMetadataPost_ResponseFileOpenFailure_ReturnsUp
     long http_code = 503;
     file_upload.pathname = const_cast<char*>("/tmp/nonexistent_uploadutil_dir/response.txt");
     file_upload.hashData = nullptr;
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
+    EXPECT_CALL(curl_wrapper_mock, curl_easy_setopt(_, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS))
+        .WillOnce(Return(CURLE_OK));
 
     EXPECT_EQ(UPLOAD_FAIL,
               performHttpMetadataPost(mock_curl_handle, &file_upload, nullptr, &http_code));
