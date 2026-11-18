@@ -409,7 +409,11 @@ int doAuthHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, int *out_httpC
         if ((strstr(pfile_dwnl->pathname, "../") != NULL)) {
              COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
              if (slist != NULL) {
-                 curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
+				 CURLcode rc;
+                 rc = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
+				 if (rc != CURLE_OK) {
+                     COMMONUTILITIES_ERROR("%s: CURLOPT_HTTPHEADER reset failed: %s\n", __FUNCTION__, curl_easy_strerror(rc));
+                 }
                  curl_slist_free_all(slist);
              }
              return DWNL_FAIL;
