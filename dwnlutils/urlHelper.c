@@ -652,12 +652,12 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
      * again header information */
     if (dnl_start_pos == NULL) {
         ret = snprintf(header_dump, sizeof(header_dump), "%s.header", file);
-	if ((ret < 0) || (ret >= (int)sizeof(header_dump))){
-		COMMONUTILITIES_ERROR("%s: header path truncated\n", __FUNCTION__);
-		closeFile(pData, NULL, NULL);
-		return 0;
-	}
-	COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
+	    if ((ret < 0) || (ret >= (int)sizeof(header_dump))){
+		     COMMONUTILITIES_ERROR("%s: header path truncated\n", __FUNCTION__);
+		     closeFile(pData, NULL, NULL);
+		     return 0;
+	    }
+	    COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
         headerfile = fopen(header_dump, "w");
         if(headerfile == NULL) {
             COMMONUTILITIES_ERROR("CURL: path=%s file unable to open\n", header_dump);
