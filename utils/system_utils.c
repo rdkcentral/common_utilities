@@ -1037,16 +1037,26 @@ static int isSafeTarPath(const char *path, size_t *path_length)
         return 0;
     }
     length = strnlen(path, PATH_MAX);
-    if (length < 2 || length >= PATH_MAX || path[length - 1] == '/') {
+    if (length < 2 || length >= PATH_MAX ) {
         return 0;
     }
     for (size_t index = 1; index <= length; index++) {
         unsigned char character = (unsigned char)path[index];
         if (character == '/' || character == '\0') {
             size_t component_length = index - component_start;
-            if (component_length == 0 ||
-                (component_length == 1 && path[component_start] == '.') ||
-                (component_length == 2 && path[component_start] == '.' && path[component_start + 1] == '.')) {
+             /* Allow trailing '/' */
+            if (component_length == 0) {
+                if (character == '\0') {
+                    break;
+                }
+                component_start = index + 1;
+                continue;
+            }
+            if ((component_length == 1 &&
+                 path[component_start] == '.') ||
+                (component_length == 2 &&
+                 path[component_start] == '.' &&
+                 path[component_start + 1] == '.')) {
                 return 0;
             }
             component_start = index + 1;
@@ -1113,31 +1123,39 @@ int tarExtract(char *in_file, char *out_path)
 int arExtract(char *in_file, char *out_path)
 {
     struct stat input_status;
-    struct stat output_status;
+    int out_dir_fd;
     pid_t child_pid;
     int child_status;
 
     if (!isSafeTarPath(in_file, NULL) || !isSafeTarPath(out_path, NULL) ||
-        lstat(in_file, &input_status) != 0 || !S_ISREG(input_status.st_mode) ||
-        stat(out_path, &output_status) != 0 || !S_ISDIR(output_status.st_mode)) {
-        COMMONUTILITIES_ERROR("Invalid ar input or output path\n");
+        lstat(in_file, &input_status) != 0 ||
+        !S_ISREG(input_status.st_mode)) {
+            COMMONUTILITIES_ERROR("Invalid ar input path\n");
+            return RDK_API_FAILURE;
+    }
+    out_dir_fd = open(out_path, O_RDONLY | O_DIRECTORY);
+    if (out_dir_fd < 0) {
+        COMMONUTILITIES_ERROR("Invalid ar output directory\n");
         return RDK_API_FAILURE;
     }
     child_pid = fork();
     if (child_pid < 0) {
+        close(out_dir_fd);
         COMMONUTILITIES_ERROR("Failed to start ar extraction\n");
         return RDK_API_FAILURE;
     }
 
     if (child_pid == 0) {
         char *const arguments[] = { "ar", "-x", in_file, NULL };
-        if (chdir(out_path) != 0) {
+        if (fchdir(out_dir_fd) != 0) {
+            close(out_dir_fd);
             _exit(127);
         }
+        close(out_dir_fd);
         execv("/usr/bin/ar", arguments);
         _exit(127);
     }
-
+    close(out_dir_fd);
     while (waitpid(child_pid, &child_status, 0) < 0) {
         if (errno != EINTR) {
             COMMONUTILITIES_ERROR("Failed waiting for ar extraction\n");
