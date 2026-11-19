@@ -251,6 +251,17 @@ bool get_system_uptime(double *uptime);
 
 size_t stripinvalidchar( char *pIn, size_t szIn );
 
-
+/**
+ * @brief Retrieves secure debug capabilities for the specified application.
+ *
+ * Checks whether secure debug is unlocked and returns the matching application's
+ * capabilities as a JSON string.
+ *
+ * @param appsDebugId Application ID for which capabilities are requested.
+ * @param responseBuf Output buffer containing the allocated JSON response. Caller must free it.
+ *
+ * @return true if the configuration is retrieved successfully, false otherwise.
+ */
+bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf);
 
 #endif
