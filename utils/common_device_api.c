@@ -31,6 +31,74 @@
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
+/**
+ * @brief Retrieves secure debug capabilities for the specified application.
+ *
+ * Checks whether secure debug is unlocked and returns the matching application's
+ * capabilities as a JSON string.
+ *
+ * @param appsDebugId Application ID for which capabilities are requested.
+ * @param responseBuf Output buffer containing the allocated JSON response. Caller must free it.
+ *
+ * @return true if the configuration is retrieved successfully, false otherwise.
+ */
+bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
+{
+    const char *jsonConfig =
+        "{"
+        "  \"__all__\": {"
+        "    \"capabilities\": [\"*\"]"
+        "  },"
+        "  \"Netflix\": {"
+        "    \"capabilities\": [\"AAPP_DBG\", \"AAPP_LOG\"]"
+        "  }"
+        "}";
+
+    if (!appsDebugId || !responseBuf)
+    {
+        COMMONUTILITIES_ERROR("%s: Invalid input arguments\n", __FUNCTION__);
+        return false;
+    }
+
+    *responseBuf = NULL;
+
+    if (!RDK_isDbgSrvUnlocked())
+    {
+        COMMONUTILITIES_INFO("%s: Secure debug is locked\n", __FUNCTION__);
+        return false;
+    }
+
+    cJSON *root = cJSON_Parse(jsonConfig);
+    if (!root)
+    {
+        COMMONUTILITIES_ERROR("%s: Failed to parse secure debug configuration\n", __FUNCTION__);
+        return false;
+    }
+
+    cJSON *config = cJSON_GetObjectItemCaseSensitive(root, appsDebugId);
+
+    if (config)
+    {
+        *responseBuf = cJSON_PrintUnformatted(config);
+        if (!*responseBuf)
+            COMMONUTILITIES_ERROR("%s: Failed to serialize configuration for %s\n", __FUNCTION__, appsDebugId);
+    }
+    else
+    {
+        COMMONUTILITIES_INFO("%s: No configuration found for application %s\n", __FUNCTION__, appsDebugId);
+    }
+
+    cJSON_Delete(root);
+
+    if (*responseBuf)
+    {
+        COMMONUTILITIES_INFO("%s: Secure debug configuration retrieved for %s\n", __FUNCTION__, appsDebugId);
+        return true;
+    }
+
+    return false;
+}
+
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 
