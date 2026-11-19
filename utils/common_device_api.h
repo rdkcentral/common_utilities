@@ -262,6 +262,6 @@ size_t stripinvalidchar( char *pIn, size_t szIn );
  *
  * @return true if the configuration is retrieved successfully, false otherwise.
  */
-bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
+bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf);
 
 #endif
