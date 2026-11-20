@@ -21,9 +21,13 @@
 #include "system_utils.h"
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <errno.h>
+#include <limits.h>
+#include <unistd.h>
 #include <sys/vfs.h>
 #include <sys/statfs.h>
 #include <sys/statvfs.h>
@@ -1024,22 +1028,87 @@ void copyCommandOutput (char *cmd, char *out, int len)
  *  @return  Returns status of the function.
  *  @retval  Returns RDK_API_SUCCESS on success, RDK_API_FAILURE otherwise.
  */
+
+static int isSafeTarPath(const char *path, size_t *path_length)
+{
+    size_t length;
+    size_t component_start = 1;
+
+    if (path == NULL || path[0] != '/') {
+        return 0;
+    }
+    length = strnlen(path, PATH_MAX);
+    if (length < 2 || length >= PATH_MAX ) {
+        return 0;
+    }
+    for (size_t index = 1; index <= length; index++) {
+        unsigned char character = (unsigned char)path[index];
+        if (character == '/' || character == '\0') {
+            size_t component_length = index - component_start;
+             /* Allow trailing '/' */
+            if (component_length == 0) {
+                if (character == '\0') {
+                    break;
+                }
+                component_start = index + 1;
+                continue;
+            }
+            if ((component_length == 1 &&
+                 path[component_start] == '.') ||
+                (component_length == 2 &&
+                 path[component_start] == '.' &&
+                 path[component_start + 1] == '.')) {
+                return 0;
+            }
+            component_start = index + 1;
+        } else if (!((character >= 'a' && character <= 'z') ||
+                     (character >= 'A' && character <= 'Z') ||
+                     (character >= '0' && character <= '9') ||
+                     character == '_' || character == '-' || character == '.')) {
+            return 0;
+        }
+    }
+    if (path_length != NULL) {
+        *path_length = length;
+    }
+    return 1;
+}
+
 int tarExtract(char *in_file, char *out_path)
 {
-    char buff[MAX_BUFF_SIZE] = {0};
+    struct stat input_status;
+    struct stat output_status;
+    pid_t child_pid;
+    int child_status;
 
-    if(in_file == NULL) {
-        COMMONUTILITIES_ERROR("Invalid input path\n");
+    if (!isSafeTarPath(in_file, NULL) || !isSafeTarPath(out_path, NULL) ||
+        lstat(in_file, &input_status) != 0 || !S_ISREG(input_status.st_mode) ||
+        stat(out_path, &output_status) != 0 || !S_ISDIR(output_status.st_mode)) {
+        COMMONUTILITIES_ERROR("Invalid tar input or output path\n");
         return RDK_API_FAILURE;
     }
-    if(out_path == NULL) {
-        COMMONUTILITIES_ERROR("Invalid output path\n");
+    child_pid = fork();
+    if (child_pid < 0) {
+        COMMONUTILITIES_ERROR("Failed to start tar extraction\n");
         return RDK_API_FAILURE;
     }
 
-    snprintf(buff, MAX_BUFF_SIZE, "tar -xvf %s -C %s", in_file, out_path);
+    if (child_pid == 0) {
+        char *const arguments[] = { "tar", "-x", "-C", out_path, "-f", in_file, NULL };
+        execv("/bin/tar", arguments);
+        _exit(127);
+    }
 
-    copyCommandOutput(buff, NULL, 0);
+    while (waitpid(child_pid, &child_status, 0) < 0) {
+        if (errno != EINTR) {
+            COMMONUTILITIES_ERROR("Failed waiting for tar extraction\n");
+            return RDK_API_FAILURE;
+        }
+    }
+    if (!WIFEXITED(child_status) || WEXITSTATUS(child_status) != 0) {
+        COMMONUTILITIES_ERROR("Tar extraction failed\n");
+        return RDK_API_FAILURE;
+    }
 
     return RDK_API_SUCCESS;
 }
@@ -1054,19 +1123,50 @@ int tarExtract(char *in_file, char *out_path)
  */
 int arExtract(char *in_file, char *out_path)
 {
-    char buff[MAX_BUFF_SIZE] = {0};
+    struct stat input_status;
+    int out_dir_fd;
+    pid_t child_pid;
+    int child_status;
 
-    if(in_file == NULL) {
-        COMMONUTILITIES_ERROR("Invalid input path\n");
+    if (!isSafeTarPath(in_file, NULL) || !isSafeTarPath(out_path, NULL) ||
+        lstat(in_file, &input_status) != 0 ||
+        !S_ISREG(input_status.st_mode)) {
+            COMMONUTILITIES_ERROR("Invalid ar input path\n");
+            return RDK_API_FAILURE;
+    }
+    out_dir_fd = open(out_path, O_RDONLY | O_DIRECTORY);
+    if (out_dir_fd < 0) {
+        COMMONUTILITIES_ERROR("Invalid ar output directory\n");
         return RDK_API_FAILURE;
     }
-    if(out_path == NULL) {
-        COMMONUTILITIES_ERROR("Invalid output path\n");
+    child_pid = fork();
+    if (child_pid < 0) {
+        close(out_dir_fd);
+        COMMONUTILITIES_ERROR("Failed to start ar extraction\n");
         return RDK_API_FAILURE;
     }
 
-    snprintf(buff, MAX_BUFF_SIZE, "cd %s;ar -x %s", out_path, in_file);
-    copyCommandOutput(buff, NULL, 0);
+    if (child_pid == 0) {
+        char *const arguments[] = { "ar", "-x", in_file, NULL };
+        if (fchdir(out_dir_fd) != 0) {
+            close(out_dir_fd);
+            _exit(127);
+        }
+        close(out_dir_fd);
+        execv("/usr/bin/ar", arguments);
+        _exit(127);
+    }
+    close(out_dir_fd);
+    while (waitpid(child_pid, &child_status, 0) < 0) {
+        if (errno != EINTR) {
+            COMMONUTILITIES_ERROR("Failed waiting for ar extraction\n");
+            return RDK_API_FAILURE;
+        }
+    }
+    if (!WIFEXITED(child_status) || WEXITSTATUS(child_status) != 0) {
+        COMMONUTILITIES_ERROR("Ar extraction failed\n");
+        return RDK_API_FAILURE;
+    }
 
     return RDK_API_SUCCESS;
 }
