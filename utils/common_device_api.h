@@ -258,7 +258,8 @@ size_t stripinvalidchar( char *pIn, size_t szIn );
  * capabilities as a JSON string.
  *
  * @param appsDebugId Application ID for which capabilities are requested.
- * @param responseBuf Output buffer containing the allocated JSON response. Caller must free it.
+ * @param responseBuf Caller-provided output buffer for the JSON response.
+ * @param responseBufSize Size of the output buffer in bytes.
  *
  * @return true if the configuration is retrieved successfully, false otherwise.
  */
