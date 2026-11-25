@@ -49,22 +49,20 @@ bool getSecureDebugConfig(const char *appsDebugId, char *responseBuf, size_t res
         "{"
         "  \"__all__\": {"
         "    \"capabilities\": [\"*\"]"
-        "  },"
-        "  \"Netflix\": {"
-        "    \"capabilities\": [\"AAPP_DBG\", \"AAPP_LOG\"]"
         "  }"
         "}";
 
     char *configString = NULL;
     size_t configSize = 0;
 
-    if (!appsDebugId || !responseBuf || responseBufSize == 0)
+    if (responseBuf && responseBufSize > 0)
+        *responseBuf = '\0';
+
+    if (!appsDebugId || appsDebugId[0] == '\0' || !responseBuf || responseBufSize == 0)
     {
         COMMONUTILITIES_ERROR("%s: Invalid input arguments\n", __FUNCTION__);
         return false;
     }
-
-    *responseBuf = '\0';
 
     if (!RDK_isDbgSrvUnlocked())
     {
