@@ -38,11 +38,12 @@
  * capabilities as a JSON string.
  *
  * @param appsDebugId Application ID for which capabilities are requested.
- * @param responseBuf Output buffer containing the allocated JSON response. Caller must free it.
+ * @param responseBuf Caller-provided buffer to store the JSON response.
+ * @param responseBufSize Size of the output buffer in bytes.
  *
  * @return true if the configuration is retrieved successfully, false otherwise.
  */
-bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
+bool getSecureDebugConfig(const char *appsDebugId, char *responseBuf, size_t responseBufSize)
 {
     const char *jsonConfig =
         "{"
@@ -54,13 +55,16 @@ bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
         "  }"
         "}";
 
-    if (!appsDebugId || !responseBuf)
+    char *configString = NULL;
+    size_t configSize = 0;
+
+    if (!appsDebugId || !responseBuf || responseBufSize == 0)
     {
         COMMONUTILITIES_ERROR("%s: Invalid input arguments\n", __FUNCTION__);
         return false;
     }
 
-    *responseBuf = NULL;
+    *responseBuf = '\0';
 
     if (!RDK_isDbgSrvUnlocked())
     {
@@ -79,8 +83,8 @@ bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
 
     if (config)
     {
-        *responseBuf = cJSON_PrintUnformatted(config);
-        if (!*responseBuf)
+        configString = cJSON_PrintUnformatted(config);
+        if (!configString)
             COMMONUTILITIES_ERROR("%s: Failed to serialize configuration for %s\n", __FUNCTION__, appsDebugId);
     }
     else
@@ -90,8 +94,20 @@ bool getSecureDebugConfig(const char *appsDebugId, char **responseBuf)
 
     cJSON_Delete(root);
 
-    if (*responseBuf)
+    if (configString)
     {
+        configSize = strlen(configString) + 1;
+
+        if (configSize > responseBufSize)
+        {
+            COMMONUTILITIES_ERROR("%s: Response buffer too small. Required: %zu, Available: %zu\n", __FUNCTION__, configSize, responseBufSize);
+            cJSON_free(configString);
+            return false;
+        }
+
+        snprintf(responseBuf, responseBufSize, "%s", configString);
+        cJSON_free(configString);
+
         COMMONUTILITIES_INFO("%s: Secure debug configuration retrieved for %s\n", __FUNCTION__, appsDebugId);
         return true;
     }
