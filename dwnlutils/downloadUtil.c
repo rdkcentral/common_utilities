@@ -326,7 +326,20 @@ int doHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, MtlsAuth_t *auth, 
 #endif
     if( *pfile_dwnl->pathname )
     {
-        byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, dnl_start_pos, pfile_dwnl->chunk_dwnl_retry_time, out_httpCode, &curl_status);
+        const char *path = pfile_dwnl->pathname;
+        size_t path_len = strlen(path);
+        if (strcmp(path, "..") == 0 || strncmp(path, "../", 3) == 0 ||
+            strstr(path, "/../") != NULL ||
+            (path_len >= 3 && strcmp(path + path_len - 3, "/..") == 0)) {
+             COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
+#ifdef CURL_DEBUG
+             if (verbosinfo.verboslog) {
+                 fclose(verbosinfo.verboslog);
+             }
+#endif
+             return DWNL_FAIL;
+        }
+	byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, dnl_start_pos, pfile_dwnl->chunk_dwnl_retry_time, out_httpCode, &curl_status);
     }
     else
     {
@@ -393,7 +406,19 @@ int doAuthHttpFileDownload(void *in_curl, FileDwnl_t *pfile_dwnl, int *out_httpC
 #endif
     if( *pfile_dwnl->pathname )
     {
-        byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, NULL, 0, out_httpCode, &curl_status);
+        if ((strstr(pfile_dwnl->pathname, "../") != NULL)) {
+             COMMONUTILITIES_ERROR("%s: Invalid download path [%s]\n", __FUNCTION__, pfile_dwnl->pathname);
+             if (slist != NULL) {
+				 CURLcode rc;
+                 rc = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
+				 if (rc != CURLE_OK) {
+                     COMMONUTILITIES_ERROR("%s: CURLOPT_HTTPHEADER reset failed: %s\n", __FUNCTION__, curl_easy_strerror(rc));
+                 }
+                 curl_slist_free_all(slist);
+             }
+             return DWNL_FAIL;
+        }
+		byte_dwnled = urlHelperDownloadFile(curl, pfile_dwnl->pathname, NULL, 0, out_httpCode, &curl_status);
     }
     else
     {
