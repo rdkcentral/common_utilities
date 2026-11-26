@@ -144,8 +144,6 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     }
     
     /* Keep redirects enabled by setCommonCurlOpt(), restricted to HTTPS above. */
-
-
     /* Apply mTLS if provided */
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
