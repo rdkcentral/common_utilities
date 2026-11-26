@@ -97,7 +97,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     FILE *fp = NULL;
     long http_code = 0;
     
-    if (!s3url || !localfile) {
+    if (!s3url || s3url[0] == '\0' || !localfile || localfile[0] == '\0') {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
