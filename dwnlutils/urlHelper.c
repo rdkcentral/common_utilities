@@ -625,7 +625,8 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
     int seek_ret = -1;
     CURLcode ret_code = -1;
     FILE *headerfile = NULL;
-    char header_dump[128];
+    char header_dump[DWNL_PATH_FILE_LEN + 16];
+    int ret = 0;
 
     if(curl == NULL || file == NULL || httpCode_ret_status == NULL || curl_ret_status == NULL) {
         COMMONUTILITIES_ERROR("urlHelperDownloadFile(): pathname not present or parameter is NULL\n");
@@ -650,8 +651,13 @@ size_t urlHelperDownloadFile(CURL *curl, const char *file, char *dnl_start_pos, 
      * if the request is chunkdownload then already header information file is present so no need to dump
      * again header information */
     if (dnl_start_pos == NULL) {
-        snprintf(header_dump, sizeof(header_dump), "%s.header", file);
-        COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
+        ret = snprintf(header_dump, sizeof(header_dump), "%s.header", file);
+	    if ((ret < 0) || (ret >= (int)sizeof(header_dump))){
+		     COMMONUTILITIES_ERROR("%s: header path truncated\n", __FUNCTION__);
+		     closeFile(pData, NULL, NULL);
+		     return 0;
+	    }
+	    COMMONUTILITIES_INFO("urlHelperDownloadFile(): Dump header info to file:%s\n", header_dump);
         headerfile = fopen(header_dump, "w");
         if(headerfile == NULL) {
             COMMONUTILITIES_ERROR("CURL: path=%s file unable to open\n", header_dump);
