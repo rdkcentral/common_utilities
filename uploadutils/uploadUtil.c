@@ -115,6 +115,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         COMMONUTILITIES_ERROR("%s: Failed to set protocol restriction: %s\n",
                               __FUNCTION__,
                               curl_easy_strerror(ret_code));
+        __uploadutil_set_status(0, (int)ret_code);
         urlHelperDestroyCurl(curl);
         return -1;
     }
@@ -126,6 +127,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         COMMONUTILITIES_ERROR("%s: Failed to set redirect protocol restriction: %s\n",
                               __FUNCTION__,
                               curl_easy_strerror(ret_code));
+        __uploadutil_set_status(0, (int)ret_code);
         urlHelperDestroyCurl(curl);
         return -1;
     }
