@@ -129,15 +129,13 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         urlHelperDestroyCurl(curl);
         return -1;
     }
-
-
     /* Set common curl options with NULL POST fields for PUT operation */
 #ifdef L2UPLOADENABLED
     ret_code = setCommonCurlOpt(curl, s3url, NULL, false);
 #else
     ret_code = setCommonCurlOpt(curl, s3url, NULL, true);
 #endif
-    
+	
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: setCommonCurlOpt failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
