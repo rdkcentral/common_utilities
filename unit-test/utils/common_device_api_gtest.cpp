@@ -437,6 +437,104 @@ TEST_F(CommonDeviceApiTestFixture, SecureDbg_VBNUnlocked)
     cleanupSecureDebugTestFiles();
 }
 
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_All_Success)
+{
+    cleanupSecureDebugTestFiles();
+    writeSecureDebugDeviceProperties("vbn", nullptr);
+
+    char response[128] = {0};
+    EXPECT_TRUE(getSecureDebugConfig("__all__", response, sizeof(response)));
+    EXPECT_STREQ(response, "{\"capabilities\":[\"*\"]}");
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_UnconfiguredApplication)
+{
+    cleanupSecureDebugTestFiles();
+    writeSecureDebugDeviceProperties("vbn", nullptr);
+
+    char response[128] = "stale";
+    EXPECT_FALSE(getSecureDebugConfig("Netflix", response, sizeof(response)));
+    EXPECT_STREQ(response, "");
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_CaseSensitiveLookup)
+{
+    cleanupSecureDebugTestFiles();
+    writeSecureDebugDeviceProperties("vbn", nullptr);
+
+    char response[128] = "stale";
+    EXPECT_FALSE(getSecureDebugConfig("__ALL__", response, sizeof(response)));
+    EXPECT_STREQ(response, "");
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_SecureDebugLocked)
+{
+    cleanupSecureDebugTestFiles();
+    writeSecureDebugDeviceProperties("prod", nullptr);
+
+    char response[128] = "stale";
+    EXPECT_FALSE(getSecureDebugConfig("__all__", response, sizeof(response)));
+    EXPECT_STREQ(response, "");
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_NullArguments)
+{
+    char response[128] = "stale";
+    EXPECT_FALSE(getSecureDebugConfig(NULL, response, sizeof(response)));
+    EXPECT_FALSE(getSecureDebugConfig("Netflix", NULL, sizeof(response)));
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_EmptyApplicationId)
+{
+    char response[128] = "stale";
+    EXPECT_FALSE(getSecureDebugConfig("", response, sizeof(response)));
+    EXPECT_STREQ(response, "");
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_ZeroBufferSize)
+{
+    char response[128] = "stale";
+    EXPECT_FALSE(getSecureDebugConfig("Netflix", response, 0));
+    EXPECT_STREQ(response, "stale");
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_ExactBufferSize)
+{
+    cleanupSecureDebugTestFiles();
+    writeSecureDebugDeviceProperties("vbn", nullptr);
+
+    const char expectedJson[] = "{\"capabilities\":[\"*\"]}";
+    char response[sizeof(expectedJson)] = {0};
+    EXPECT_TRUE(getSecureDebugConfig("__all__", response, sizeof(expectedJson)));
+    EXPECT_STREQ(response, expectedJson);
+
+    cleanupSecureDebugTestFiles();
+}
+
+TEST_F(CommonDeviceApiTestFixture, GetSecureDebugConfig_BufferTooSmall)
+{
+    cleanupSecureDebugTestFiles();
+    writeSecureDebugDeviceProperties("vbn", nullptr);
+
+    const char expectedJson[] = "{\"capabilities\":[\"*\"]}";
+    char response[sizeof(expectedJson)] = {0};
+    response[sizeof(response) - 1] = 'G';
+
+    EXPECT_FALSE(getSecureDebugConfig("__all__", response, sizeof(expectedJson) - 1));
+    EXPECT_STREQ(response, "");
+    EXPECT_EQ(response[sizeof(response) - 1], 'G');
+
+    cleanupSecureDebugTestFiles();
+}
+
 /* 7. GetFirmwareVersion*/
 TEST_F(CommonDeviceApiTestFixture, GetFirmwareVersion_NULL_chracter)         /*3rd parameter revisit*/
 {
