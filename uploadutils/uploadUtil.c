@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>
-
+#include <strings.h>
 #include "rdkv_cdl_log_wrapper.h"
 
 /* External status tracking for enhanced wrapper functions */
@@ -59,11 +59,33 @@ int extractS3PresignedUrl(const char *result_file, char *out_url, size_t out_url
         COMMONUTILITIES_ERROR("%s: Failed to read S3 URL\n", __FUNCTION__);
         return -1;
     }
-    
-    size_t len = strlen(out_url);
-    if (len > 0 && out_url[len - 1] == '\n')
-        out_url[len - 1] = '\0';
-    
+
+    size_t len = strcspn(out_url, "\r\n");
+    out_url[len] = '\0';
+
+    CURLU *url = NULL;
+    char *scheme = NULL;
+    int valid = 0;
+
+    url = curl_url();
+
+    if ((url != NULL) &&
+        (curl_url_set(url, CURLUPART_URL, out_url, 0) == CURLUE_OK) &&
+        (curl_url_get(url, CURLUPART_SCHEME, &scheme, 0) == CURLUE_OK) &&
+        (strcasecmp(scheme, "https") == 0)){
+	    valid = 1;
+    }
+
+    curl_free(scheme);
+    curl_url_cleanup(url);
+
+    if (!valid){
+         fclose(fp);
+         COMMONUTILITIES_ERROR("%s: Invalid S3 URL scheme\n",
+                                __FUNCTION__);
+         return -1;
+    }
+
     fclose(fp);
     return 0;
 }
@@ -75,7 +97,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
     FILE *fp = NULL;
     long http_code = 0;
     
-    if (!s3url || !localfile) {
+    if (!s3url || s3url[0] == '\0' || !localfile || localfile[0] == '\0') {
         COMMONUTILITIES_ERROR("%s: Invalid parameters\n", __FUNCTION__);
         return -1;
     }
@@ -86,13 +108,36 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         return -1;
     }
     
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_PROTOCOLS,
+                                CURLPROTO_HTTPS);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: Failed to set protocol restriction: %s\n",
+                              __FUNCTION__,
+                              curl_easy_strerror(ret_code));
+        __uploadutil_set_status(0, (int)ret_code);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
+
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_REDIR_PROTOCOLS,
+                                CURLPROTO_HTTPS);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: Failed to set redirect protocol restriction: %s\n",
+                              __FUNCTION__,
+                              curl_easy_strerror(ret_code));
+        __uploadutil_set_status(0, (int)ret_code);
+        urlHelperDestroyCurl(curl);
+        return -1;
+    }
     /* Set common curl options with NULL POST fields for PUT operation */
 #ifdef L2UPLOADENABLED
     ret_code = setCommonCurlOpt(curl, s3url, NULL, false);
 #else
     ret_code = setCommonCurlOpt(curl, s3url, NULL, true);
 #endif
-    
+	
     if (ret_code != CURLE_OK) {
         COMMONUTILITIES_ERROR("%s: setCommonCurlOpt failed: %s\n",
                 __FUNCTION__, curl_easy_strerror(ret_code));
@@ -100,6 +145,7 @@ int performS3PutUpload(const char *s3url, const char *localfile, MtlsAuth_t *aut
         return -1;
     }
     
+    /* Keep redirects enabled by setCommonCurlOpt(), restricted to HTTPS above. */
     /* Apply mTLS if provided */
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
@@ -205,6 +251,24 @@ int performHttpMetadataPost(void *in_curl,
         return (int)ret_code;
     }
 
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_PROTOCOLS,
+                                CURLPROTO_HTTPS);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: Failed to set protocol restriction: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        return (int)ret_code;
+    }
+
+    ret_code = curl_easy_setopt(curl,
+                                CURLOPT_REDIR_PROTOCOLS,
+                                CURLPROTO_HTTPS);
+    if (ret_code != CURLE_OK) {
+        COMMONUTILITIES_ERROR("%s: Failed to set redirect protocol restriction: %s\n",
+                __FUNCTION__, curl_easy_strerror(ret_code));
+        return (int)ret_code;
+    }
+	
     /* Apply mTLS if provided */
     if (auth) {
         ret_code = setMtlsHeaders(curl, auth);
