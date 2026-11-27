@@ -34,6 +34,88 @@
 
 #define PARTNERID_INFO_FILE "/tmp/partnerId.out"
 
+/**
+ * @brief Retrieves secure debug capabilities for the specified application.
+ *
+ * Checks whether secure debug is unlocked and returns the matching application's
+ * capabilities as a JSON string.
+ *
+ * @param appsDebugId Application ID for which capabilities are requested.
+ * @param responseBuf Caller-provided buffer to store the JSON response.
+ * @param responseBufSize Size of the output buffer in bytes.
+ *
+ * @return true if the configuration is retrieved successfully, false otherwise.
+ */
+bool getSecureDebugConfig(const char *appsDebugId, char *responseBuf, size_t responseBufSize)
+{
+    const char *jsonConfig =
+        "{"
+        "  \"__all__\": {"
+        "    \"capabilities\": [\"*\"]"
+        "  }"
+        "}";
+
+    char *configString = NULL;
+    size_t configSize = 0;
+
+    if (responseBuf && responseBufSize > 0)
+        *responseBuf = '\0';
+
+    if (!appsDebugId || appsDebugId[0] == '\0' || !responseBuf || responseBufSize == 0)
+    {
+        COMMONUTILITIES_ERROR("%s: Invalid input arguments\n", __FUNCTION__);
+        return false;
+    }
+
+    if (!RDK_isDbgSrvUnlocked())
+    {
+        COMMONUTILITIES_INFO("%s: Secure debug is locked\n", __FUNCTION__);
+        return false;
+    }
+
+    cJSON *root = cJSON_Parse(jsonConfig);
+    if (!root)
+    {
+        COMMONUTILITIES_ERROR("%s: Failed to parse secure debug configuration\n", __FUNCTION__);
+        return false;
+    }
+
+    cJSON *config = cJSON_GetObjectItemCaseSensitive(root, appsDebugId);
+
+    if (config)
+    {
+        configString = cJSON_PrintUnformatted(config);
+        if (!configString)
+            COMMONUTILITIES_ERROR("%s: Failed to serialize configuration for %s\n", __FUNCTION__, appsDebugId);
+    }
+    else
+    {
+        COMMONUTILITIES_INFO("%s: No configuration found for application %s\n", __FUNCTION__, appsDebugId);
+    }
+
+    cJSON_Delete(root);
+
+    if (configString)
+    {
+        configSize = strlen(configString) + 1;
+
+        if (configSize > responseBufSize)
+        {
+            COMMONUTILITIES_ERROR("%s: Response buffer too small. Required: %zu, Available: %zu\n", __FUNCTION__, configSize, responseBufSize);
+            cJSON_free(configString);
+            return false;
+        }
+
+        snprintf(responseBuf, responseBufSize, "%s", configString);
+        cJSON_free(configString);
+
+        COMMONUTILITIES_INFO("%s: Secure debug configuration retrieved for %s\n", __FUNCTION__, appsDebugId);
+        return true;
+    }
+
+    return false;
+}
+
 /* function stripinvalidchar - truncates a string when a space or control
     character is encountered.
 

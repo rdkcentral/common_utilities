@@ -32,6 +32,8 @@ libfwutils_la_LDFLAGS = -shared -fPIC -lrdkloggers
 #libfwutils_la_LIBADD = $(top_builddir)/parsejson/libparsejson.la \
  #                      $(top_builddir)/dwnlutils/libdwnlutil.la
 
+libfwutils_la_LIBADD = $(cjson_LIBS)
+
 libfwutils_la_include_HEADERS = rdk_fwdl_utils.h \
 			        system_utils.h \
 			        rdkv_cdl_log_wrapper.h \
